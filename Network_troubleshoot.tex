@@ -1,0 +1,459 @@
+\chapter{Troubleshoot: Network}
+\label{chap:troubleshoot_network}
+
+\section{Switch vs. Router vs. Hub}
+
+A switch connects computers, printers, and servers within a building. A switch
+can be unmanaged or managed. 
+\begin{enumerate}
+  \item An unmanaged switch works right out-of-the-box, i.e. without
+  configuration. Thus, it has less network capability.
+  \item A managed switch is configurable. It can be controlled locally or
+  remotely. 
+\end{enumerate}
+A switch is designed to form a network by connecting different machines. A
+switch can send and receive at the same time. A swtich also analyze the packet
+and decide which machine it should send to.
+
+A hub is simpler than a switch. It can NOT identify the source or intended
+destination of the packets, so it sends to all the computers connecting to it,
+including the one that send it. A hub can send/receive, but not both at the same
+time. So a hub is slower than a switch. 
+
+A router is similar to a switch, yet it's more complicated. It's designed to
+link different network. A router can be wired or wireless. A router will allows
+your machines to connect to the Internet. A router also have a built-in firewall
+for
+security\footnote{\url{http://helpdeskgeek.com/networking/router-vs-switch-vs-hub/}}.
+As a result, each router is assigned an IP address. However, they all have the
+same IP address: 192.168.0.1 This IP address is a non-routable IP address, i.e.
+a private IP address and is not assigned to any particular organization. 
+
+\section{Private vs. Public IP address}
+
+Typically, the number of IP address are limited. So, each organization is
+assigned a certain number of public IP. These are IP addresses that can be seen
+from outside, i.e. the Internet. However, that organization may have many PC. A
+solution is to assigned each machine a private IP address. These address cannot
+be seen from outside. In order for these machine to connect to the Internet,
+they are routed to NAT gateway (network address translation) or proxy server. A
+router can also be a NAT device. 
+
+There are three ranges that can be used to assign private IP addresses, you can
+choose one class depending on the size of your LAN, Table.\ref{tab:private_IP}.
+Most routers come with a setup of class C network, and so the first usuable IP
+address is 192.168.0.1. NOTE: If you want, you can still change your router's IP
+address to class B or class A and it still work
+fine\footnote{\url{http://helpdeskgeek.com/networking/what-is-192-168-0-1/}}.
+
+\begin{table}[hbt]
+\begin{center}
+\caption{Private IP address range}
+\begin{tabular}{ccc} 
+  \hline
+IP address range & Number of addresses & Class \\ 
+  \hline\hline
+10.0.0.0 - 10.255.255.255	& 16,777,216 & Class A \\
+172.16.0.0 - 172.31.255.25 &  1,048,576 & Class B \\
+192.168.0.0 - 192.168.255.255 & 65,536 & Class C \\
+\end{tabular}
+\end{center}
+\label{tab:private_IP}
+\end{table}
+
+\begin{framed}
+There are other special private IP address ranges, e.g. 
+1.0.0.0/8 and 2.0.0.0/8, but they are not being used. The other private IP
+address 169.254/16 are called {\bf link-local addresses}
+and are only used when there is no DHCP server to assign IP addresses. In such
+case, the devices will automatically assign an IP address to themselves in the
+range 169.254.0.0 to 169.254.255.255.
+\end{framed}
+
+
+
+\section{Static IP and dynamic IP (DHCP, BOOTP)}
+\label{sec:static-IP}
+
+In Linux, all network configuration is given in \verb!/etc/network/interface!
+file (Sect.\ref{sec:network-interface}).
+
+A dynamic IP is requested by \verb!dhclient! which is a Internet Systems
+Consortium DHCP Client. \verb!dhclient! provides a means for configuring one or
+more network interfaces using the Dynamic Host Configuration Protocol, BOOTP
+protocol, or if these protocols fail, by statically assigning an address. 
+
+\textcolor{red}{To request a new DHCP IP} in Linux; there is a number of ways
+\begin{enumerate}
+  \item restart network service (works on any Linux distro - RHEL, Fedora,
+  CentOS, Ubuntu)
+
+\begin{verbatim}
+dhclient -r && dhclient
+\end{verbatim}
+NOTE: \verb!-r! option explicitly releases the current lease, and thus the
+dhclient process also exit. 
+
+or pass multiple interface names to dhclient
+\begin{verbatim}
+dhclient -r eth0 eth1 && dhclient eth0 eth1
+\end{verbatim}
+
+  \item restart for the given interface
+\begin{verbatim}
+# ifdown eth0
+# ifup eth0
+### RHEL/CentOS/Fedora specific command ###
+# /etc/init.d/network restart
+
+### Debian / Ubuntu Linux specific command ###
+# no longer works since Ubuntu 14.04 
+# due to a change in 'networking' file
+#  (need to use ifdown/ifup)
+# /etc/init.d/networking restart
+\end{verbatim}
+
+  \item \verb!nmcli! = network manager daemon
+  
+The NetworkManager daemon attempts to make networking configuration and
+operation as painless and automatic as possible by managing the primary network
+connection and other network interfaces, like Ethernet, WiFi, and Mobile
+Broadband devices command-line tool for controlling NetworkManager.
+
+For network connection named \verb!nixcraft_5G!
+\begin{verbatim}
+nmcli con
+nmcli con down id 'nixcraft_5G'
+nmcli con up id 'nixcraft_5G'
+\end{verbatim}
+
+\end{enumerate}
+
+NOTE:
+{\tiny
+\begin{verbatim}
+dhclient -1 -v -pf /run/dhclient.eth0.pid -lf /var/lib/dhcp/dhclient.eth0.leases eth0
+\end{verbatim}
+}
+EXPLAIN:
+\begin{itemize}
+  \item -1 = means try once to get a lease; if fails, then exit with code 2
+  
+  \item -v = verbose message
+  
+  \item -pf = indicate path to process ID file.
+  
+NOTE: If unspecified, the default /var/run/dhclient.pid is used.
+
+  \item -lf = pah to the lease database file. 
+  
+NOTE: If unspecified, the default /var/lib/dhclient/dhclient.leases is used.
+
+\end{itemize}
+\url{https://linux.die.net/man/8/dhclient}
+
+\textcolor{red}{To request a new DHCP IP } in Windows
+\begin{verbatim}
+ipconfig /renew
+\end{verbatim}
+
+\textcolor{red}{If you experience static IP switch to dynamic IP}, maybe a
+DHClient is automatically requesting IP unexpectedly
+\begin{itemize}
+  \item check for dhclient 
+  
+\begin{verbatim}
+ps -aux | grep dhclient
+\end{verbatim}
+
+  \item then kill the process that keep requesting dynamic IP for the interface
+  that you want static IP.
+
+Example: the interface is eth1
+\begin{verbatim}
+sudo kill <pid> -9
+sudo ifdown eth1 ; sudo ifup eth1
+\end{verbatim}
+\end{itemize}
+
+\subsection{/etc/network/interfaces file}
+\label{sec:network-interface}
+
+\begin{verbatim}
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+auto eth0
+iface eth0 inet static
+netmask 255.255.0.0
+address 10.10.130.128
+gateway 10.10.1.1
+dns-nameserves IP1 IP2
+dns-domain domain1.com
+dns-search domain1.com sub.domain1.com
+
+auto bond0
+iface bond0 inet manual
+        down ip link set $IFACE down
+        post-down rmmod bonding
+        pre-up modprobe bonding mode=4 miimon=200
+        up ip link set $IFACE up mtu 9000
+        up udevadm trigger
+
+allow-hotplug eth0
+iface eth0 inet manual
+        up ifenslave bond0 $IFACE
+        down ifenslave -d bond0 $IFACE 2> /dev/null
+
+allow-hotplug eth1
+iface eth1 inet manual
+        up ifenslave bond0 $IFACE
+        down ifenslave -d bond0 $IFACE 2> /dev/null
+\end{verbatim}
+
+Link-layer commands (the first command to use in each block)
+\begin{enumerate}
+  \item \verb!auto! <interface-name> = means start the network of given
+  interface at boot
+  
+  \item \verb!allow-auto! <interface-name> = the same as \verb!auto! 
+  
+  \item \verb!allow-hotplug! <interface-name> = enable the device of given
+  interface to be detected not at the begining of the boot; but as 'hotplug'
+ 
+\end{enumerate}  
+
+Layer-3 (routing and addressing) commands
+\begin{enumerate}
+  \item \verb!iface! <interface-family> : 
+  
+  iface eth0: creates a stanza called eth0 on an Ethernet device
+  
+  iface ppp0: create a point-to-point interface
+  
+  On the same line of \verb!iface!; or after that.
+  
+  \item \verb!pre-up! : actions before the interface is up
+  
+  \item \verb!post-down! : actions right after the interface is up
+  
+  \item \verb!gateway! : default gateway of a server. Be careful to use only one
+  of this guy.
+  
+  \item \verb!address! : put static IP after this
+  
+  \item \verb!netmask! : provide net mask
+  
+  \item \verb!inet! or   \verb!inet6! + options
+  
+  It defines the version of the IP protocol that will be used and the way this
+  address will be configured (static, dhcp, scripts...)
+\begin{verbatim}
+inet static
+
+inet manual      # do not define address on that interface
+
+inet dhcp
+
+inet6 static    # static IP using IPv6
+\end{verbatim}  
+
+  \item \verb!hwaddress ether 00:00:00:00:00:00! : Change the mac address of the
+  interface instead of using the one that is hardcoded into rom, or generated by algorithms
+  
+  \item \verb!dns-nameservers! = IP addresses of nameservers.
+  
+  Requires the \verb!resolvconf! package. This utility 
+  aggregates all the information in /etc/network/interfaces
+  and auto-generate the content of /etc/resolv.conf for
+  DNS-related configurations.
+  
+  \item \verb!dns-search! : 
+  append the name given as domain to queries of host, creating the FQDN. 
+  
+  It becomes \verb!domain! option in \verb!/etc/resolv.conf!
+  
+  \item \verb!wpa-ssid! = Wireless: Set a wireless WPA SSID.
+  
+  \item \verb!mtu! MTU size
+  
+If the workload is only sending small messages, then the larger MTU size will
+not help.
+
+The default MTU size of 9180 is much more efficient than using a MTU size of
+1500 bytes (normally used by LAN Emulation).
+
+ With Gigabit and 10 Gigabit Ethernet, if all of the machines on the network
+have Gigabit Ethernet adapters and no 10/100 adapters on the network, then it
+would be best to use jumbo frame mode (i.e. greater than 1500).
+\begin{verbatim}
+mtu 9000 # Jumbo Frame.
+\end{verbatim}
+
+The use of large MTU sizes allows the operating system to send fewer packets of
+a larger size to reach the same network throughput. The larger packets greatly
+reduce the processing required in the operating system, assuming the workload
+allows large messages to be sent. 
+
+
+
+   \item \verb!wpa-psk! = Wireless: Set a hexadecimal encoded PSK for your SSID.
+   
+   
+\end{enumerate}
+
+{\bf Interface-names}
+\begin{enumerate}
+  \item \verb!lo! = an interface name representing a loopback device
+  
+  NOTE:  imagine it as a virtual network device that is on all systems, even if
+  they aren't connected to any network. It has an IP address of 127.0.0.1 and
+  can be used to access network services locally.  
+  Example: if you run a webserver on your machine and browse to it with Firefox
+  or Chromium on the same machine, then it will go via this network device.
+
+  
+  \item \verb!eth0, eth1! = regular NIC
+  
+  \item \verb!en0, eno1! = embedded NIC (onboard network interface card)
+  
+  \item 
+\end{enumerate}
+
+\section{hostname-2-IP}
+
+The only way to uniquely identify a machine is via IP address (Internet
+Protocol). DNS (Domain Name Server) serves as a directory service to look up the
+IP using the hostname (user-friendly name). Similar services being used
+for LAN include WINS (in Windows), NIS (in Unix). NOTE: NDS can be used both for
+LAN and Internet. For small LAN with a few machines, we can also use hostfiles
+(/etc/hosts), instead of setting up a server running NIS, DNS or WINS.
+
+The three popular commands
+\begin{verbatim}
+ifdown eth0
+ifup eth0
+ifconfig eth0
+\end{verbatim}
+The MAC address is stored in the file
+\begin{verbatim}
+/etc/udev/rules.d/*-net.rules
+\end{verbatim}
+If you replace the mainboard, you may need to wipe-out the content of this file,
+shutdown the machine, and then restart it. Otherwise, you may get the error
+\begin{verbatim}
+SCIOCSIFADDR: no such device
+\end{verbatim}
+\url{http://blog.kabisa.nl/2009/12/11/xen-how-to-fix-siocsifaddr-no-such-device/}
+
+\section{Cables (cat-5, cat-6)}
+\label{sec:cable}
+
+If you want to connect two machines directly for data transfer, use Cat-5 {\bf
+crossover cables}. Other than that, i.e. connect the machines to the
+hub/switch/router, we use Cat-5 patch cables. If you want to make the cable your
+self, read
+\url{http://helpdeskgeek.com/networking/lan-cable-installation-tips/}. Cat-5
+supports 10Base-T and 100Base-T network standards, running at 10Mbps and 100
+Mbps, respectively. The latest verion of Cat-5 is Cat-5e which supports
+1000Base-T network, i.e. 1000 Mbps. Cat-5e also reduce crosstalk, i.e. the
+``bleeding'' of signal between one cable to another, which is believed to reduce
+the signal quality and speed. 
+
+
+Faster cables is Cat-6. Cat-5 use 100MHz, Cat-5e use 350MHz while Cat-6 use
+200MHz. This provides a higher signal-to-noise ratio, providing higher
+reliability network connection.
+
+
+\section{Error: Unable to bind to localhost}
+
+
+When you launch a webserver on the local machine, you may get the error
+\begin{verbatim}
+unable to bind to localhost
+\end{verbatim}
+
+Example: in Google App engine \verb!dev_appserver.py!
+\begin{verbatim}
+raise BindError('Unable to bind %s: %s' %self.bind_addr
+\end{verbatim}
+
+
+The problem is there is an existing socket connecting to 8080 port, first
+identify the process binding to that port, and then kill it
+\begin{verbatim}
+$ netstat -ano | grep 8080
+  TCP    127.0.0.1:8080         0.0.0.0:0              LISTENING       18708
+  TCP    [::1]:8080             [::]:0                 LISTENING       18708
+// TCP [the IP address]:[port number] .... #[target_PID]#
+
+$ kill <process-ID>
+\end{verbatim}
+\url{http://stackoverflow.com/questions/8688949/how-to-close-tcp-and-udp-ports-via-windows-command-line}
+
+In Windows, we can 
+\begin{itemize}
+  \item use Task Manager to kill the process (click on Process  tab,
+enable PID by going to View/Select Columns/ check PID), and click 'End Process'
+for the selected process.
+
+  \item using a tool name \verb!TCPView! 
+  \url{http://technet.microsoft.com/en-us/sysinternals/bb897437.aspx}
+  
+  \item using network monitoring program CurrPorts that 
+  list of all currently opened TCP/IP and UDP ports on your local computer.
+  \url{http://www.nirsoft.net/utils/cports.html}
+  
+  \item \verb!wkillcx! command to kill TCP connections from the command
+  line (Windows XP/Vista/7 as well as Windows Server
+  2003/2008.).\url{http://wkillcx.sourceforge.net/}
+  
+  \item sending a RST TCP packet  to the process asking it to close the  socket
+  using  RST scanning by \verb!nmap! utility \url{http://nmap.org/}
+  
+  
+\end{itemize}
+
+In Mac OS, we can use
+\begin{itemize}
+  \item \verb!lsof! command
+\begin{verbatim}
+lsof -nl | egrep "TCP|UDP"
+\end{verbatim}
+\end{itemize}
+
+\url{http://www.tech-recipes.com/rx/227/find-out-which-process-is-holding-which-socket-open/}
+
+\section{nmap: }
+
+\subsection{in windows}
+
+Cygwin does not have package for nmap. However, you can install the binary
+package and put the alias in \verb!~/.bash_profile! file
+\begin{verbatim}
+alias nmap="/cygdrive/c/Program\ Files\ \(x86\)/Nmap/nmap.exe"
+\end{verbatim}
+
+\url{https://www.scivision.co/nmap-with-cygwin/}
+
+\section{RTNETLINK answers: File exists}
+
+ERROR:
+\begin{verbatim}
+RTNETLINK answers: File exists
+Failed to bring up eth0
+\end{verbatim}
+The basic problem is some previous configuration, automatic or manual (such as
+running ifconfig from the cmd line) still lingers. The flush command fixes that
+situation. 
+
+Solution:
+\begin{verbatim}
+sudo ip addr flush dev eth0
+
+sudo ifdown eth0
+sudo ifup eth0
+\end{verbatim}
+\url{https://raspberrypi.stackexchange.com/questions/13895/solving-rtnetlink-answers-file-exists-when-running-ifup}

@@ -1,0 +1,4823 @@
+\chapter{UNIX/Linux tools}
+\label{sec:Unix_tools}
+
+\section{program, process and process scheduling algorithm}
+\label{sec:shell-process}
+\label{sec:process}
+
+In Linux, we have the concept of processes and programs. 
+\begin{itemize}
+  \item a program is a executable file (holding a sequence of instructions)
+  residing on a disk
+  
+  \item a process (or a task) is an executing instance of a program
+  
+  Some operating systems use the term 'task' to refer to a program that is
+  being executed.
+  
+  A process is termed as an '{\bf active entity}' since it is always stored in
+  the main memory and disappears if the machine is power cycled. Several process
+  may be associated with a same program.
+  
+  On a multiprocessor system, multiple processes can be executed in parallel. On
+  a uni-processor system, though true parallelism is not achieved, a process
+  scheduling algorithm is applied and the processor is scheduled to execute each
+  process one at a time producing an illusion of concurrency.
+  The scheduling algorithm is implemented inside the kernel, and the kernel
+  control which process uses or release the CPU by sending {\bf signals}
+  (Sect.\ref{sec:signals}).
+  
+\end{itemize}
+
+When a user login, a new process for the shell (e.g. bash) is created
+(Sect.\ref{sec:session_job-control}). 
+
+\subsection{(bash) shell and session: job control}
+\label{sec:session_job-control}
+
+When a user login a machine, a process is created for the login shell program,
+e.g. bash. The interactive shell provides an interface for user to type in
+commands. Each time an ENTER is pressed, the interactive shell reads commands
+from the user's terminal and create a process to execute the program specified by the
+commands.
+
+The shell use \verb!fork()! (to create a new process) and \verb!exec()!
+functions (to execute a file). 
+
+\begin{enumerate}
+  \item \verb!fork()!: create a bran new process, containing a
+  duplicate of the current program. There is a mechanism that allows the process to know which is
+  the parent process and which is the child.
+
+  \item \verb!exec()!: replace the program in the current process with the brand
+  new program
+\end{enumerate}
+
+REMEMBER: a shell login is the parent process, and all programs you
+run from that interactive shell is the child processes. If, the shell login session is
+terminated, then all the child processes are died as well. How to avoid this?
+we can try \verb!screen! or \verb!tmux! or \verb!byobu!
+(Sect.\ref{sec:remote_shell-login}) or \verb!nohup! (Sect.\ref{sec:nohup}).
+
+
+A single command may need one or more processes to be created, especially when
+\verb!|! operator is used in the shell-command. Even a single program can also
+create multiple processes internally, e.g. MPI or OpenMP. A process can have
+many threads (Sect.\ref{sec:thread}).
+\textcolor{red}{The processes belong to a single command is called a } {\bf
+process group} or {\bf job}.
+
+
+\subsection{thread}
+\label{sec:thread}
+
+A thread is called a 'lightweight process'. It is similar to a real process but
+executes within the context of a process and shares the same resources allotted
+to the process by the kernel. All the threads running within a process share the
+same address space, file descriptor, stack and other process related attributes. 
+Since the threads of a process share the same memory, synchronizing the access
+to the shared data within the process gains unprecedented importance.
+
+Linux kernel provides the library \verb!pthread! to create a new thread from a
+given process (Sect.\ref{sec:pthread}). As two threads in the same thread may
+write the same location in memory; it is important that the function being used
+is designed with thread-safe in mind.
+
+
+IMPORTANT: At one time, all threads in the same thread has to either idle, or
+executing the same instruction.
+Multiple threads of control can exploit the true parallelism possible on
+multiprocessor systems. On a uni-processor system, a thread scheduling algorithm
+is applied and the processor is scheduled to run each thread one at a time.
+
+
+
+
+\subsection{signals}
+\label{sec:signals}
+
+Using {\bf signals} is a way to deliver asynchronous events to a program, i.e.
+the kernel controls which process can use the CPU or has to release it.
+This is a limited form of inter-process communication, and it needs to use
+the kernel's process as the intermediate.
+{\tiny
+\begin{verbatim}
+process-A send signal to process-B
+  kernel-process receive signal; determine when to send such signal to process-B
+  
+kernel-process send signal to process-B
+  a scheduling algorithm in the kernel-process initiate the signal
+\end{verbatim}
+}
+
+Here, process-B is the active process. When a signal is sent to an active
+process by the kernel's process, the kernel interupts the normal flow of
+execution of the active process so that the process can receive the signal; and
+decide what to do with it by the so-called signal handler
+(Sect.\ref{sec:signal_handler}).
+
+When a process is started, the status of
+all the signals is either {\bf ignore} or {\bf default}, whichever
+option is dependent upon the process that calls \verb!exec!. Normally, 'default'
+is the case, unless the process that calls \verb!exec! is ignoring the signals.
+
+There are different signals in Linux, starting with 'SIG' characters. All
+signals have the default handlers, yet some cannot be changed, e.g. SIGKILL and
+SIGSTOP.
+
+\begin{enumerate}
+  \item SIGNINT : signal generated when a user press Ctrl-C (to terminate a
+  running program)
+  \item SIGALRM: signal generated when a timer set by \verb!alarm()! function
+  goes off
+  \item SIGABRT: signal generated when a process call the \verb!abort()!
+  function
+  \item SIGKILL :
+  \item SIGSTOP :
+  \item SIGQUIT: the default handler terminates and dumps core the
+  current process.
+  \item SIGINFO: the default handler show information about the running command.
+  \item \ldots
+\end{enumerate}
+
+\url{http://www.thegeekstuff.com/2012/03/linux-signals-fundamentals/}
+
+\subsection{send a signal}
+
+Besides the signal regularly sent by the kernel; a user can also send the signal
+from the parent process to its child process. Example: the interactive shell is
+also the parent process of all running (foreground) processes, which is the
+child process of the 'shell' process. So, we can ask the kernel to send an
+appropriate signal by pressing some key combination
+\begin{enumerate}
+  \item pressing Ctrl-C sends a SIGINT signal to kill one process running on the
+  foreground.
+ 
+  \item pressing Ctrl-Z sends a SIGTSTP signal to suspend the execution of the
+  running process, and return the control to the parent process.
+  
+  \item pressing Ctrl-\verb!\! sends SIGQUIT signal: 
+  
+  \item pressing Ctrl-T (supported in some UNIXes) sends SIGINFO signal: 
+\end{enumerate} 
+The key combination can be changed with the \verb!stty! command.
+
+\subsection{Signal handler}
+\label{sec:signal_handler}
+
+A signal handler is a special function - known as {\bf callbacks} - that binds
+to a particular signal (or event) - Sect.\ref{sec:signals}), that is written it
+in a given program; and will be evoked when the process of such program receives
+the associated signal.
+If the program has no registered signal handler for the received event; the {\it
+default signal handler} is executed. The default signal handler is the one
+provided by the kernel.
+
+% When a signal occurs inside the program, you can choose what to do with it by
+% the kernel, or just ignore it.
+As a programmer, you can write a callback function, and register it with the
+kernel for a given signal, so that when the signal occur, the kernel will call
+that function to handle the signal, if the signal is not fatal to the program or
+system.
+
+REMEMBER: Some signals (e.g. SIGKILL, SIGSTOP) cannot be caught or ignored, i.e.
+it has to be handled directly by the kernel. This allows a root or the kernel to
+terminate the process, e.g. SIGKILL and SIGSTOP.
+
+\subsection{ps command}
+
+\begin{verbatim}
+ps -aux
+USER       PID  %CPU %MEM  VSZ RSS     TTY   STAT START   TIME COMMAND
+timothy  29217  0.0  0.0 11916 4560 pts/21   S+   08:15   0:00 pine  
+root     29505  0.0  0.0 38196 2728 ?        Ss   Mar07   0:00 sshd: can [priv]   
+can      29529  0.0  0.0 38332 1904 ?        S    Mar07   0:00 sshd: can@notty  
+\end{verbatim}
+NOTE: x (in 'aux' means all user), for a specific user, we use (au\$USERNAME,
+e.g. auroot, autmhoangt).
+
+{\tiny
+\begin{verbatim}
+USER = user owning the process
+PID = process ID of the process
+%CPU = It is the CPU time used divided by the time the process has been running.
+%MEM = ratio of the process's resident set size to the physical memory on the machine
+VSZ = virtual memory usage of entire process (in KiB)
+RSS = resident set size, the non-swapped physical memory that a task has used (in KiB)
+TTY = controlling tty (terminal)
+STAT = multi-character process state
+START = starting time or date of the process
+TIME = cumulative CPU time
+COMMAND = command with all its arguments
+\end{verbatim}
+}
+
+\section{run commands concurrently on multiple hosts}
+
+Suppose you want to run 1 command on multiple machines. The naive approach is to
+login each machine, and run the command. The faster approach is to use some tool
+\begin{enumerate}
+  \item pdsh - Sect.\ref{sec:pdsh}
+  
+  \item Sect.\ref{sec:cluster-management-tool} for many other options, e.g. Ansible, xCAT
+\end{enumerate}
+
+\subsection{pdsh}
+\label{sec:pdsh}
+
+PDSH = Parallel Distributed SHell \url{http://sourceforge.net/projects/pdsh/}
+
+\url{http://code.google.com/p/pdsh/wiki/UsingPDSH}
+\begin{verbatim}
+pdsh [OPTION] ... COMMAND
+\end{verbatim}
+e.g.
+\begin{verbatim}
+pdsh -R ssh -w host0,host1,host2  ls
+pdsh -w cea[0-4]   mkdir test
+\end{verbatim}
+
+\verb!pdsh! will try to login on each specified machine, via ssh or rsh, and
+then execute the given COMMAND as the current user or a specified user account. 
+To know which method (rsh, ssh) is being used by default, type
+\begin{verbatim}
+pdsh -V
+\end{verbatim}
+We may get the error when rsh is being used
+\begin{verbatim}
+ rcmd: socket: Permission denied
+\end{verbatim}
+If we use ssh, remember to add \verb!-R ssh! option. We can change the default
+by using the environment variable
+\begin{verbatim}
+PDSH_RCMD_TYPE=ssh
+\end{verbatim}
+When invoked by pdsh, it is not possible for ssh to prompt for passwords. The
+reason is that  ssh processes invoked from pdsh are
+connected to the terminal, so they cannot prompt for passwords or
+passphrases on the command line
+
+The argument \verb!-w! indicates which machines the COMMAND should be run.
+The list of machines can also be read host list from file (one per line), using
+a single \verb!^! character in the front of the filename or using \verb!-h!
+option
+\begin{verbatim}
+pdsh -w ^/tmp/hosts
+pdsh -h /tmp/hosts
+\end{verbatim}
+To exclude some hosts (in the file), we use \verb!-x TARGETS! option.  The
+number of nodes that pdsh can simultaneously execute remote jobs on  is limited
+by the  maximum  number  of  threads  that  can  be  created  concurrently,  as well as the availability of reserved ports in the rsh
+       and qshell rcmd modules. In POSIX system, it is given in
+       \verb!PTHREADS_THREADS_MAX!
+
+By default, the current user is used as the username to login the remote hosts.
+To specify different users on different hosts, we add username and \verb!@! in
+the front
+\begin{verbatim}
+pdsh -w hosts[0-2] -l user1
+
+pdsh -w user1@host[0-2],user2@host[3-5]
+\end{verbatim}
+
+To use multiple commands, put them between double quotes, and separated by
+semi-colons.
+{\tiny
+\begin{verbatim}
+pdsh -R ssh -w leak,cardiac,cea[1-4] "cd
+       /home/minhtuan/install_download/HDF5/hdf5-1.8.5-patch1/; make install"
+\end{verbatim}
+}
+
+\section{Copy}
+\label{sec:copy}
+
+\subsection{Copy whole-file: cp}
+\label{sec:copy_cp}
+
+\begin{verbatim}
+cp <source> <destination> [options]
+\end{verbatim}
+with [options] can be 
+\verb!-r! (recursive), \verb!-f! (force copy, no question).
+
+\subsection{Copy a few bytes}
+
+To copy a few bytes from the beginning of the file we can use
+\begin{verbatim}
+head -C N
+\end{verbatim}
+which 
+\begin{itemize}
+  \item In GNU coreutils: use  \verb!read()! to do the job and thus never go
+  beyond $N$ bytes.
+  \item In NetBSD 5.1: use \verb!getc()! to do the job
+  \item In FreeBSD 7.4: use \verb!fread()! to do the job
+\end{itemize}
+
+
+
+\section{Backup}
+\label{sec:backup}
+
+A backup is simply a copy of data from one place to another
+(Sect.\ref{sec:copy}).
+
+However, backup tools can provide more features, e.g. incremental backup, auto
+rename of backup files. A copy can be from one location to another on the same
+disk, on a different partitions on the same disk, to a different disk on the
+same machine, or to another disk on a different machine via the networking.
+
+RAID only keeps the latest state of the system. Also, any RAID solution won't
+protect us from multiple disk failures. A good solution is to backup data using
+{\bf rsync} (Sect.\ref{sec:rsync}).
+
+\textcolor{red}{IMPORTANT:} Unless you are transfering the data over the
+Internet, it's best to avoid compressing, as it just slow downs the transfer
+rate. E.g.: on LAN, \verb!-z! is at least twice as slow.
+
+\textcolor{red}{IMPORTANT:} Using \verb!tar! and pipe is perfect for large tree
+files, it just streaming the data from host to destination, without having to do
+intense operation with file trees. For small number of files, do NOT use
+\verb!tar! as its syntax is harder to remember. If the data exist on the
+destination, then \verb!rsync! is faster.
+
+\url{https://www.crucialp.com/resources/tutorials/server-administration/how-to-copy-files-across-a-network-internet-in-unix-linux-redhat-debian-freebsd-scp-tar-rsync-secure-network-copy.php}
+
+\subsection{Backup with cp}
+
+NOTE: For simple backup of a file, we can do
+\begin{verbatim}
+cp /etc/network/interfaces{,.bak}
+\end{verbatim}
+to create \verb!interfaces.bak! from \verb!interfaces! file
+(Sect.\ref{sec:copy_cp}).
+
+
+\subsection{scp}
+
+\verb!scp! (use ssh) is more reliable than \verb!rcp! (no encryption as it uses
+rsh). To recursively copy all subfolders, use \verb!-r! option
+\begin{verbatim}
+scp -Cr <source> <dest>
+\end{verbatim}
+Use \verb!-C! if we want to compress before sending the data.
+
+\begin{verbatim}
+scp -Cr my_folder host.name:/destination/path
+\end{verbatim}
+
+\verb!scp! encrypts the data using 3DES algorithm (by default). We can use
+\verb!-c blowfish! to speed things up. 
+
+\verb!scp! spawn a new process for each file it copies. So, \verb!scp! should
+NOT be used in cases
+\begin{enumerate}
+  \item copy large number of files:
+  \item it doesn't know about symbolic link, so if \verb!-r! is used, it will
+  follows the link to the file to copy the file (even if it has already make
+  the copy of the file), and lead to copying an infinite amount of data (BE
+  CAREFUL).
+\end{enumerate}
+
+\subsection{tar | tar}
+
+\verb!tar! is an utility for compression; yet it can be used to copy file from
+disk to disk. \verb!tar! handles large file trees quite well and preserves all
+file permissions.
+
+To copy a directory, first write them to a tape archive with
+relative pathnames, and then read back the tape and write it to the destination.
+Another way, rather than using tape archive is to write to UNIX pipe, and then
+read from the pipe.
+
+Example: copy multiple folders to /dev/hdd
+
+{\tiny
+\begin{verbatim}
+tar -cvzf /dev/hdd /bin /boot /dev /etc /home /lib /sbin /usr /var
+
+  // on tape driver (do not compress as a single error can corrupt all data)
+  // here rewind the SCSI tape, and archive /home folder to it.
+  // command 'mt' (magnetic tape) control generic SCSI tape devices
+mt -f /dev/st0 rewind
+tar -cvf /dev/st0 /home  
+\end{verbatim}
+}
+
+Example: backup across multiple floppy disk
+\begin{verbatim}
+tar -cvMf /dev/fd0 /home/simon
+\end{verbatim}
+
+Use this if \verb!tar! supports B (reblocking) option (to ensure the copy is
+made correctly). IMPORTANT: Do not use \verb!-v! (verbose) on the first
+\verb!tar! command (otherwise double data is saved), and only use it on the
+second command.
+{\tiny
+\begin{verbatim}
+% mkdir /work/bkup/jane
+% cd /home/jane
+% tar -cf - . | (cd /work/bkup/jane && tar xBf -)
+\end{verbatim}
+}
+
+Here, the \verb!&&! operator tells the shell that it only start \verb!tar xBf -!
+only if the previous command, \verb!cd /work/bkup/jane/! succeeded. 
+
+If \verb!tar! doesn't support B (reblocking)
+{\tiny
+\begin{verbatim}
+% tar cf - . | cat | (cd /work/backup/jane && tar xbf 1 -)
+\end{verbatim}
+}
+
+To copy over the network, we can use \verb!rsh! (with no compression)
+{\tiny
+\begin{verbatim}
+% rsh kumquat mkdir /work/bkup/jane
+% tar cf - . | rsh kumquat 'cd /work/bkup/jane && tar xBf -'
+\end{verbatim}
+}
+
+or we can do
+{\tiny
+\begin{verbatim}
+tar zcvf -  MyBackups | ssh user@server "cat > /path/to/backup/foo.tgz"
+
+tar -cf - /some/file | ssh host.name tar -xf - -C /destination
+tar -czf - /some/file | ssh host.name tar -xzf - -C /destination
+\end{verbatim}
+}
+
+\textcolor{red}{NOTE: -C option on the second tar to change
+directory on the target host, i.e. uncompress to a specified folder}. Here, the
+input (data) for the second command is taken from the stdin
+
+NOTE: Different compression method can be used (z = gzip, Z = compress, j =
+bzip). For 7zip compression
+{\tiny
+\begin{verbatim}
+tar cf - MyBackups | 7za a -si -mx=9 -ms=on MyBackups.tar.7z | 
+   ssh user@server "cat > /path/to/backup/foo.7z"
+\end{verbatim}
+}
+
+\textcolor{red}{IMPORTANT}: Do not use 7zip for backup on Linux/Unix, as it
+doesnot store owner/group of the file.
+
+\subsection{rsync}
+\label{sec:rsync}
+
+\verb!rsync! is famous for its delta-transfer algorithm, to reduce the data
+sent over the network by sending only the difference between the source files
+and the existing files on the destination. IMPORTANT: \verb!rsync! is NOT
+installed by default.
+
+\begin{verbatim}
+rsync <options> <source> <dest>
+\end{verbatim}
+
+Typically, we need these options \verb!-rvz!
+\begin{enumerate} 
+  \item -r = recursive
+  \item -v = verbose (print out progress)
+  \item -z = enable compression
+  \item -u = update only (skip files from sources that are older files)
+  \item -t = preserve timestamp
+  \item -l = preserve symbolic link (i.e. do NOT follow symbolic link)
+  \item -p = preserve permissions
+  \item -o = preserve ownership and group
+  \item -d = copy only directory structures (not the files in the directories)
+  \item \textcolor{red}{-W = copy whole file (do NOT use delta-transfer
+  algorithm)}
+  \item --progress = display detailed progress
+  \item --delete = delete files that are at <dest>, but not found in <source>
+  \item --existing = copy files from <source> that haves a corresponding files
+  in <dest>
+  \item --max-size='100K' = set maximum filesize to be considered
+  \item -i = display the difference between the <source> and <dest>
+  \item -e ``protocol information'' = To copy over the network
+
+{\tiny
+  \begin{verbatim}
+  rsync -e ssh
+  rsync -e "ssh -o StrictHostKeyChecking=no -o  UserKnownHostsFile=/dev/null"
+  \end{verbatim}
+}
+\end{enumerate}
+
+Some options that do multiple things
+\begin{enumerate}
+  \item -a = archive mode (-rlptgoD)
+\end{enumerate}
+
+
+For advanced goals, we use
+\begin{enumerate}
+  \item -f''RULE HERE'' = file-filter
+  \begin{verbatim}
+  # copy directory structures (not files)
+  rsync -av -f"+ */" -f"- *" <source> <dest>
+  
+  rsync -d <source> <dest>
+  \end{verbatim}
+  NOTE: This is newer feature, and is supposed to replace \verb!--include!,
+  \verb!--exclude! in older versions of rsync (See examples below).
+  
+  \item --exclude=PATTERN : exclude files matching patterns
+
+IMPORTANT: ALL exclude path are relative, i.e. these two are the same
+\begin{verbatim}
+--exclude '/dir1/name1/file.txt'
+
+--exclude 'dir1/name1/file.txt'
+\end{verbatim}
+
+We can combine multiple exclude
+\begin{verbatim}
+--exclude 'dir1' --exclude 'dir2/filename.txt'
+\end{verbatim}
+If we have multiple files, we can put them in a file, and use
+\verb!--exclude-from! option
+\begin{verbatim}
+--exclude-from 'exclude-list.txt' <source> <dest>
+\end{verbatim}
+with
+\begin{verbatim}
+# content of exclude-list.txt
+
+dir1
+dir2/filename.txt
+\end{verbatim}
+  
+  \item --include=PATTERN : copy only files matching patterns  
+
+{\tiny
+  \begin{verbatim}
+  # exclude a specific directory and all of its subdirectories
+   --exclude 'folder_name_here' <source> <dest>
+   
+#exclude multiple directories match the pattern
+--exclude 'folder-*'
+
+#exclude a specific file
+--exclude 'folder-name/filename.txt'
+  
+  # exclude all files (--exclude="*")
+  # and include only files/directories starting with 'P*'
+  rsync -avz --include 'P*' --exclude '*'
+  \end{verbatim}
+}
+\end{enumerate}
+
+
+If we want to
+\footnote{\url{psung.blogspot.com/2008/05/copying-directory-trees-with-rsync.html}}
+\begin{enumerate}
+  \item Copy only directory structures, but not files
+  \begin{verbatim}
+  rsync -a -f"+ */" -f"- *" source/ destination/
+  \end{verbatim}
+  The two '-f' arguments mean copy directories, except other things
+  
+  IMPORTANT: The order of the two '-f' arguments are important 
+  
+  \item Copy all directories, and some files ending with '.py'
+  \begin{verbatim}
+  rsync -a -f"+ */" -f"+ *.py" -f"- *" source/ destination/
+  \end{verbatim}
+  
+  \item Copy everything, except '*.git' directories
+  \begin{verbatim}
+  rsync -a -f"- .git/" -f"+ *" source/ destination/
+  \end{verbatim}
+\end{enumerate}
+
+\subsection{Backup LAN: amanda}
+
+The admin can set up a single master backup server to back up multiple hosts to
+a single large capacity tape or disk drive.
+
+
+\url{http://www.amanda.org/download.php}
+
+\subsection{drsbackup}
+
+DrsBackup is developed by MIT. Currently, it preserves UID's and GID's
+numerically, instead by name. While rsync and GNU tar preserve by name by
+default. 
+
+\url{http://stromberg.dnsalias.org/~strombrg/drsbackup.htmldoc}
+
+
+\subsection{rdist - Copy data to multiple hosts}
+
+At first, you need to install 'rdist' on multiple hosts using pdsh command
+(Sect.\ref{sec:pdsh})
+\begin{verbatim}
+pdsh -R ssh -w cea[5-11] -l root "apt-get install rdist -y"
+\end{verbatim}
+Then we create the input file, default name is 'distfile'
+{\tiny
+\begin{verbatim}
+#file being used by rdist
+# command :   rdist -f PATH_TO/distfile
+
+SLAVES = ( cea5 cea6 cea7 cea8 cea9 cea10 cea11)
+
+# Lets push our NVIDIR driver files for all slave hosts to see!
+season1: (
+    /home/minhtuan/install_download/NVIDIA-Linux-x86_64-295.20.run
+) -> ( ${SLAVES} )
+#except /home/lost/season_1/deadguys;
+
+
+# we can also do multiple copies at the same times by adding another rule
+# for this case, we want to exclude cea5 or add some new target
+#season2: (
+#    /home/lost/season_2
+#) -> ( ${SLAVES} ) - ( cea5 ) + ( friend.lost.com )
+\end{verbatim}
+}
+
+When you run, you jump to the folder which has distfile and then just type
+\begin{verbatim}
+rdist -f distfile
+\end{verbatim}
+
+
+\section{Devices/Partition}
+
+\subsection{mount}
+
+A {\bf block device} (block special file) represents a hardware device that data
+are moved in the form of blocks using functions like \verb!fread()!. These
+devices can be: hard-drive, CD-ROM, flash drives or some addressable regions of
+memory. Block devices are designed to support random seeking and access, and
+generally use buffered input/output routines. In other words, the operating
+system will allocate a buffer memory to hold a single block of data, one the
+buffer is full, the data is flushed to the device and the buffer is clear for
+other I/O operations. This can avoid direct access to the block devices as it is
+considered dangerous. In opposite to block device is {\bf character device},
+where data is input/output in one character at a time, using functions like
+\verb!getchar()!. Examples of character devices are keyboard, mouse, etc. 
+
+
+\begin{framed}
+To display information about block devices, we use \verb!blkid! command
+\begin{verbatim}
+blkid -c /dev/null
+
+blkid -po udev /dev/sda1
+\end{verbatim}
+\end{framed}
+
+Block devices and character devices map to physical devices. However, in Linux,
+there are pseudo-device, i.e. those do not necessarilty have a corresponding
+physical devices. They are
+\begin{itemize}
+  \item /dev/null
+  \item /dev/zero
+  \item /dev/full
+  \item /dev/random
+  \item /dev/urandom
+\end{itemize}
+
+Regardless of the device types, they are represented by a file in the
+\verb!/dev/! folder (Sect.\ref{sec:udev}). To see which which one is the USB, we
+can do
+{\tiny
+\begin{verbatim}
+> blkid
+
+/dev/sdc1: LABEL="Transcend" UUID="AE745F8E745F5863" TYPE="ntfs"
+\end{verbatim}
+}
+Then, we can mount it now
+\begin{verbatim}
+mkdir /media/usb
+
+mount /dev/sdc1 /media/usb
+\end{verbatim}
+
+The prefix can explain the device types
+\begin{itemize}
+  \item /dev/fb* : frame buffer
+  \item /dev/fd* : floppy disk
+  \item /dev/hd* : hard-disk (or external hard-drive via USB)
+  \item /dev/sd* : mass-storage driver (USB)
+  \item /dev/tty* : terminal
+\end{itemize}
+
+If you use a SATA harddrive (SCSI) for backup, then you can use the script given
+here:
+\url{http://www.makestuff.eu/wordpress/sata-hotplug-in-ubuntu/}
+
+References:
+\begin{itemize}
+  \item
+  \url{http://askubuntu.com/questions/192461/how-do-i-get-ubuntu-server-to-recognize-and-automount-a-hotplugged-sata-drive}
+\end{itemize}
+
+\subsection{fdisk: partition manager}
+
+\begin{verbatim}
+fdisk /dev/sda
+\end{verbatim}
+Commands:
+\begin{enumerate}
+  \item n : to create a new partition (choose e: extended, p: primary partition
+  (which then you choose the number from 1 to 4))
+  \item t : choose partition type (select the partition number first (1-4), and
+  then choose (1) fd: mark it as being part of a RAID array; (2) ext3)
+  \item w : write the changes to disks
+\end{enumerate}
+
+To copy the setting from one harddrive to another we do
+\begin{verbatim}
+cfdisk -d /dev/sda | cfdisk /dev/sdb
+\end{verbatim}
+
+\subsection{hdparm: Harddrive check}
+\label{sec:hdparm}
+
+
+\begin{verbatim}
+sudo hdparm -I /dev/sda
+\end{verbatim}
+
+Here are the important information for SAS disk
+{\tiny
+\begin{verbatim}
+Model Number:       ST500DM002-1BD142                       
+        Serial Number:      Z3T0E92Z            
+        Firmware Revision:  HP73    
+        Transport:          Serial, SATA Rev 3.0
+
+Configuration:
+        device size with M = 1024*1024:      476940 MBytes
+        device size with M = 1000*1000:      500107 MBytes (500 GB)
+        cache/buffer size  = 16384 KBytes
+        Nominal Media Rotation Rate: 7200
+
+\end{verbatim}
+}
+
+Here are the example for SATA disk
+{\tiny
+\begin{verbatim}
+ATA device, with non-removable media
+        Model Number:       WDC WD15EARX-00ZUDB0                    
+        Serial Number:      WD-WMC1H0136695
+        Firmware Revision:  80.00A80
+        Transport:          Serial, SATA 1.0a, SATA II Extensions, SATA Rev 2.5, SATA Rev 2.6, SATA Rev 3.0
+
+Configuration:
+        device size with M = 1024*1024:     1430799 MBytes
+        device size with M = 1000*1000:     1500301 MBytes (1500 GB)
+        cache/buffer size  = unknown
+        Nominal Media Rotation Rate: 5400
+\end{verbatim}
+}
+
+Another tool is lshw
+\begin{verbatim}
+lshw -class disk -class storage
+ 
+lshw -short -C disk
+
+smartctl -d ata -a -i /dev/sda
+\end{verbatim}
+
+\subsection{RAID array}
+
+
+Sect.\ref{sec:RAID}
+
+\begin{verbatim}
+smartctl
+\end{verbatim}
+\url{http://www.cyberciti.biz/faq/find-hard-disk-hardware-specs-on-linux/}
+
+\subsubsection{SCSI}
+
+For SCSI devices, we can use
+\begin{verbatim}
+scsi_id
+sdparm
+\end{verbatim}
+
+\section{Auto answer 'yes'}
+
+For a remote settup, you may want to avoid typing 'y' or 'yes' to your
+installation, one way to do this in some tools is adding '-y' to the command
+line. Another option is passing 'yes' to your command line via pipe
+\begin{verbatim}
+yes | sudo mdadm ...options and arguments...
+\end{verbatim}
+
+\section{Repeat a command (given interval)}
+
+Use \verb!watch -n <time> <command>!. The drawback: 
+\begin{enumerate}
+  \item  it cannot use aliased command
+  \item scrolling may not work properly (if the output is quite long)
+  \item it may not work with very long interval more than 4200 seconds
+  (about an hour). The reason is that
+  the time being measured is stored in microseconds, so 4200 is $2^{32}$
+  microseconds. (should use \verb!crontab! or \verb!at! or use the loop below)
+  \item clearing the screen 
+\end{enumerate}
+
+The time is in seconds
+\begin{verbatim}
+watch -n 5 ls -l
+\end{verbatim}
+To stop, press Ctrl-C. Other options:
+{\tiny
+\begin{verbatim}
+-t 	(--no-title) turn off showing time interval, command, ...
+--cumulative     presenting a running display of positions that change
+--difference     visual confirmation of changes
+\end{verbatim}
+}
+
+IMPORTANT: Use escape special characters that are part of the command
+\begin{verbatim}
+watch mysql dbname -e \"show processlist\;\"
+\end{verbatim}
+
+Or Use the loop
+\begin{verbatim}
+// command is harder to kill
+while true; do <your_command>; sleep <interval_in_seconds-or-hours>; done
+
+// use this is preferred
+while sleep SECONDS; do command; done
+\end{verbatim}
+We can use \verb!sleep 2h! or \verb!sleep 2! (in seconds by default).
+
+
+Or (csh shell) Use \verb!repeat! if we know the fixed number of times
+\begin{verbatim}
+repeat 300 do <my first command here> && sleep 1.5
+\end{verbatim}
+This works for \verb!csh! (but not bash or sh).
+
+Or create a script in \verb!~/.bash_aliases! (the first argument is the
+number of times)
+\begin{verbatim}
+repeat() {
+n=$1
+shift
+while [ $(( n -= 1 )) -ge 0 ]
+do
+    "$@"
+done
+}
+\end{verbatim}
+then run
+\begin{verbatim}
+repeat 5 echo Hello World !!!
+repeat 15 ./myscript
+\end{verbatim}
+
+
+If you are monitoring the file system, then use \verb!inotifywait!. It runs and
+report any change to the file system
+\begin{verbatim}
+// terminal 1
+inotifywait .
+
+// terminal 2 (some other users)
+touch newfile
+
+// immediately, on terminal 1, inotifywait report
+./ CREATE newfile2
+\end{verbatim}
+
+\section{Remote shell login (resuming ssh connection)}
+\label{sec:remote_shell-login}
+
+A GUI option is using vnc server - Sect.\ref{sec:VNC-server}.
+Here, we discuss the terminal option
+\begin{enumerate}
+  \item ssh - Sect.\ref{sec:ssh}
+  
+  \item mosh - Sect.\ref{sec:MOSH}
+\end{enumerate}
+
+\subsection{ssh}
+
+You can customize SSH (Sect.\ref{sec:SSH}) to keep your session alive if the
+connection get lost for minutes. On the server side, change
+\begin{verbatim}
+ClientAliveInterval = 60
+TCPKeepAlive = yes
+\end{verbatim}
+
+
+\subsection{mosh (mobile shell)}
+\label{sec:MOSH}
+
+mosh (mobile shell) is a replacement for ssh, though MOSH still need ssh
+(Sect.\ref{sec:SSH}). 
+
+We need to insall a MOSH server on the server side, and MOSH client on the
+client side. 
+
+On server-side or client-side (Linux):
+\begin{verbatim}
+sudo apt-get install python-software-properties
+sudo add-apt-repository ppa:keithw/mosh
+sudo apt-get update
+sudo apt-get install mosh
+\end{verbatim}
+It will install \verb!mosh-client! and \verb!mosh-server!; and a third
+component, \verb!mosh! wrapper script. 
+
+The client will call \verb!mosh! script which has the responsibility of using
+ssh to connect to a remote machine, start mosh-server on the remote machine,
+gather the necessary connection information (encryption key and remote IP), and
+then finally starting mosh-client.
+\url{http://mosh.mit.edu/#getting}
+
+If the client-side is Windows, then you should use MobaXterm;
+or Cygwin.
+
+% In Ubuntu, start a mosh server
+% \begin{verbatim}
+% mosh-server new
+% 
+% ps aux | grep 'mosh'
+% \end{verbatim}
+% 
+There's nothing to run in the server, mosh (the client)
+will ssh, run "mosh-server" at the server-side and somehow exit and connect to
+that new mosh-server via UDP. It keeps the session alive after days of
+disconnection, changing IP, high latency, etc. MOSH use UDP, rather than TCP for
+connection. As UDP is stateless, so there is no connection drop issue like with
+SSH which uses TCP.
+
+DEBUG: \url{https://github.com/mobile-shell/mosh/wiki/Debugging-and-Theory}
+
+\subsection{freeNX and nomachine}
+\label{sec:freeNX}
+\label{sec:nomachine}
+
+NoMachine provides remote connectivity and network computing software, and they
+developed 'NX' technology - a proprietary compression protocol for remote
+computer access. A free implementation of NX for server-side is freeNX.
+ 
+FreeNX is not maintained, and you should try X2GO 
+FreeNX is not part of Ubuntu
+\begin{verbatim}
+//Ubuntu 14.04
+sudo apt-add-repository ppa:freenx-team/trusty
+sudo apt-get update
+sudo apt-get install freenx-server
+\end{verbatim} 
+The default port used by FreeNX is port 22 for SSH. If port 22 is not allowed,
+modify and replace 22 with a different value, e.g. 8888
+\begin{verbatim}
+sudo nano /etc/ssh/sshd_config
+
+sudo /etc/init.d/ssh restart
+\end{verbatim}
+
+NoMachine:
+\url{https://www.nomachine.com/download/download}
+
+\url{https://groups.google.com/forum/#!topic/alt.os.linux/GThI7FRk3BQ}
+
+
+
+\subsection{X2GO}
+\label{sec:X2GO}
+
+X2Go is still incompatible with desktops that rely on 3D acceleration.
+ 
+\begin{verbatim}
+sudo apt-get install python-software-properties
+sudo add-apt-repository ppa:x2go/stable
+sudo apt-get update
+sudo apt-get install x2goserver
+\end{verbatim}
+\url{https://askubuntu.com/questions/466309/unable-to-install-freenx-server-on-ubuntu-trusty-alternatives}
+
+A client on Windows also available
+\url{https://wiki.x2go.org/doku.php}
+
+\url{http://googlefodder.blogspot.com/2012/09/nomachine-nx-freenx-neatx-which-should.html}
+
+
+\section{VNC server + viewer}
+\label{sec:VNC-server}
+
+A deamon called a VNC server running on a remote machine can provides GUI access
+to this machine. A VNC server establishes a type of virtual frame buffer (i.e.
+RAM framebuffer, rather than graphics hardware-based framebuffer).
+
+The RAM-based framebuffer manages a screen image (a two-dimensional array of
+pixels), but does not display it directly on a screen, instead, it sends the
+buffer to the local machine running a VNC viewer (Sect.\ref{sec:VNC-client}).
+
+There are different options for VNC servers
+\begin{enumerate}
+  \item vino - Sect.\ref{sec:vino} - used GNOME to provides GUI
+
+  \item tigerVNC - Sect.\ref{sec:tigervnc}
+  
+  \item tightVNC - Sect.\ref{sec:tightvnc}
+  
+  \item vnc4server - Sect.\ref{sec:vnc4server}
+  
+  \item x11VNC - Sect.\ref{sec:x11vnc}
+  
+  \item Gemsvnc - Sect.\ref{sec:gemsvnc}
+  
+  \item VNC-compatible server such as Xvnc or WinVNC
+  
+   vncserver is wrapper script that calls Xvnc. 
+\end{enumerate}
+whose choice depends on the server-side use GNOME 1/2 or GNOME 3
+(Sect.\ref{sec:vncserver-GNOME-3})
+
+Remember that you can uses tmux to provide command-line-based persistent session
+(Sect.\ref{sec:tmux}). Similarly, VNC provides a GUI-based persistent desktop, I
+do not need to log in or log out, but instead I just resume my session from
+where I left off last time by running a VNC viewer application.
+
+\begin{enumerate}
+  \item RHEL 4-6: \url{https://www.redhat.com/magazine/006apr05/features/vnc/}
+
+  \item RHEL 7: \url{https://access.redhat.com/articles/754933}
+
+  \item Ubuntu:
+\url{http://shebang.brandonmintern.com/tips-for-remote-unix-work-ssh-screen-and-vnc/}
+\end{enumerate}
+
+\subsection{TurboVNC (VirtualGL)}
+\label{sec:TurboVNC}
+
+To escape from fullscreen mode: Ctrl-Alt-Shift-F
+
+To configure:
+\begin{verbatim}
+Connection tab
+        Scaling factor:   Fixed Aspect Ratio
+        Remote desktop size: choose proper resolution of the desktop on remote
+                        machine
+        Full-screen mode: checked
+        Span mode:           automatic
+\end{verbatim}
+
+\url{https://virtualgl.org/}
+
+VirtualGL is an open source toolkit that gives any Unix or Linux remote display
+software the ability to run OpenGL applications with full 3D hardware
+acceleration.
+With VirtualGL, the OpenGL commands and 3D data are instead redirected to a 3D
+graphics accelerator (AKA "graphics processing unit" or "GPU") in the
+application server, and only the rendered 3D images are sent to the client
+machine.
+
+\url{https://sourceforge.net/projects/turbovnc/files/2.1.2/}
+
+\subsection{vnc4server}
+\label{sec:vnc4server}
+
+\subsection{vino}
+\label{sec:vino}
+
+Vino is the default VNC server in Ubuntu to share your existing desktop with
+other users. It uses GNOME to provide GUI.
+
+The server can be a headless server, i.e. no graphical desktop installed. For
+this, a graphics driver like \verb!xf86-video-dummy! must be installed.
+\url{https://wiki.archlinux.org/index.php/Vino}
+
+
+The problem with vino on Ubuntu 14.04 is the default authentication. This is a
+current bug in 14.04 as of this post writing. There is an increased in 
+security on server-side, and the vnc client has not been updated to work with
+high security. The work-around solution is to disable security on server-side.
+
+\url{http://www.libregeek.org/2014/04/29/getting-remote-access-work-ubuntu-14-04-vino/}
+
+Besure to configure firewall on the server to enable the port
+(Sect.\ref{sec:firewall})
+
+\subsection{no matching security types}
+
+The supported security type which is given for Ubuntu 14.04 is "type 18, TLS".
+For Ubuntu 13.10 we see two types, "type 18, TLS" and "type 2, VNC".
+However, The "type 2, VNC" is used by your VNC viewer. This can be analyzed
+using wireshack (Sect.\ref{sec:wireshack}).
+
+\begin{verbatim}
+Jun 29 00:03:36 localhost /etc/gdm/Xsession[974]: 29/06/2013 00:03:36 [IPv4] Got connection from client nanawel
+Jun 29 00:03:36 localhost /etc/gdm/Xsession[974]: 29/06/2013 00:03:36   other clients:
+Jun 29 00:03:36 localhost /etc/gdm/Xsession[974]: 29/06/2013 00:03:36      stilgar-laptop
+Jun 29 00:03:36 localhost /etc/gdm/Xsession[974]: 29/06/2013 00:03:36 Client Protocol Version 3.7
+Jun 29 00:03:36 localhost /etc/gdm/Xsession[974]: 29/06/2013 00:03:36 Advertising security type 18
+Jun 29 00:03:36 localhost /etc/gdm/Xsession[974]: 29/06/2013 00:03:36 Client nanawel gone
+Jun 29 00:03:36 localhost /etc/gdm/Xsession[974]: 29/06/2013 00:03:36 Statistics:
+Jun 29 00:03:36 localhost /etc/gdm/Xsession[974]: 29/06/2013 00:03:36   framebuffer updates 0, rectangles 0, bytes 0
+\end{verbatim}
+
+As most vnc viewers (except some commercial versions such as realvnc) do not
+accept TLS security, we can disable this on server-side. To set vino to request
+access each time, tick Allow other users to view your desktop in the Remote
+Desktop configuration window.
+\begin{verbatim}
+$ pkill vino
+$ export DISPLAY=:0.0
+$ /usr/lib/vino/vino-server &
+$ gsettings set org.gnome.Vino require-encryption false
+
+gsettings set org.gnome.Vino require-encryption false
+\end{verbatim}
+Note that this schema (org.gnome.Vino) is not accessible with dconf-editor.
+
+{\bf IMPORTANT}: A recent patch can help RealVNC 4.1.1 client to accept TLS
+security on Unix, Windows, and Java. 
+\url{https://www.auto.tuwien.ac.at/~mkoegler/index.php/tlsvnc}
+
+{\bf IMPORTANT}: we can try ssvnc (Sect.\ref{sec:ssvnc})
+
+\subsection{-- ssvnc}
+\label{sec:ssvnc}
+
+{\bf IMPORTANT}: ssvnc - a GUI wrapper for SSL and SSH VNC connections.
+\url{http://www.karlrunge.com/x11vnc/ssvnc.html}
+
+ ssvnc  is  a tcl/tk gui wrapper that runs on Unix, MacOSX, and Windows.
+       It sets up an SSL or SSH tunnel to  the  remote  VNC  Server  and  then
+       launches  the  VNC  viewer (either the one provided or another one that
+       you have specified) to use that encrypted tunnel to connect to the  VNC
+       Server.   
+       
+ \url{http://manpages.ubuntu.com/manpages/zesty/man1/ssvnc.1.html}
+
+\url{https://bugs.launchpad.net/ubuntu/+source/vino/+bug/1281250}
+
+
+
+
+
+\subsection{-- gemsvnc}
+\label{sec:gemsvnc}
+
+
+\subsection{--- tightvnc (Xvnc4) with SSH tunneling}
+\label{sec:Xvnc}
+\label{sec:tightvnc}
+\label{sec:vncserver}
+\label{sec:vncserver-Ubuntu}
+\label{sec:vncserver-GNOME-1}
+\label{sec:vnc-loopback-SSH-tunneling}
+
+tightvnc was developped by Constantin Kaplinsky, by using and extending RFB
+protocol of VNC. It effectively uses 'tight-encoding' techniques - a combination
+of the JPEG and zlib compression mechanisms, to transmit screen-shots.
+However, tight encoding is not supported by most other implementations, so it is
+necessary to use TightVNC at both ends (both server and client) to gain the full
+advantage of its enhancements.
+In 2.0 beta, TightVNC supports auto scaling, which resizes the viewer window to
+the remote users desktop size, regardless of the resolution of the host
+computer.
+
+Its forks
+\begin{enumerate}
+  \item TigerVNC - Sect.\ref{sec:tigervnc}
+\end{enumerate}
+
+
+Xvnc is an implementation of VNC protocol, and acts like an X11 server with
+virtual display, i.e. this display is a buffer on RAM and be mapped to any
+display (locally or remotely).
+Thus, the display can be captured by a VNC viewer client program.
+The wrapper is \verb!vncserver! script.
+\url{http://tigervnc.org/doc/Xvnc.html}
+
+
+\textcolor{red}{Step 1}: tightvnc only works with GNOME 1 or GNOME 2 only
+(Sect.\ref{sec:vncserver-GNOME-1}), i.e. nautilus, and metacity. To work with
+GNOME 3, read Sect.\ref{sec:vncserver-GNOME-3}
+
+On server machine, create \verb!~/.vnc/xstartup! file
+(Sect.\ref{sec:xstartup-vnc}).
+
+Step 2: on server create \verb!/etc/init.d/vncserver! file
+(simplest form)
+\begin{verbatim}
+#!/bin/bash
+PATH="$PATH:/usr/bin/"
+export USER="exampleuser"
+DISPLAY="1"
+DEPTH="16"
+GEOMETRY="1024x768"
+OPTIONS="-depth ${DEPTH} -geometry ${GEOMETRY} :${DISPLAY} -localhost"
+. /lib/lsb/init-functions
+
+case "$1" in
+start)
+log_action_begin_msg "Starting vncserver for user '${USER}' on localhost:${DISPLAY}"
+su ${USER} -c "/usr/bin/vncserver ${OPTIONS}"
+;;
+
+stop)
+log_action_begin_msg "Stopping vncserver for user '${USER}' on localhost:${DISPLAY}"
+su ${USER} -c "/usr/bin/vncserver -kill :${DISPLAY}"
+;;
+
+restart)
+$0 stop
+$0 start
+;;
+esac
+exit 0
+\end{verbatim}
+
+IMPORTANT: SSH tunneling: \verb!-localhost! feature is what limits VNC Server
+connections to ONLY possible once connected via an SSH Tunnel.
+\begin{verbatim}
+sudo chmod +x /etc/init.d/vncserver
+
+sudo service vncserver start
+sudo service vncserver restart
+sudo service vncserver stop
+\end{verbatim}
+
+
+Step 3: on server, check the listening port
+\begin{verbatim}
+netstat -plant | grep Xvnc
+
+
+tmhoangt:/home/tmhoangt/nts>netstat -plant | grep Xvnc
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tcp        0      0 127.0.0.1:5902          0.0.0.0:*               LISTEN      19062/Xvnc4     
+tcp        0      0 127.0.0.1:5903          0.0.0.0:*               LISTEN      19338/Xvnc4     
+tcp        0      0 0.0.0.0:6002            0.0.0.0:*               LISTEN      19062/Xvnc4     
+tcp        0      0 0.0.0.0:6003            0.0.0.0:*               LISTEN      19338/Xvnc4 
+\end{verbatim}
+
+Step 3: from client, 
+\begin{verbatim}
+ssh -L 5901:127.0.0.1:5901 -N -f -l exampleuser ip_address
+\end{verbatim}
+
+Step 3: from client, if using Putty
+\begin{verbatim}
+Under Connection -> SSH -> Tunnels add:
+
+Source port: 5901
+Destination: localhost:5901
+\end{verbatim}
+
+Step 4: from client, once ssh is established, we just use any VNCclient to
+connect to localhost with the designated port above
+\begin{verbatim}
+localhost:5901 
+\end{verbatim}
+via a VNC viewer such as TightVNC.
+
+Step 5: fast for X11 tunneling
+\url{http://xmodulo.com/how-to-speed-up-x11-forwarding-in-ssh.html}
+
+% To use SSH tunneling, we modify /etc/vncserver/vncserver.conf file
+% \begin{verbatim}
+% VNCSERVERS="1:tmhoangt 2:tmhoangt 3:tmhoangt"                                                                                                                                                           
+% VNCSERVERARGS[1]="-geometry 1920x1024 -nolisten tcp -SecurityTypes=VeNCrypt,TLSVnc"
+% VNCSERVERARGS[2]="-geometry 1024x768  -nolisten tcp -SecurityTypes=VeNCrypt,TLSVnc"
+% VNCSERVERARGS[3]="-geometry 1800x1024 -nolisten tcp -SecurityTypes=VeNCrypt,TLSVnc"
+% \end{verbatim}
+% NOTE: Valid values of \verb!-SecurityTypes! are a comma separated list of None,
+% VncAuth, Plain, TLSNone, TLSVnc, TLSPlain, X509None, X509Vnc and X509Plain. Default is VncAuth,TLSVnc.
+
+% It has built-in SSL/TLS encryption and 2048 bit RSA authentication, including
+% VeNCrypt support; 
+\url{https://www.liquidweb.com/kb/how-to-configure-a-vnc-server-to-use-an-ssh-tunnel-on-ubuntu-14-04-lts/}
+
+\subsection{--- tigervnc}
+\label{sec:tigervnc}
+
+TigerVNC is a fork of tightVnC (Sect.\ref{sec:tightvnc}).
+TigerVNC adds encryption for all supported operating systems (not just Linux),
+but it removes scaling the remote display into the client window, file transfer,
+and changing options while connected.
+
+
+\subsection{-----------install tigervnc}
+
+We can install tigervnc from pre-built package.
+
+Full build instruction:
+\url{https://gist.github.com/lucabelmondo/8b48506a686b830871bd}
+
+However, to take advantage of GNOME-3, we need to install the latest tigervnc
+(e.g. 1.8+):
+\begin{itemize}
+  
+  \item have these packages ready
+  
+  fltk 1.3+ - Sect.\ref{sec:FLTK}; libjpeg-turbo 9+ - Sect.\ref{sec:libjpeg}
+  
+  \item modify \verb!CMakeList.txt! 
+  
+  
+\begin{verbatim}
+ //  
+set(CMAKE_PREFIX_PATH /packages/libjpeg-turbo/9/;/packages/fltk/1.3/);
+
+include_directories("/packages/fltk/1.3/include")
+set (CMAKE_SHARED_LINKER_FLAGS "-ldl -Wl,--as-needed")
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ldl -lpthread ")
+SET (CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}
+      -L/packages/libjpeg-turbo/9/lib -ljpeg -L/packages/libpng/1.5/lib -ldl -lX11 -lXext
+      -I/packages/fltk/1.3/include -L/packages/fltk/1.3/lib -l:libfltk.a
+      -l:libfltk_forms.a -l:libfltk_gl.a -l:libfltk_images.a -l:libpng.a ")
+
+include_directories("/packages/fltk/1.3/include")
+set (CMAKE_SHARED_LINKER_FLAGS "-ldl -Wl,--as-needed")
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ldl -lpthread ")
+set (CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -L/packages/libpng/1.5/lib -ldl -lX11 -lXext -I/packages/fltk/1.3/include -L/packages/fltk/1.3         /lib -l:libfltk.a -l:libfltk_forms.a -l:libfltk_gl.a -l:libfltk_images.a -l:libpng.a")
+
+set(FLTK_DIR /packages/fltk/1.3/)
+find_package(FLTK NO_MODULE)
+#find_package(FLTK NO_MODULE
+  #HINTS "/packages/fltk/1.3/lib")
+SET(FLTK_INCLUDE_SEARCH_PATH
+      ${FLTK_DIR}/include
+      /packages/fltk/1.3/include
+   )
+
+\end{verbatim}
+
+  \item build
+
+\begin{verbatim}
+mkdir build
+cd build
+rm * -r ; cmake -DCMAKE_INSTALL_PREFIX:PATH=/packages/tigervnc ../; make -j4
+sudo make install 
+\end{verbatim}
+NOTE: We can use \verb!DCMAKE_INSTALL_PREFIX! without \verb!:PATH!.
+      
+\end{itemize} 
+
+\subsection{-----------build Xvnc}
+\label{sec:Xvnc}
+
+Xvnc is is both an X server and a VNC server.
+There are many security problems in current Xvnc implementation.
+It's recommended to restrict network access to Xvnc servers from untrusted
+network adresses. Probably, the best way to secure Xvnc server is to allow only
+loopback connections from the server machine (the -localhost option) and to use
+SSH tunneling for remote access to the Xvnc server
+(Sect.\ref{sec:vnc-loopback-SSH-tunneling}).   
+
+Building the TigerVNC Server (Xvnc) is a bit trickier.
+Xvnc differs from the other programs in that it is built inside a cut-down
+version of the X build tree, i.e. we need X-server source code.  This is based
+around the XFree86 3.3.2 "server only" distribution, which in turn is based on
+the X11R6.3 distribution from the X consortium.
+
+
+TightVNC Xvnc:\url{http://www.tightvnc.com/doc/unix/README.txt}
+ 
+TigerVNC Xvnc:
+\url{https://github.com/TigerVNC/tigervnc/blob/master/BUILDING.txt}
+  
+In Ubuntu 14.04 (use X11R7.7): add
+\begin{verbatim}
+xorg-server-source
+xorg-server-source-lts-trusty
+\end{verbatim}
+Ubuntu 16.04 will replace X.org by Mir (Sect.\ref{sec:Mir})
+\url{https://askubuntu.com/questions/438845/will-14-04-be-using-x-org}
+
+The source is installed to \verb!/usr/src/xorg-server.tar.xz! (we can check
+exact location of a package installed using)
+\begin{verbatim}
+dpkg -l | grep xorg-server
+
+dpkg -L xorg-server
+\end{verbatim}
+
+In Red Hat/CentOS/Fedora, for instance, provide an RPM called
+"xorg-x11-server-source", which installs the Xorg source under
+/usr/share/xorg-x11-server-source.)
+
+Install xorgs-macro (Sect.\ref{sec:xorgs-macro})
+
+Apply right version of kernel patch (that has vnc)
+\begin{verbatim}
+//cmake -DCMAKE_INSTALL_PREFIX={install_directory}
+
+cd build
+cd unix/xserver/
+patch -p1 < {source_directory}/unix/xserver{version}.patch
+ (where {version} matches the X server version you are building, such as
+    "17" for version 1.7.x.)
+
+autoreconf -fiv
+./configure --with-pic --without-dtrace --disable-static --disable-dri \
+      --disable-xinerama --disable-xvfb --disable-xnest --disable-xorg \
+      --disable-dmx --disable-xwin --disable-xephyr --disable-kdrive \
+      --disable-config-dbus --disable-config-hal --disable-config-udev \
+      --disable-dri2 --enable-install-libxf86config --enable-glx \
+      --with-default-font-path="catalogue:/etc/X11/fontpath.d,built-ins" \
+      --with-fontdir=/usr/share/X11/fonts \
+      --with-xkb-path=/usr/share/X11/xkb \
+      --with-xkb-output=/var/lib/xkb \
+      --with-xkb-bin-directory=/usr/bin \
+      --with-serverconfig-path=/usr/lib[64]/xorg \
+      --with-dri-driver-path=/usr/lib[64]/dri \
+      {additional configure options}
+    (NOTE: This is merely an example that works with Red Hat Enterprise/CentOS
+    6 and recent Fedora releases.  You should customize it for your particular
+    system.  In particular, it will be necessary to customize the font, XKB,
+    and DRI directories.)
+
+make TIGERVNC_SRCDIR={source_directory}
+   
+\end{verbatim}
+
+
+
+\subsection{-----------using tigervnc}
+
+Configuration file is 
+\begin{verbatim}
+$HOME/.vnc/config
+\end{verbatim}
+with
+\begin{verbatim}
+geometry=2000x1200 securitytypes=vncauth,tlsvnc
+\end{verbatim}
+
+\url{http://tigervnc.org/doc/vncserver.html}
+
+tigervnc server launch:
+\begin{verbatim}
+vncserver -autokill -SecurityTypes=VeNCrypt,TLSPlain -PlainUsers=$USER
+-pam_service login -desktop $HOSTNAME +extension GLX 
+\end{verbatim}
+
+
+NOTE: \verb!~/.vnc/default.tigervnc! is for the vncviewer.
+
+
+\subsection{x0rfbserver}
+\label{sec:x0rfbserver}
+
+x0rfbserver was written, in C++, to enable exporting an existing X session, e.g.
+the current session on the remote machine, so that you can access remotely
+without having to create a new X session.
+
+However, it was replaced by \verb!x11vnc! (Sect.\ref{sec:x11vnc}) since 2002.
+
+
+\subsection{--- x11vnc}
+\label{sec:x11vnc}
+
+NOTE: x11vnc was written in C, back in 2002 because \verb!x0rfbserver!
+(Sect.\ref{sec:x0rfbserver}) was basically impossible to build on Solaris and
+had poor performance. \url{http://www.karlrunge.com/x11vnc/}
+
+As x11vnc was written in C and needs only standard libraries and so should
+work on nearly all Unixes, even old ones. x11vnc also uses \verb!libvncserver!
+(\url{https://sourceforge.net/projects/libvncserver/}). 
+
+
+Step 1: on server, run to create password
+\begin{verbatim}
+x11vnc -storepasswd 
+\end{verbatim}
+
+
+Step 2: on server run
+\begin{verbatim}
+x11vnc -usepw
+
+//ssh -t -L 5900:localhost:5900 far-away.east 'x11vnc -localhost -display :0'
+\end{verbatim}
+
+
+
+Step 3: on client machine
+\begin{verbatim}
+vncviewer -encodings "copyrect tight zrle hextile" localhost:0
+\end{verbatim}
+
+NOTE: The \verb!-encodings! option is very important: vncviewer will often
+default to "raw" encoding if it thinks the connection is to the local machine,
+and so vncviewer gets tricked this way by the ssh redirection. "raw" encoding
+will be extremely slow over a networked link, so you need to force the issue
+with -encodings "copyrect tight ...". Nowadays, not all viewers use the
+-encodings option, try "-PreferredEncoding=ZRLE" (although the newer viewers
+seem to autodetect well when to use raw or not.)
+
+
+\subsection{-- RHEL}
+\label{sec:vncserver-on-RHEL}
+
+The default location of server configuration file for vncserver is
+'/etc/sysconfig/'.
+
+To configure the resolution, user and port open
+(the default location) \verb!'/etc/sysconfig/vncservers'! file
+\begin{verbatim}
+## 1 user only
+VNCSERVERS="3:saini"
+VNCSERVERARGS[3]="-geometry 1000x700"
+\end{verbatim}
+or
+\begin{verbatim}
+# multiple users
+VNCSERVERS="3:saini 2:user2"
+VNCSERVERARGS[3]="-geometry 1000x700"
+VNCSERVERARGS[2]="-geometry 1000x700"
+\end{verbatim}
+
+To configure a different location for the configuration file, put such
+information in '.vnc' directory in user's home directory. (e.g.
+'/home/user-name/.vnc/xstartup').
+\url{https://gofedora.com/how-to-configure-vnc-server/}
+
+
+\subsection{vncserver + GNOME 3}
+\label{sec:vncserver-GNOME-3}
+
+When I attempt to connect, all I can get is a message saying "No matching
+security types" or "No supported authentication methods!" (depending on which
+client I try). This is actually a known and currently open bug. However, there
+is a very easy workaround; just issue the following command:
+\begin{verbatim}
+gsettings set org.gnome.Vino require-encryption false
+\end{verbatim}
+\url{https://unix.stackexchange.com/questions/77885/how-can-i-connect-to-gnome-3-with-a-windows-vnc-client}
+
+
+
+\url{https://www.hiroom2.com/2016/05/24/debian-8-remote-connect-to-gnome3-desktop-with-vnc-xrdp/}
+\begin{verbatim}
+sudo apt remove -y vnc4server tightvncserver
+ 
+sudo apt install -y git devscripts
+  
+// port  liblftk in Ubuntu 16.04 to Debian 8
+// as the one in Debian 8 is a little old and 
+//    tigervncviewer will be compile error.
+sudo apt-get build-dep -y libfltk1.3
+\end{verbatim}
+FLTK is a widget tookit, check GUI development book. 
+
+
+
+\subsection{.vnc/xstartup file}
+\label{sec:xstartup-vnc}
+
+xstartup is nothing else than a shell script (note the shebang \verb!#!/bin/sh!
+in the fist line). Typically, it has
+\begin{verbatim} 
+  //file exist and has executable bit (i.e. +x bit is set)
+if [ -x /etc/X11/xinit/xinitrc ]; then
+  exec /etc/X11/xinit/xinitrc
+fi
+// or 
+if [ -f /etc/X11/xinit/xinitrc ]; then
+  exec sh /etc/X11/xinit/xinitrc
+fi
+
+// start an xterm with a window title
+xterm -geometry 80x24+10+10 -ls -title "$VNCDESKTOP Desktop" &
+
+// use one (and only ONE) of the below desktop environments
+// there is no point trying to run three desktop environment
+twm &   
+exec gnome-session &
+exec /usr/bin/startkde &
+\end{verbatim}
+TWM - Sect.\ref{sec:TWM} (a very tiny window manager and simple GUI).
+
+\textcolor{red}{OPTION 1}:\verb!~/.vnv/xstartup!  file with GNOME 1 or GNOME 2
+\begin{verbatim}
+#!/bin/sh
+
+export XKL_XMODMAP_DISABLE=1
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+
+[ -x /etc/vnc/xstartup ] && exec /etc/vnc/xstartup
+[ -r /home/tmhoangt/.Xresources ] && xrdb /home/tmhoangt/.Xresources
+xsetroot -solid grey
+vncconfig -iconic &
+
+gnome-session&
+gnome-panel &
+gnome-settings-daemon &
+metacity &
+nautilus &
+gnome-terminal &
+tuan
+\end{verbatim}
+
+
+\textcolor{red}{OPTION 2}:\verb!~/.vnv/xstartup!  file with KDE
+\begin{verbatim}
+!/bin/sh
+
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+OS=`uname -s`
+if [ $OS = 'Linux' ]; then
+  case "$WINDOWMANAGER" in
+    *gnome*)
+      if [ -e /etc/SuSE-release ]; then
+        PATH=$PATH:/opt/gnome/bin
+        export PATH
+      fi
+      ;;
+  esac
+fi
+
+if [ -x /etc/X11/xinit/xinitrc ]; then
+  exec /etc/X11/xinit/xinitrc
+fi
+if [ -f /etc/X11/xinit/xinitrc ]; then
+  exec sh /etc/X11/xinit/xinitrc
+fi
+[ -r $HOME/.Xresources ] && xrdb $HOME/.Xresources
+xsetroot -solid grey
+xterm -geometry 80x24+10+10 -ls -title "$VNCDESKTOP Desktop" &
+twm &   
+exec gnome-session &
+exec /usr/bin/startkde &
+\end{verbatim}
+
+\textcolor{red}{OPTION 3}:\verb!~/.vnv/xstartup!  file with XFCE4
+(Sect.\ref{sec:xfce4})
+\begin{verbatim}
+#!/bin/sh
+
+xrdb $HOME/.Xresources
+if [ `hostname -s` == 'srv' ]; then
+    startxfce4
+else
+if [ `hostname -s` == 'raspi' ]; then
+    openbox-session
+else
+    startxfce4
+fi
+fi
+\end{verbatim}
+
+
+
+
+\subsection{x0vncserver}
+\label{sec:x0vncserver}
+
+
+The simplest way to remote the native X Server is using the \verb!x0vncserver!
+command (Sect.\ref{sec:x0vncserver}). x0vncserver is a non-invasive VNC server
+that allows any X display to be controlled via VNC. 
+In fact, this is the only method if your operating system or X Server is not
+supported by the \verb!vnc.so! module.
+
+x0vncserver has been updated for version 4.4 to address performance and
+usability issue. It won't be as fast as Xvnc or a native X server with VNC
+support compiled in.
+\url{https://archive.realvnc.com/products/vnc/documentation/4.4/unix/man/x0vncserver.html}
+
+
+The vncserver program creates a new, virtual, VNC desktop - one that is not
+attached to any physical display hardware. 
+
+\textcolor{red}{RealVNC 4.4}:  The \verb!vnc.so! module is supported on
+Linux-based platforms running an XFree86 X Server version 4.2 and above or an
+XOrg X Server up to version 7.2.
+Currently, XOrg version 7.3, found in Ubuntu 8.04, Fedora Core 9 and OpenSUSE
+11.0 among others, is unsupported.
+
+\begin{verbatim}
+Section "Module"
+  Subsection "vnc"
+    Option "RSA_Private_Key_File" "/root/.vnc/private.key"
+
+    Option "AllowedUsers"         "*:d"   # add this to enable other users [othe wise, only 'root' can connect]
+    
+  EndSubSection
+  ...
+EndSection
+\end{verbatim}
+
+
+On modern X Servers, the Module section might not be present, in which case you
+will need to add it. Doing so may mean that certain default modules are no
+longer loaded; if so then you will need to add the following lines to the
+newly-created Module section: 
+\begin{verbatim}
+Section "Module"
+  Subsection "vnc"
+    Option "RSA_Private_Key_File" "/root/.vnc/private.key"
+  EndSubSection
+
+Load "extmod"
+Load "dbe"
+Load "glx"
+Load "freetype"
+Load "record"
+Load "dri"
+Load "dri2"
+
+EndSection
+\end{verbatim}
+
+Note that, on modern Linux systems, the default location of the vnc.so module is
+probably wrong. The easiest way to fix this is to create a symbolic link in the
+appropriate place, which is typically /usr/lib/xorg/modules/extensions. To do
+this, run the following command as root:    
+
+\begin{verbatim}
+ln -s /usr/X11R6/lib/modules/extensions/vnc.so
+        /usr/lib/xorg/modules/extensions/vnc.so
+\end{verbatim}
+On some 64-bit systems, the correct location is
+/usr/lib64/xorg/modules/extensions. Consult your X Server documentation for details. 
+
+\section{VNC viewer (client)}
+\label{sec:VNC-client}
+
+The local computer that runs a VNC viewer, which acts as a client and takes the
+frame buffer image sent from the machine having the VNC server
+(Sect.\ref{sec:VNC-server}) and displays it on a real screen.
+
+The VNC server can be configured to provide the Java viewer over HTTP, so you
+can use any Java-enabled web browser on any operating system as a VNC viewer.
+
+
+\section{TeamViewer}
+\label{sec:TeamViewer}
+
+TeamViewer has since removed the x64-only download, and they only offer the i386
+version.
+\begin{verbatim}
+wget https://download.teamviewer.com/download/teamviewer_i386.deb
+sudo dpkg -i teamviewer_i386.deb
+  // if errors, continue to run
+sudo apt update && sudo apt -f install
+\end{verbatim}
+
+Get teamviewer running as a daemon
+\begin{verbatim}
+cp /opt/teamviewer/tv_bin/script/teamviewerd.service
+  /etc/init.d/teamviewerd service teamviewerd start 
+
+//configure to start automatically
+update-rc.d teamviewerd defaults
+\end{verbatim}
+
+
+\section{Terminal multiplexer}
+\label{sec:terminal_multiplexer}
+
+When you connect a remote machine using SSH (Sect.\ref{sec:SSH}) or some sort of
+remote tunnelling connection (Sect.\ref{sec:SSH_tunneling}), the connection can
+be disconnected (i.e. detach) due to network issue. Remember that each session
+needs a window manager, which is typicall a shell (Sect.\ref{sec:shell}). Once the connection
+disconnected, the shell is closed, and along with all programs running within
+that shell. We can also detach \verb!tmux! from the screen,
+work in the background, and reattach later.
+  
+
+To keep a program running independent from the existing of the current connect,
+we have a few options
+\begin{itemize}
+  \item launch the program using \verb!nohup! (Sect.\ref{sec:nohup})
+  
+  \item launch the program inside a {\it terminal multiplexer}, such as
+  \verb!screen! or \verb!tmux! (Sect.\ref{sec:tmux}).
+\end{itemize}
+
+A terminal multiplexer is a window-manager running independently from the SSH
+session, which can hold shell sessions within. Within that session, it has a
+built-in terminal (virtual window) that you can run programs. Such window
+managers can be {\it attached} or {\it detached} at any time (as long as the
+machine is not reboot). It's considered as the text version of a graphical
+window manager, i.e. allowing us to open multiple terminal sessions inside a
+(remote) terminal session.
+
+A terminal multiplexer allows users to create {\bf sessions}, e.g.
+multiple virtual windows with any programs in them, kill the current window,
+switch between windows or copy text between them, view a list of active windows,
+rename windows, view the scrollback history, etc. You can detach your session
+and even log out if you wish; your programs will keep running, and you can
+reattach later, maybe when logged in from a different host.
+
+In each session, you can create tabs. So, you don't need many terminal windows
+to be opened, i.e. a single window with multiple tabs, each tab has one virtual
+terminal (e.g. \verb!screen! uses the virtual terminal with the same functions
+of DEC VT100 terminal). This is known as {\bf multiple windows}. This allows
+sysadmin to start a long running task on a remote machine, disconnect and
+reconnect again later to check the result.
+Other features: session sharing.
+
+SUMMARY:
+\begin{enumerate}
+  \item  \verb!screen! (Sect.\ref{sec:screen}), 
+  
+  \item \verb!tmux! (Sect.\ref{sec:tmux}) or 
+
+\verb!tmux! is a better choice than \verb!screen!, while screen is still widely
+used (to be explained in the session for tmux).
+\footnote{\url{http://www.techrepublic.com/blog/linux-and-open-source/is-tmux-the-gnu-screen-killer/1901/}}
+  
+  \item  \verb!byobu! (Sect.\ref{sec:byobu}).
+
+Byobu is a profile and configuration utility that runs on top of \verb!screen!
+or \verb!tmux!. 
+
+\end{enumerate}
+
+
+\subsection{important concepts}
+
+\subsection{-- model}
+
+\verb!screen! is written in that it has a list of virtual terminal 'window';
+while \verb!tmux! only requires 1 backend server.
+
+Because of that, \verb!tmux! has a different model than \verb!screen!, where
+each user has a server which controls his/her sessions and which the client
+connects to. The downside of this is that if the server crashes, you lose
+everything; I've never had the server crash on me, though.
+
+Both \verb!screen! and \verb!tmux! use a screen-based protocol, so the
+\verb!TERM! should be \verb!screen! or \verb!tmux! or similar. This environment
+variable should not be set manually.
+
+
+\subsection{-- session}
+\label{sec:terminal_multiplexer-session}
+
+A session is simply a running instance of Byobu or Screen.
+A session consists of a collection of windows, which are basically shell
+sessions, and panes, which are windows split into multiple sections.
+
+
+When a session is created, it creates a single window (i.e. one tab) with a
+shell in it (or the specified command) and then gets out of your way so that you can use the program
+as you normally would. You can have many tabs within a session, by pressing
+\verb!F2! button (Sect.\ref{sec:terminal_multiplexer-tab})
+
+We can create one or more session, and can detach from one session anytime
+(i.e. back to the regular linux shell), do something before reatach to the
+session again.
+
+\verb!tmux! has nicer session handling. 
+\begin{enumerate}
+  \item (if you're not running tmux/screen) create a (default name) session and
+  attach the session
+
+By default; the session is named using an incremental index number
+\begin{verbatim}
+screen           tmux
+\end{verbatim}
+
+  \item (if you're not running tmux/screen) create a session with a given name,
+  e.g. \verb!foo! and attach
+\begin{verbatim}
+screen -S foo
+
+tmux new -s foo
+\end{verbatim}
+
+we can detach the new session
+\begin{verbatim}
+screen -S foo -d -m
+
+tmux new -s foo -d
+\end{verbatim}
+  
+  \item (if you're inside tmux/screen):
+  
+  (1) \verb!<prefix>! \verb!:new!
+     
+  \item To detach: 
+  
+  (1) press F6; or 
+  
+  (2) we can run
+\begin{verbatim}
+byobu detach
+byobu
+
+// if tmux is the backend
+byobu-tmux detach
+byobu-tmux
+\end{verbatim}
+\url{http://stackoverflow.com/questions/14492744/how-do-you-detach-a-remote-screen-session-in-byobu-tmux}
+ 
+You can have multiple connnections, from different machines, to the same
+session. However, it will uses the resolution of the session with smallest
+window. If you have a higher resolution, in that case, i.e. you want to
+disconnect all others, except the current one, you can run
+\begin{verbatim}
+/usr/lib/byobu/include/tmux-detach-all-but-current-client
+\end{verbatim}
+or press
+\begin{verbatim}
+Alt-F6
+\end{verbatim}
+\url{https://superuser.com/questions/760020/how-to-make-screen-bigger-in-byobu}
+ 
+  \item  switch session:
+  
+  (1) Shift-up; Shift-down
+
+  (2)  interactively select session:
+
+  \verb!<prefix>! s
+  
+  
+  \item rename session:  for prefix, see -Sect.\ref{sec:tmux-prefix}
+  
+  (1) \verb!<prefix>!-\verb!%! 
+  
+  \item you can move and share windows between sessions.
+  
+  
+  \item If the connection is disconnected, then you can restart the connection,
+and run \verb!screen -r! to recover the previous connection.  
+
+\end{enumerate}
+
+
+\subsection{-- window}
+\label{sec:terminal_multiplexer-window}
+
+\verb!screen! sets the title based on the first word of the command, and
+requires shell configuration to do even that in a shell window, 
+\verb!tmux! keeps track of what processes are actually running in each window,
+and updates the title accordingly.
+
+
+\subsection{-- tab/pane}
+\label{sec:terminal_multiplexer-tab}
+
+You can have many tabs/panes within a session
+\begin{enumerate}
+  \item \verb!F2! : create new tab/pane
+  \item \verb!F3! : switch tab forward
+  \item \verb!F4! : switch tab backward
+  
+  \item to change the order of the pane:
+  
+  to move the pane forward:
+  \verb!shift-F3!
+  
+  to move the pane backward:
+  \verb!shift-F4!
+    
+  \item to move a pane to another session:
+
+IMPORTANT: It gets inserted as a split, so usually you first need to make
+sure the pane with \verb!<window_number>! is a throwaway window, i.e. you can
+remove it without worrying loosing your useful pane.
+\begin{verbatim}
+<prefix>:move-pane -t <target-session_name>:<window number>
+                      ^^^^^^^^^^^^^^ the name from above goes in here
+\end{verbatim}
+
+
+\end{enumerate}
+
+\subsection{-- status bar}
+\label{sec:terminal_multiplexer-status-bar}
+
+As a window manager, there is a status bar at the end that can hold any kind of
+information that you want, e.g. status bar in byobu
+(Sect.\ref{sec:byobu-status-bar}).
+
+Modifying status bar is considered easier in \verb!tmux! than in \verb!screen!. 
+Example: easily set up different text/styles for current window, windows with
+activity, etc. and you can put things on the left and right of the status bar,
+including shell commands that can be run at a specified interval (default 15s). 
+
+\subsection{-- screen splitting}
+\label{sec:screen-spliting}
+
+
+
+\subsection{-- title}
+\label{sec:terminal_multiplexer-title}
+
+Each tab in a session can have its own title. 
+
+Automatic window renaming
+\begin{enumerate}
+  \item \verb!screen!: detect the name based on the first word in the command, 
+  and requires shell configuration to do even that in a shell window
+  
+  \item \verb!tmux!: keeps track of what processes are actually running in each
+  window, and updates the title accordingly (this requires zero configuration). 
+  
+Example how it works:
+suppose that you're running Z Shell; the window's name would be "zsh"
+(Sect.\ref{sec:zsh}). Now let's say you want to edit some configuration file, so
+you type sudo emacs /etc/somefile. While sudo is asking for your password, the
+window's name will be "sudo", but once you've done that and sudo launches emacs,
+the title will be "emacs". When you're all done and you exit emacs, the title
+will change back to "zsh".
+
+
+
+\end{enumerate}
+
+
+\subsection{-- key binding}
+\label{sec:tmux-prefix}
+
+\verb!tmux! has
+\begin{enumerate}
+  \item easier key binding: which can be changed in configuration file
+  \verb!tmux.conf! - Sect.\ref{sec:tmux.conf}
+  
+  
+  \item vim-ish and emacs-ish key binding built-in
+  
+  \item fix terminal issues with \verb!TERM=tmux! 
+\end{enumerate}
+
+
+\verb!screen! has
+\begin{enumerate}
+  \item \verb!Ctrl-a! prefix
+
+The list of keyboard short-cut is given in 
+with the prefix \verb!Ctrl-a! for
+key-binding \url{http://www.pixelbeat.org/lkdb/screen.html}
+
+{\tiny
+\begin{verbatim}
+Ctrl-a ?          get help
+Ctrl-a c          new window
+Ctrl-a n          next
+Ctrl-a p          previous
+Ctrl-a "          select a window from the list
+Ctrl-a S          split into 2 regions horizontally
+Ctrl-a |          split ... vertically
+Ctrl-a :remove    remove current region
+Ctrl-a :resize     resize region
+Ctrl-a :fit       fit screen size to new terminal size
+Ctrl-a .          detach the session
+Ctrl-a Ctrl-a d   send detach message to the inner session
+\end{verbatim}
+}
+
+
+  \item extreme stable
+  \item fix terminal issues with \verb!TERM=screen!
+  \item only has emacs-ish built-in key binding
+  \item 
+\end{enumerate}
+
+\subsection{-- screen splitting/switching}
+
+
+After splitting a window into multiple panes, a pane can be resized by the
+hitting prefix key (e.g. Ctrl-b) and, while continuing to hold Ctrl, press
+Left/Right/Up/Down)
+
+\begin{enumerate}
+  \item vertical: \verb!<prefix> + %!
+  
+  \item 
+\end{enumerate}
+
+
+Switching: \verb!<prefix>! and continue to hold Ctrl; and press \verb!o! to
+switch to another pane.
+\begin{verbatim}
+Ctrl-b l (Move to the previously selected window)
+\end{verbatim}
+
+
+\subsection{-- configuration file: screen-keys.conf, tmux.conf}
+\label{sec:tmux.conf}
+\label{sec:screen-keys.conf}
+
+Screen: \verb!/usr/share/tmux/screen-keys.conf!
+
+Tmux: \verb!~/tmux.conf! file
+\begin{verbatim}
+# change key binding
+unbind C-b
+set -g prefix C-a
+bind C-a send-prefix
+
+# change from using Ctrl- to Alt- (Meta) in prefix-binding
+# set -g prefix m-'\'
+
+# add 256-color support
+set -g default-terminal "tmux-256color" 
+
+
+\end{verbatim}
+\url{https://wiki.archlinux.org/index.php/tmux}
+
+\subsection{screen}
+\label{sec:screen}
+
+\verb!screen! is a window manager (Sect.\ref{sec:terminal_multiplexer}) that
+provides the capability to run several separate 'screens' (i.e. virtual
+display/terminal) on a single physical character-based window/terminal.
+
+\begin{mdframed}
+
+In old Cygwin, we can use \verb!screen! but not \verb!tmux!. 
+\textcolor{red}{``screen'' 4.0.3-1 was first added to Cygwin}.
+\footnote{\url{https://cygwin.com/ml/cygwin/2007-07/msg00246.html}}
+
+However, the new Cygwin has \verb!tmux! as a package
+\footnote{\url{http://java.ociweb.com/mark/programming/tmuxInCygwin.html}}.
+
+\verb!byobu! is still not a package in Cygwin; yet we can compile it from
+source. 
+
+The document how to use in Cygwin is
+\begin{verbatim}
+ vi /usr/share/doc/screen/README.Cygwin 
+\end{verbatim}
+
+\end{mdframed}
+
+
+\verb!screen! program, once run, inherits the \verb!$TERM! environment variable
+from the current terminal emulator, and it has been reported to work well with
+the following terminal emulators
+\begin{verbatim}
+  rxvt
+  xterm
+  mintty
+\end{verbatim}
+
+
+{\bf CYGWIN}: A tab in screen is a virtual terminal. Each virtual terminal
+emulates a DEC VT100 plus several ANSI X3.64 and ISO 2022 functions. To
+configure in Cygwin:
+
+\begin{itemize}
+
+  \item modify \verb!~/.bashrc! file (to use 256-color support)
+
+Many issues, when using vim, or other text editors inside a virtual terminal is
+the wrong setting of \verb!TERM! environment variable (Sect.\ref{sec:TERM-in-tmux-screen})
+
+Reload the file and test
+\begin{verbatim}
+ /usr/share/screen/256colors.pl
+\end{verbatim}
+\end{itemize}
+
+\begin{mdframed}
+
+When you run \verb!screen! you will see
+
+{\tiny
+\begin{verbatim}
+Capabilities:
++copy +remote-detach +power-detach +multi-attach +multi-user 
++font +color-256 +utf8 -rxvt -builtin-telnet
+\end{verbatim}
+}
+
+\end{mdframed}
+
+% \verb!screen!, \verb!tmux! (Sect.\ref{sec:tmux}) and \verb!byobu!
+% (Sect.\ref{sec:byobu}) are {\bf terminal multiplexer}
+% (Sect.\ref{sec:terminal_multiplexer}). 
+
+\subsection{-- send commands}
+
+In screen, you can send commands to an attached session
+\begin{verbatim}
+screen -S automate_me -X stuff 'command'$(echo -ne '\015')
+\end{verbatim}
+
+
+\subsection{tmux}
+\label{sec:tmux} 
+
+Similar to \verb!screen! (Sect.\ref{sec:screen}) in many ways, \verb!tmux! is a
+terminal multiplexer (Sect.\ref{sec:terminal_multiplexer}).
+\verb!tmux! only has
+\begin{enumerate}
+  \item 2 processes (e.g. long-lived process that store virtual terminal: in
+  tmux (they are called {\it server} in tmux-language and {\it detached session} in GNU screen-language)
+  
+  \item one UI process - attach/view/control the long-lived process
+\end{enumerate}
+A neat way to use \verb!tmux! is with \verb!byobu! (Sect.\ref{sec:byobu}). The
+configuration file for \verb!tmux! is in \verb!~/.tmux.conf!.
+
+
+\verb!tmux! 
+\begin{enumerate}
+  \item has a status bar  - Sect.\ref{sec:terminal_multiplexer-status-bar}
+  
+Set up a status bar is easier, e.g. different text/styles, you can put things on
+the left and right of the status bar, including shell commands that can be run
+at a specified interval (default 15s).
+  
+  \item  Any command you can run inside tmux can be run from a a regular shell
+  with
+\begin{verbatim}
+tmux command [args]
+\end{verbatim}
+
+This makes it very easily scriptable, as well as making it easy to do complex
+commands.
+\textcolor{red}{To bootstrap tmux, check}
+\footnote{\url{https://github.com/yesmeck/tmuxrc}}
+
+  \item window renaming - Sect.\ref{sec:terminal_multiplexer-window}
+\end{enumerate}
+
+
+\subsection{-- troubleshoot}
+
+\begin{verbatim}
+protocol version mismatch (client 8, server 6)
+\end{verbatim}
+
+It means that you have an old version of \verb!tmux-!server running, and the new
+\verb!tmux! (client). 
+
+One solution, kill all server  (which of courses you will loose your sessions)
+\begin{verbatim}
+sudo killall -9 tmux
+\end{verbatim}
+
+Another solution, you can check
+\begin{verbatim}
+$>pgrep tmux 
+3429  <---- check this number
+
+//then run
+$>/proc/3429/exe attach
+\end{verbatim}
+
+
+\subsection{-- tpm: tmux plugin manager}
+\label{sec:tpm}
+
+We can make tmux more powerful, by utilizing its collection of plugins.
+The configuration file is \verb!~/.tmux.conf!, and the plugins is stored in
+\verb!~/.tmux/plugins/! folder.
+
+You should use \verb!tpm! (tmux plugin manager)
+\footnote{\url{https://github.com/tmux-plugins/tmux-resurrect}}
+
+\subsection{-- plugin: tmux-better-mouse-mode}
+
+You need to be able to use mouse-scroll to view output in the tmux pane easily,
+\url{https://github.com/NHDaly/tmux-better-mouse-mode}
+
+\url{https://superuser.com/questions/210125/scroll-shell-output-with-mouse-in-tmux}
+
+\subsection{-- plugin: tmux-resurrect}
+
+First, you need to install \verb!tpm! (Sect.\ref{sec:tpm}), and then we can
+install other plugins easily.
+
+
+\begin{enumerate}
+
+  \item {\bf tmux-resurrect}: make tmux session permanent even after machine reboot/restart
+  \url{https://github.com/tmux-plugins/tmux-resurrect}
+  
+Put this line inside the \verb!~/.tmux.conf! (leave the last line unchanged)
+  \begin{verbatim}
+set -g @plugin 'tmux-plugins/tmux-resurrect'  
+  \end{verbatim}
+and (if inside tmux, press \verb!<prefix>-I!, or (if outside tmux), run
+\verb!~/.tmux/plugins/tpm/bin/install_plugins!  
+
+By default, the resurrect information is stored in \verb!~/.tmux/resurrect!
+directory, we can change using
+\begin{verbatim}
+set -g @resurrect-dir '/some/path'
+\end{verbatim}
+
+By default, the following programs are resurrected
+\begin{verbatim}
+vi vim nvim emacs man less more tail top htop irssi mutt
+\end{verbatim}
+We can extend by reading 
+\url{https://github.com/tmux-plugins/tmux-resurrect/blob/master/docs/restoring_programs.md}
+
+  \item {\bf some }
+\end{enumerate}
+
+\subsection{-- prefix key}
+
+\verb!screen! uses \verb!Ctrl-A! as prefix.
+
+\verb!tmux! uses \verb!Ctrl-B! as prefix.
+
+When you uses editors like vim, emacs, or some terminal shells, they may
+conflict with these tools. To redefine a new prefix keybinding, such as
+\verb!Ctrl-\!, then edit \verb!~/.tmux.conf! file.
+
+\begin{verbatim}
+unbind-key C-b
+
+ #this line is needed since tmux 1.8
+ #NOTE: use single quote ', not the catastrophe sign `
+set -g prefix 'C-\'
+
+bind-key 'C-\' send-prefix
+\end{verbatim}
+
+To set the prefix key-binding like \verb!screen! (Sect.\ref{sec:screen})
+\begin{verbatim}
+set -g prefix Ctrl-a
+\end{verbatim}
+
+But if you're an Emacs user, then you can use F12 as the prefix
+%(Sect.\ref{sec:emacs})
+\begin{verbatim}
+set -g prefix F12                                                                                                                                                                                                                 
+unbind-key -n C-a
+\end{verbatim}
+
+\subsection{* tmux 1.4}
+
+\subsection{* tmux 1.8.x}
+
+\subsection{* tmux 1.9+}
+
+\begin{verbatim}
+sudo apt-get install dpk-config  automake autoconf libtool
+
+#download and install libevent 
+\end{verbatim}
+
+Starting in tmux 1.9 the default-path option was removed, so you need to use the
+-c option with new-window, and split-window (e.g. by rebinding the c, ", and %
+bindings to include \verb!-c '#{pane_current_path}')!.
+
+\url{http://unix.stackexchange.com/questions/12032/create-new-window-with-current-directory-in-tmux}
+
+
+
+\subsection{byobu}
+\label{sec:byobu}
+
+First version of Byobu came out in 2008 under the name {\it Screen Profiles} and
+for Ubuntu, which actually uses \verb!screen! as the backend
+(Sect.\ref{sec:screen}), with status bar support as default
+(Sect.\ref{sec:byobu-status-bar}). It was then renamed to Byobu in version 2.0. 
+Byobu (a Japanese word for 'screen') is a new way of interacting with (remote)
+machine using a single detachable/attachable screen on the command line. 
+
+Byobu 4.0 introduced screen splitting (Sect.\ref{sec:screen-spliting}), and
+supports using \verb!tmux! as backend (Sect.\ref{sec:tmux}) but it is not the
+default setting.
+\textcolor{red}{Historically, we customize the tmux by modifying the file}
+\verb!~/.screenrc!. The collection of nice hacks to .screenrc was proposed, and
+then evolved into \verb!byobu!.
+
+
+Since Byobu 5.0, \verb!tmux! is the default backend. To use byobu in Cygwin,
+read Sect.\ref{sec:byobu_Cygwin}. Nowadaysm, byobu is a layer on top of either
+GNU \verb!screen! or \verb!tmux!, with more features (i.e. text-based window
+manager).
+
+\begin{enumerate}
+  \item install - Sect.\ref{sec:byobu-install}
+
+NOTICE: Further config update in Sect.\ref{sec:byobu-versions}
+
+  \item open byobu: manually or automatically. 
+  
+  
+ You can configure to open it automatically upon an ssh session to that machine
+ (Sect.\ref{sec:byobu-automate-launch}). 
+\begin{verbatim}
+//on remote machine, run
+byobu-enable
+\end{verbatim} 
+ Once configured to automate launching
+ byobu, in certain login, that you want not to use byobu, but bash, then you can do
+\begin{verbatim}
+ssh -t <remotehost> bash
+\end{verbatim}
+
+  \item select backend
+\begin{verbatim}
+byobu-select-backend
+\end{verbatim}
+
+
+  \item adjust background-color:
+  use \verb!~/.byobu/color.tmux! or \verb!~/.byobu/color! file
+  
+  In tmux, we can randomly select the background color by pressing
+  Ctrl-Shift-F5.
+  
+  \item status bar - Sect.\ref{sec:byobu-status-bar}
+   
+\end{enumerate}
+
+\subsection{-- install}
+\label{sec:byobu-install}
+
+\textcolor{red}{It's recommended to download the source-code of byobu from the
+website and compile it. Using the binary-package pre-compiled for Ubuntu may not
+work.}
+
+To compile \verb!byobu! in Cygwin, we follow the link:
+\url{http://choorucode.com/2014/01/18/how-to-install-byobu-on-cygwin/}
+\begin{verbatim}
+1. Download Byobu source code
+2. Untar and run
+./configure
+make 
+make install
+\end{verbatim}
+The configuration interface of byobu need \verb!python-newt! package.
+
+Ubuntu 10.04 has byobu 4.0 which use \verb!screen! is the backend.
+You can either download the source, compile it or install the unofficial package at
+\url{https://launchpad.net/~izx/+archive/private}. Byobu 5.70 uses \verb!tmux!
+1.8 \url{http://tmux.sourceforge.net/} and \verb!libevent! 2.0.x library.
+
+As it's recommended to use \verb!tmux! as the backend. We need to install
+\verb!tmux! as well. We can split the screen into multiple regions
+(Sect.\ref{sec:screen-splitting}), like we do with vim or Emacs. System-wide
+setting is by putting a link in /etc/profile.d.
+
+\subsection{-- configure automate launching byobu}
+\label{sec:byobu-automate-launch}
+
+After you install, byobu automatically launchs at text-based login to the
+(remote) server for all users. A symlink in /etc/profile.d is created that
+apply for all users, i.e.
+\begin{verbatim}
+/etc/profile.d/Z98-byobu.sh -> /usr/bin/byobu-launch*
+\end{verbatim}
+To toggle this, run as root
+\begin{verbatim}
+dpkg-reconfigure byobu
+\end{verbatim}
+
+In the case it applies to all users, each user can turn off by creating
+(touching) the file
+\begin{verbatim}
+~/.byobu/disable-autolaunch
+\end{verbatim}
+or configure by running
+\begin{verbatim}
+byobu-config
+\end{verbatim}
+While inside \verb!byobu!, we can also disable auto-launch by opening the menu
+(F9).
+
+
+\subsection{-- internal environment variable}
+\label{sec:byobu-environment-variables}
+
+Once you launch byobu, check the definition of the following environment
+variables to figure out location of important file
+\begin{itemize}
+  \item \verb!BYOBU_BACKEND! = name of backend (tmux, screen)
+  
+  \item \verb!BYOBU_PREFIX! = /usr
+  
+  
+  \item \verb!BYOBU_CONFIG_DIR! = location of all configuration files being used
+  
+  \item \verb!BYOBU_RUN_DIR! = location of run
+  
+e.g. \verb!/dev/shm/byobu-tmhoangt-y6TNCTP5!
+
+\end{itemize}
+
+\subsection{-- X11 forwarding inside byobu}
+
+Running an X11 application via an ssh session to a remote machine inside a byobu
+tab can be tricky, as the X11 application needs to know on which screen that it
+should be display (i.e. local machine or remote machine). This session explains how
+to resolve it.
+
+\begin{verbatim}
+In my work computer (A) I open a byobu (tmux) session.
+
+Inside byobu, I open several terminals. Some of them are local to (A), but in
+others I ssh to a different computer (B). 
+
+I go home, and from my my home computer (C) I ssh to (A), run "byobu" and find
+all my sessions in (A) or (B). 
+
+This works perfectly, except for running X11 applications. I don't leave any X11
+application running when I change computers, but just running "xclock" sometimes
+works and sometimes doesn't ("cannot connect to X server localhost:n.0").  
+
+I understand this depends on the DISPLAY variable, and that it would be set up
+such that X11 would connect to the computer where I ran "byobu" last before
+creating the session inside byobu, and that could be (A) or (C). 
+\end{verbatim}
+
+Simply type this in any of the byobu shells
+\begin{verbatim}
+. byobu-reconnect-sockets
+\end{verbatim}
+This is all supposed to happen simply by pressing CTRL-F5, but it may
+not work if the computer is intercepting the CTRL-F5 (for me, I am using iTerm
+on a Mac) and either doing its own thing with it, or sending the wrong control
+character sequence so byobu doesn't receive it properly.   
+
+You can edit the \verb!byobu-reconnect-sockets! script (it is just a shell script) and
+there are places to add additional environment variables you want updated, 
+
+\url{https://stackoverflow.com/questions/43002749/updating-display-with-ssh-and-byobu}
+
+\subsection{-- status bar}
+\label{sec:byobu-status-bar}
+
+One of the powerful feature of using byobu is the status bar, which provides
+several useful information about your machine. The status bar provides screen
+notification and tabbed multi-window management, rather opening multiple
+windows.
+
+Byobu displays two lines at the bottom of your screen. The upper one is the
+Caption line, and the lower one is the Hard Status.
+
+Press F9 to open dialog for updating status bar
+\begin{enumerate}
+  \item {\bf Caption line}
+  
+  Caption line shows your open windows, and highlights the one upon which you
+  are focused, and optionally displays your user name, host name, IP address,
+  and a hint that there is a Menu available
+  
+  \item {\bf Hard status}
+\end{enumerate}
+You may need to press F5 to refresh the status bar; an indicator in the status bar will appear, if required.
+
+
+
+\begin{verbatim}
+arch shows the system architecture, i.e. x86_64.
+`battery shows the current battery level (for laptops).
+date shows the current system date.
+disk shows the current disk space usage.
+hostname shows the current system hostname.
+ip_address shows the current system IP address.
+load_average shows the current system load average.
+memory shows the current memory usage.
+network shows the current network usage, sending and receiving.
+reboot_required shows an indicator when a system reboot is required.
+release shows the current distribution version (e.g. 14.04).
+time shows the current system time.
+updates_available shows an indicator when there are updates available.
+uptime shows the current system uptime.
+whoami shows the currently logged in user.
+\end{verbatim}
+
+To change the color of the status bar, we can modify \verb!~/.byobu/.tmux.conf!
+with something like
+\begin{verbatim}
+set -g window-status-activity-bg red
+\end{verbatim}
+or press Ctrl-Shift-F5 to get a random color each time you press.
+
+
+\begin{framed}
+Global change is in \verb!/usr/local/share/byobu/profiles/tmux!. We can also run
+\verb!byobu-select-profile! command. To reset, delete the file 
+\begin{verbatim}
+rm ~/.byobu/color.tmux
+\end{verbatim}
+\end{framed}
+
+\subsection{-- key binding}
+\label{sec:byobu-key-binding}
+
+
+Depending it's using \verb!screen! or \verb!tmux!, the key binding can be
+different. 
+
+\textcolor{red}{\bf By default, } the information of keybinding is loaded from 
+\verb!BYOBU_CONFIG_DIR/keybindings!
+
+
+, e.g
+\begin{enumerate}
+  \item toggle key binding: Shift-F12 (tmux), Ctrl-a ! (screen)
+\end{enumerate}
+
+Byobu set \verb!$TERM! environment variable to  \verb!screen!,
+\verb!screen-bce!, \verb!screen.linux!, etc. If color is not enabled, then open
+\verb!~/.bashrc! file and edit
+\begin{verbatim}
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm*) color_prompt=yes;;
+    screen*) color_prompt=yes;;
+esac    
+    
+# If this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*|screen*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+\end{verbatim}
+
+
+
+If an error occurs, then you can clean-up
+\begin{verbatim}
+# clean configuration file
+rm -rf ~/.byobu
+# remove folder symlink
+rm -rf ~/.local/share/byobu
+\end{verbatim}
+and restart \verb!byobu!.
+
+\subsubsection{-- byobu with screen}
+\label{sec:byobu-screen}
+
+With Byobu 4.0, \verb!screen! is the only support feature. When byobu is
+launched, a new session is created. You can open as many windows and as many
+programs in each window in one session. To define preset windows to launch, we
+modify \verb!~/.byobu/windows! (each line we specify a window using
+\verb!screen! command)
+\begin{verbatim}
+screen -t CLI bash
+screen -t email mutt
+screen -t remote juliet@myremotehost.com
+
+screen -t localhost bash
+screen -t staging ssh dt123
+screen -t fsuk1 ssh fs
+screen -t php php -a
+screen -t python bpython
+\end{verbatim}
+Since Byobu 5.x, \verb!tmux! is the default backend (Sect.\ref{sec:tmux}). To
+switch to \verb!screen!, we run
+\begin{verbatim}
+byobu-select-backend
+\end{verbatim}
+
+
+You can temporarily detach from the session to do something else (Ctrl-a d), and
+then recover the session using \verb!screen -r!. We can also detach the session
+by closing the terminal emulator that contains the session. So, if the network
+connection is dropped, the session is just detached; so you basically can
+recover what you're doing easily.
+
+
+\subsubsection{-- byobu with tmux}
+\label{sec:byobu-tmux}
+
+\verb!tmux! has its own set of commands. When it's started, a new session
+with a single window is created. A session is a collection of pseudo terminals
+which can be switched from one to another using key binding.
+
+To configure \verb!tmux! to launch a number of windows, we modify
+\verb!~/.byobu/.tmux.conf!
+\begin{verbatim}
+new-window -ad -n Git
+new-window -ad -n "Project Build/Run"
+new-window -ad -n PostgreSQL
+\end{verbatim}
+Here, we create three windows with three different names \verb!Git!,
+\verb!Project Build/Run!, and \verb!PostgreSQL!.
+
+To detach the current session, press \verb!Ctrl-a d! or F12-d or F6. If it
+automatically ending the plain ssh connection, it means you need to fix this.
+First, toggle off the auto-run of \verb!byobu! using F9 menu. Then login with
+plain ssh. Open the file \verb!~/.profile! at the last line. NOTE: If you're
+using zsh, instead of bash, then you need to modify \verb!~/.zprofile! file
+\begin{verbatim}
+tset -e                                                                                                                                                                                                               
+ulimit -l unlimited
+`echo $- | grep -qs i` && byobu-launcher && exit 0
+
+# or
+# case "$-" in *i*) byobu-launcher && exit 0; esac;
+\end{verbatim}
+We need to remove \verb!exit 0! command. Then run \verb!byobu!, and toggle on
+the auto-run of byobu again using F9 menu.
+
+After detach a running session, you can reattach it by running \verb!byobu!
+without an argument.
+
+To create a new session, we use
+\begin{verbatim}
+byobu -S <name-my-other-session>
+\end{verbatim}
+The name will be \verb!<pid>.MYNAME!, rather than \verb!<pid>.<tty>.<host>!. 
+
+If you are having multiple running session, you can choose one to use by typing
+(from the background)
+\begin{verbatim}
+byobu
+      // or
+byobu-select-session
+\end{verbatim}
+and it will display a list of sessions to choose.
+
+
+% \begin{verbatim}
+% sudo  mkdir /usr/lib/byobu/include/
+% sudo  mkdir /usr/lib/byobu/include/common
+% \end{verbatim}
+\begin{framed}
+
+When using byobu 5.7 for the first time, Ctrl-a maybe used in Emacs as
+go-to-beginning-of-line. If you are an emacs user, then you will be asked to use
+Ctrl-a as Emacs command, and use F12 as the key control in \verb!tmux!.
+\end{framed}
+
+
+Cool key-bindings can be select from using byobu-config and select between using
+F-key binding or Escape-Screen-key binding (Ctrl-a) or None key binding. In the
+case of F-key binding, you can also toggle on/off these keybinding, in case you need to
+use the key for some other actions, by pressing Shift-F12:
+\begin{enumerate}
+  \item F2: create new windows
+  \item F3/F4 (Ctrl-a p or Ctrl-a n): move to previous/next window
+  \item Ctrl-a 'N': switch to the window with index 'N' ('N'=1..9)
+  \item Ctrl-a `` : give a list of opening windows (to navigate and select one
+  to use)
+  \item Ctrl-a ': give a prompt (at the bottom) to type in the window index
+  to use and enter
+  \item Ctrl-a A : (or press F8) give a name to the windows you're working on
+  \item Ctrl-a K: to close the misbehaved program in the current window
+  \item F9: open \verb!byobu-config! window
+  \item Ctrl-a d (F6): Detach the current session. 
+  \item F7 to start copy/scrollback mode, then use arrow keys or
+  page-up/page-down keys to move around your session; press spacebar to start
+  copying, move then cursor to a new place, then press space again to paste. The
+  paste hot key is \verb!CTRL-a ]!.
+  
+  \item Alt-F5: toggle on/off UTF-8 support in status bar and on PS1. To choose
+  PS1 prompt, use \verb!byobu-enable-prompt!.
+  
+  
+  \item Alt-F6: when you connect to the same byobu session from different
+  terminals on different machine of different screen resolution. The lowest
+  resolution is used in all terminal.
+  
+  
+  To fix this: you can detach all clients but yourself; by either pressing
+  \verb!Alt-F6!; or run the command 
+\begin{verbatim}
+/usr/lib/byobu/include/tmux-detach-all-but-current-client
+\end{verbatim}
+\url{http://superuser.com/questions/760020/how-to-make-screen-bigger-in-byobu}
+\end{enumerate}
+
+You can also bind the following Ctrl-key binding to one of the F-key by adding
+the lines to (along with restarting byobu) 
+\begin{verbatim}
+<byobu_dir>/share/byobu/keybindings/f-keys 
+\end{verbatim}
+e.g.
+\begin{verbatim}
+bindkey -k k; kill
+bindkey -k F1 quit
+\end{verbatim}
+
+
+We can also split the big screen into regions
+\begin{enumerate}
+  \item Ctrl-a S : (capital S) split the screen/region into upper and lower part
+  (horizontal line)
+  \item Ctrl-a | : split the screen/region into left and right part (vertical
+  line)
+  \item Ctrl-a <tab>: switch between two regions
+  
+In tmux, we can use \verb!Alt-arrows! key (left/right) to switch windows. To
+switch between sessions (if we have more than one session), we can use
+\verb!Alt-arrow! key (up/down).
+
+
+  \item Ctrl-a 'N' : when you are in the new region, you can bring/activate the
+  'N' window to this region 
+
+  \item Ctrl-a X : (capital X) to close a region
+\end{enumerate}
+By default, the scree/region is equally splitted. You can increase the size of
+the current region \verb!Ctrl-a! then press \verb!:resize! with
+\begin{verbatim}
+:resize N   --> set height to N
+:resize +N  --> increase height N
+:resize -N  --> decrease height N
+:resize max --> maximize the height
+:resize min --> minimize the height
+\end{verbatim}
+
+
+To lock the terminal, we use \verb!Ctrl-a x! (small x) or F12.
+
+
+The good things is that all your programs running in the session will be
+available on your next login. You can temporarily detach from the session, by
+pressing Ctrl-a d.
+
+
+\begin{framed}
+As \verb!byobu! (or screen) make sure you have a working session all the time,
+the only way to exit a session (without killing the \verb!byobu! proceess) is to
+exit every one program and windows in the session. To kill a window, we press
+\verb!Ctrl-a k!. To kill all the windows and terminate the session, press
+\verb!Ctrl-a \!. 
+\end{framed}
+
+
+To create a new keybinding in GNU screen, modify
+\begin{verbatim}
+~/.byobu/keybindings
+\end{verbatim}
+Also, to know the key-code, you should do
+\begin{verbatim}
+cat >/dev/null
+\end{verbatim}
+and then press the key combination, e.g. Ctrl-Shift-F7, which shows on the
+screen 
+\begin{verbatim}
+^[[18;6~
+\end{verbatim}
+This is the key-code we need to put into \verb!~/.byobu/keybindings! file. If
+\verb!byobu! use tmux, it's easier as "S" for Shift, "C" for Ctrl, "M" for Alt.
+
+
+
+To modify what you want to show on the status bar, modify the file
+\begin{verbatim}
+/usr/local/share/byobu/profiles/tmux
+\end{verbatim}
+E.g.
+\begin{verbatim}
+set -g status-bg $BYOBU_DARK
+set -g status-fg $BYOBU_LIGHT
+set -g status-interval 1
+set -g status-left-length 256
+set -g status-right-length 256
+set -g status-left '#(byobu-status tmux_left)'
+set -g status-right '#(byobu-status tmux_right)'
+#set -g message-bg $BYOBU_ACCENT
+#set -g message-fg white
+\end{verbatim}
+
+\subsubsection{-- byobu versions change}	
+\label{sec:byobu-versions}
+
+Byobu 1.0: the name was {\bf Screen profiles}
+
+Byobu 2.0: the name was changed to {\bf byobu}.
+
+Byobu 3.0: the build system was replaced with \verb!automake!
+
+Byobu 4.0: introduced screen splitting, and added tmux support.
+
+Byobu 5.0: use tmux as default backend.
+
+On Ubuntu 12.04: There are some issues with byobu on Ubuntu 12.04. The first is there is a
+version change, from 2.18 in Ubuntu 10.04 to 5.17 in Ubuntu 12.04. 
+Then, there are some issues in the script file
+\begin{verbatim}
+/usr/bin/byobu
+/usrb/bin/byobu-janitor
+\end{verbatim}
+
+\begin{enumerate}
+  \item Open /usr/bin/byobu, set default
+\begin{verbatim}
+BYOBU_BACKEND=tmux 
+\end{verbatim}
+at the beginning of the file. Then, add another line (search for keyword 
+\verb!ip_address!)
+\begin{verbatim}
+. $BYOBU_PREFIX/lib/$PKG/include/shutil                                                                                                                                                                                       
+. $BYOBU_PREFIX/lib/$PKG/ip_address
+\end{verbatim}
+  
+  \item Open /usr/bin/byobu-janitor, and add
+\begin{verbatim}
+BYOBU_RUN_DIR="$HOME/.byobu.d"
+BYOBU_CONFIG_DIR="$HOME/.byobu.d"
+\end{verbatim}
+
+  \item Then, you need to copy the files 
+\begin{verbatim}
+/usr/local/share/byobu/status/status
+/usr/local/share/byobu/status/statusrc
+/usr/local/lib/byobu/ip_address
+\end{verbatim}
+from an existing system, as it lacks this file.
+
+  \item Add the file \verb!/usr/local/share/byobu/profiles/byoburc!
+  
+\begin{verbatim}
+###############################################################################                                                                                                                                               
+#    Load:
+#     * the stock byobu profile
+#     * any windows
+#     * and the local byoburc (instead of .screenrc)
+#    Used at startup but not profile refresh
+#
+#    Copyright (C) 2009-2011 Canonical Ltd.
+#
+#    Authors: Dustin Kirkland <kirkland@byobu.co>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, version 3 of the License.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###############################################################################
+
+source $BYOBU_CONFIG_DIR/profile
+source $BYOBU_WINDOWS
+source $BYOBU_CONFIG_DIR/.screenrc
+\end{verbatim}
+\end{enumerate}
+
+
+\url{https://launchpad.net/ubuntu/+source/byobu/+changelog}
+
+
+
+
+\subsection{-- sessions}
+\label{sec:byobu-sessions}
+
+The first time you start Byobu, it starts you a fresh session
+(Sect.\ref{sec:terminal_multiplexer-session}) in which you create windows and
+panes.
+
+On subsequent connections, if you have only one session open, Byobu will
+automatically open that session when you connect; if you have more than one
+session open, Byobu will ask you which session you want to use with a prompt
+like this:
+\begin{verbatim}
+Byobu sessions...
+
+  1. tmux: 1: 1 windows (created Wed Aug  3 16:34:26 2016) [80x23]
+  2. tmux: 2: 1 windows (created Wed Aug  3 16:34:38 2016) [80x23]
+  3. Create a new Byobu session (tmux)
+  4. Run a shell without Byobu (/bin/bash)
+
+Choose 1-4 [1]: 
+\end{verbatim}
+
+Each session can have its own window size, which is useful if you’re connecting
+with multiple devices with different screen sizes.
+
+\begin{enumerate}
+  \item create new session: from a running byobu session (CTRL+SHIFT+F2)
+  
+  \item move betweens session: 
+  Linux (ALT-Up, ALT-down key), Mac (OPTION-Up, OPTION-down)
+  
+  
+  \item exit/detach all byobu sessions: CTRL-D, or CTRL-a-d, or 
+  press F6 (which also close ssh session to remote machine), or 
+  press SHIFT-F6 (which does not close the ssh session), or
+  press ALT+F6 (which detach all connections to Byobu except for the current one).
+  
+\end{enumerate}
+
+
+\textcolor{red}{list sessions}
+\begin{verbatim}
+tmux ls
+screen ls
+\end{verbatim}
+
+\subsection{-- windows within a session}
+
+Sect.\ref{sec:terminal_multiplexer-window} describes a window. 
+
+To do multiple tasks, Byobu provides the ability to switch between different windows within a single
+session.
+
+\begin{enumerate}
+  \item open a new window: F2
+  
+  
+  \item switch to the left/right window: F3 (left), F4 (right)
+  
+  \item move the current window: CTRL+SHIFT+F3/F4
+  
+  \item rename the title of current window: F8
+  
+  \item scrollback history of current window: F7
+\end{enumerate}
+
+\subsection{-- multiple panes within a single window}
+
+Byobu provides the ability to split windows into multiple panes
+(Sect.\ref{sec:terminal_multiplexer-tab}) with both horizontal and vertical
+splits. These allow you multi-task within the same window, as opposed to across
+multiple windows.
+
+\begin{enumerate}
+  \item horizontal split: SHIFT-F2
+  
+  \item vertical split: CTRL-F2
+  
+  \item navigate (switch) between panes: SHIFT+LEFT/RIGHT/UP/DOWN or SHIFT+F3/F4
+  
+  This allows you to leave a command running in one pane, and then move to another pane to run a different command
+  
+  \item re-order panes: CTRL+F3/F4 move the current pane up or down, respectively
+  
+  \item adjust size (width and height) of current panes: SHIFT+ALT+LEFT/RIGHT/UP/DOWN
+  
+  \item maximize (zoom-in) or switch to normal (zoom-out) of current pane:
+  zoom into a pane with SHIFT+F11, which makes it fill the entire window;
+  SHIFT+F11 again switches it back to its original size.
+  
+  \item split the pane into a new window (permanently): use ALT+F11.
+  
+\end{enumerate}
+Note that you cannot split a pane if there is not enough space for the pane to split into two.
+
+
+\subsection{-- change default shell}
+
+
+By default, \verb!byobu! only load the zsh from \verb!/usr/bin/zsh! which is symbolic linked to 
+\begin{verbatim}
+ /usr/bin/zsh -> /etc/alternatives/zsh-usrbin
+\end{verbatim}
+
+To use /usr/local/bin/zsh which is a newer version, if we change /etc/passwd, this it NOT correct, as 
+\begin{verbatim}
+echo $ZSH_VERSION
+	still returns the version in /usr/bin/zsh
+\end{verbatim}
+The correct way to do is 
+\begin{verbatim}
+sudo rm /usr/bin/zsh
+sudo ln -s /usr/local/bin/zsh /usr/bin/zsh
+\end{verbatim}
+
+
+The default shell when running byobu can be different from the default shell of a user set in 
+/etc/passwd.
+
+Open \verb~$HOME/.byobu/.tmux.conf~ file
+\begin{verbatim}
+set -g default-shell   /usr/bin/fish
+set -g default-command /usr/bin/fish
+\end{verbatim}
+NOTE: fish = friendly interactive shell
+
+
+
+
+
+\section{nohup - excute long-run program}
+\label{sec:nohup}
+
+The process for any program you run is a child process of the shell you're
+logging in. If you login remotely and the program that take a long time to run,
+you need a way to tell the proces for your program to continue running, even the
+parent process stop, i.e. shell logout. \verb!nohup! is a POSIX command to
+ignore the SIGHUP signal (i.e. hangup) (Sect.\ref{sec:signals}). 
+
+Use \verb!nohup! in front of the command line
+\begin{verbatim}
+nohup long-running-command &
+\end{verbatim}
+Here, even though the terminal emulator is halted after you logout, the program
+continue to run, and all outputs are redirected to the file \verb!nohup.log!.
+
+If you have a running program, then you can switch it to background using
+\verb!Ctrl-z! (to suspend the running task) and then \verb!bg! command (to
+background the suspended tasks, allowing it to continue running), and
+\verb!disown! to keep the process running after you logout (which remove the
+parent-child relationship between your shell and the process in background,
+preventing the process to die after the shell is terminated, e.g. after ending
+an SSH connection). To put a certain suspended task to background, you can task
+number, e.g. \verb!bg %1!. Similarly,we can also use task number after
+\verb!disown! command. 
+
+NOTE: Once the process is \verb!disown!, there is no way to bring it back to the
+foreground in any shell terminal.
+
+NOTE: Both \verb!nohup! and \verb!Ctrl-z! are bash-shell specific
+\footnote{\url{http://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session}}.
+
+
+
+
+\section{Search}
+
+\subsection{File/folder names}
+
+\begin{verbatim}
+find . -name "*.c" -print | xargs grep "main("
+find . -iname "abc" 
+\end{verbatim}
+NOTE: -name
+
+For each file/folder found, we can call a command to work on that result using
+\verb!-exec! option. 
+\begin{verbatim}
+find / -iname "myfiles" -type f -exec grep -l "text-to-find-here" {} \; 
+\end{verbatim}
+
+NOTE:
+\begin{itemize}
+  \item -type f : search for files only (not directories)
+\end{itemize}
+
+\subsection{file contents: ack}
+\label{sec:ack}
+
+\verb!ack! is renamed to \verb!ack-grep! on Debian-derived distros. The reason
+is that \verb!ack! already existed which is a Kanji code converter
+(\url{http://beyondgrep.com/install/}). 
+
+\verb!ack! is liked \verb!grep! (Sect.\ref{sec:grep}), yet can handle large
+heterogeneous trees of source code. \verb!ack! has been around for years, and
+since Apr, 17th 2013, ack 2.0 was released. It is written purely in portable
+Perl 5 and takes advantage of Perl's regular expressions.
+
+Power: It can ignore Subversions, Git and other VCS directories. In Windows, we
+need to install Perl (e.g. Strawberry Perl). \url{http://beyondgrep.com/}
+
+\begin{itemize}
+  \item \verb!--ignore-dir=<folder_name>!: ignore a folder
+  \item \verb!-l! : just list the files
+  \item \verb!-n! : add line-number to the lines 
+  \item \verb!-php! : similar to \verb!grep! feature: \verb!--include=*.php! 
+\end{itemize}
+
+We can also do alias 
+\begin{verbatim}
+alias grepphp='grep --include=*.php -inR --color '
+\end{verbatim}
+
+References:
+\begin{enumerate}
+  \item \url{http://halfelf.org/2012/grep-ack/}
+\end{enumerate}
+
+\subsection{file contents: grep (egrep, fgrep)}
+\label{sec:grep}
+
+NOTE: \verb!grep! is mainly used for general text search tool.
+\verb!ack! can be used as well but for large source codes (Sect.\ref{sec:ack}).
+
+
+
+\begin{mdframed}
+
+There are three variants. Nowadays, using \verb!egrep! and \verb!fgrep! is
+considered obsolete. \verb!grep! (e.g. \verb!egrep!, \verb!fgrep!) is a UNIX
+utility to perform repetitive search tasks. It searches the content of files for information that
+match the given pattern, which can be an exact string or in regular expression
+(pattern) matching. 
+\begin{verbatim}
+ grep [-options] pattern [filename/folder]
+\end{verbatim}
+
+NOTE: \verb!egrep!  = \verb!grep -E! (interpret the PATTERN as extended regular
+expression); and \verb!fgrep! = \verb!grep -F! (the PATTERN is split into
+a number of strings (fixed strings), separated by newlines, and does an
+OR search, i.e. any of which is to be matched).
+\begin{verbatim}
+-E      ==      --extended-regexp
+-F      ==      --fixed-strings
+\end{verbatim}
+For a regular (fixed string) search, dot (.) is considered as a dot, not a
+wild-card.
+
+\end{mdframed}
+
+Important options that you often use is 
+\begin{itemize}
+  \item  \verb!-s! to suppress error
+information (e.g. listing the inaccessible files) 
+
+  \item redirect it to the /dev/null device: \verb!2>/dev/null!  
+
+\begin{verbatim}
+grep -s -R ...
+
+grep -R ...   2>/dev/null
+\end{verbatim}
+  
+  \item search (recursively) for files in subfolders as well, we should use
+  \verb!-R! option
+
+  
+  \item highlight the found string (i.e. the color with grep), add
+  \verb!--color=always! to grep; and use 
+  pipe the results to \verb!less -R! 
+  
+\begin{verbatim}
+grep "something" . -R --color=always | less -R
+\end{verbatim}
+\end{itemize}
+
+
+If you have a long result, and want to pause after each page, pipe the output
+to  \verb!less!.
+\url{http://superuser.com/questions/36022/less-and-grep-getting-colored-results-when-using-a-pipe-from-grep-to-less}
+
+\begin{mdframed}
+
+TIPS: put in \verb!~/.bashrc! file
+\begin{verbatim}
+alias grepc="grep --color=always"
+\end{verbatim}
+or just create a new script file and put into \verb!bin! folder.
+\begin{verbatim}
+#!/bin/sh
+grep --color=always -r "$@" . | less -R
+\end{verbatim}
+
+\textcolor{red}{\bf NOTE: Don't add this option} 
+\begin{verbatim}
+export GREP_OPTIONS="--color=always"
+\end{verbatim}
+Warning!: It may break many scripts that use grep (or (e|f)grep).
+\end{mdframed}
+
+
+
+Other options to limit the files to search or the searching criterion
+\begin{itemize}
+  \item -v : ignore those matching patterns
+  
+If you want to filter out some result, use \verb!grep -v pattern!, and you can
+pipe multiple commands
+\begin{verbatim}
+grep pattern file | grep -v badpattern | grep --colour=always pattern | less -R
+\end{verbatim}
+
+  \item -i : ignore case
+
+  \item -I : ignore binary files
+
+  \item -r  or -R : search all subdirectories recursively
+  
+  \item \verb!--include!  or \verb!--exclude!: to improve searching, by
+  searching through the files with some conditions
+
+Exclude files 
+\begin{verbatim}
+# ending with .o
+grep --exclude=*.o -rnw 'directory' -e "pattern"
+
+# ending with .svn
+grep --exclude="\*.svn*" -rnw 'directory' -e "pattern"
+
+# ending with .png, jpg
+grep --exclude=\*.{png,jpg} -rnw 'directory' -e "pattern"
+
+# ending with .cpp,.h
+grep --exclude=\*.{cpp,h} -rnw 'directory' -e "pattern"
+\end{verbatim}
+\url{http://stackoverflow.com/questions/221921/use-grep-exclude-include-syntax-to-not-grep-through-certain-files}
+
+% \begin{verbatim}
+% grep --include=\*.{c,h} -rnw 'directory' -e "pattern"
+% \end{verbatim}
+% Only search files ending with .c or .h
+
+  \item -w ``word-1|word-2'' : search for lines containg matches that form whole
+  words only 
+  
+  \item -E ``word-1|word-2'': and we can also search for one or more words using
+  Extended regular pattern matching.
+  
+Example: returns line starts with either 'nofork' or 'nogroup' 
+\begin{verbatim}
+grep -E '^no(fork|group)' /etc/group
+\end{verbatim}
+
+If we want to indicate special character, without using -E, then we need to
+escape the special characters
+\begin{verbatim}
+grep '^no\(fork\|group\)' /etc/group
+\end{verbatim}
+
+\end{itemize}
+
+\textcolor{red}{\bf OUTPUT FORMAT}:
+By default, the output is in the form of filename, the semicolon (:), and the
+whole-line with matched content
+\begin{verbatim}
+<path>/filenames : <whole-line-with-matching-content>
+\end{verbatim}
+The \verb!<path>! is relative pathname.
+\textcolor{red}{We can customize the format of the output using the following
+options}
+\begin{itemize}
+  \item -c (\verb!--color!): display matched text in colors
+{\tiny
+\begin{verbatim}
+grep --color 'word' filename
+
+grep --color=auto 'word' filename
+
+grep --color=always 'word' filename
+\end{verbatim}
+}
+  \item \verb!-n! : display line number after the filename (also separated by
+  semicolon)
+
+\begin{verbatim}
+branch/filename:13:; this is the line content
+\end{verbatim}
+Here: 13 is the line number
+
+  \item -l  : only print the filename (i.e. suppress the
+  matching line)
+    
+Alternative option: To just print out the filenames with relative pathnames, use
+pipeline to extract the first field, with semicolon (:) is the separator
+\begin{verbatim} 
+grep ....  | cut -d: -f1
+\end{verbatim}  
+
+  \item -h : only print the whole-line with matched content (i.e. suppress the
+  filenames)
+  
+  \end{itemize}
+
+
+
+\subsection{parallel}
+\label{sec:parallel}
+
+\verb!parallel! is a shell utility, which accept input: The typical input is a
+list of files, a list of hosts, a list of users, a list of URLs, or a list of
+tables. \verb!parallel! then splits the input into 
+    
+% \begin{itemize}
+%   \item 
+%   
+%   \item 
+% \end{itemize}
+
+\subsection{locate vs. find}
+
+{\bf locate} looks for files in the folders stored in the system. To update this
+list of folders, we need to run \verb!updatedb! command. When it's updated, then
+locate works faster than {\it find} utility.
+
+
+{\bf find} is more powerful as we can specify which folder to search
+explicitly; yet it runs slower.
+
+\section{awk}
+\label{sec:awk}
+
+There are three variations of \verb!awk!: awk (original from AT\&T), nawk
+(newer awk), gawk (GNU awk). 
+
+
+\subsection{input}
+
+{\bf INPUT}:
+\begin{enumerate}
+  \item \verb!awk! get input either from a file directly, say file1
+\begin{verbatim}
+awk < file1 ...
+\end{verbatim}
+
+  \item or you use pipe to redirect the output to \verb!awk! 
+  
+\begin{verbatim}
+<some_command_give_output>   | awk ...
+\end{verbatim}
+
+\end{enumerate}
+with \verb!...! can be one of the two forms
+\begin{enumerate}
+  \item simple
+\begin{verbatim}
+pattern { command}
+\end{verbatim}
+   
+   \item more complicated
+\begin{verbatim}
+BEGIN '{ command }'  \
+pattern  '{ command }' \
+END   '{ command }'      
+\end{verbatim}
+NOTE: We use \verb!\! to continue a single-line command to span several lines.
+
+\end{enumerate}
+For commands, read Sect.\ref{sec:awk-commands}
+
+\subsection{commands}
+\label{sec:awk-commands}
+
+In terms of commands, the widely used are
+\begin{enumerate}
+  \item \verb!print! statement
+  
+  \item string manipulation functions: \verb!sub!, \verb!gsub!
+  
+  gawk does all string processing in terms of characters, not bytes
+  
+  \url{https://www.gnu.org/software/gawk/manual/html_node/String-Functions.html}
+  
+  \item number of record \verb!NR!
+  
+  each line is a record in awk
+  
+  Example: replace at line number 34
+  \begin{verbatim}
+  awk 'NR==34 { sub("AAA", "BBB") }'
+  \end{verbatim}
+  
+  \item use FNR (file number record) if you want to specify more than one file
+  on the command line.
+  
+  
+\end{enumerate}
+
+Commands used inside \verb!'{     }'! section can be any thing; that operates on
+given fields on each line. To process at certain lines only; we need to apply
+\verb!pattern! before the command (Sect.\ref{sec:awk-pattern-search}).
+
+
+Argument to these commands can be
+\begin{enumerate}
+  \item columns (or fields)
+
+\verb!awk! is a powerful column-oriented text processing utility. The fields are
+separated using a given delimiter (default:
+white space). Each field is represented as \verb!$1, $2$!. 
+  
+The default separator is white space, but can be changed to any thing using
+\verb!-F! option.
+  
+  \item It's a weakly typed language, so arithmetic calculations can be done
+  inside the command section (see below). [NOTE: \textcolor{blue}{All numbers
+  are floating-point}]. 
+\end{enumerate}
+
+\subsection{-- in-place replacement}
+
+Since GNU awk 4.1.0, there is 'inplace' extension
+\url{https://www.gnu.org/software/gawk/manual/html_node/Extension-Sample-Inplace.html}
+\begin{verbatim}
+ gawk -i inplace '{ gsub(/foo/, "bar") }; { print }' file1 file2 file3
+\end{verbatim}
+If we want to keep a backup as well
+\begin{verbatim}
+gawk -i inplace -v INPLACE_SUFFIX=.bak '{ gsub(/foo/, "bar") } > { print }' file1 file2 file3
+\end{verbatim}
+\url{https://stackoverflow.com/questions/16529716/awk-save-modifications-in-place}
+
+Simple, put to temp. file
+\begin{verbatim}
+awk '(PROGRAM)' testfile.txt > testfile.tmp && mv testfile.tmp testfile.txt
+\end{verbatim}
+
+
+You can use \verb!sponge! from \verb!moreutils! package
+\begin{verbatim}
+// remove duplicate lines
+awk '!a[$0]++' file|sponge file
+
+// multiply second-column (numeric value) by 10
+awk '{$2=10*$2}1' file|sponge file
+\end{verbatim}
+
+
+\subsection{-- replace at a given line number}
+
+
+\begin{verbatim}
+awk 'NR==34 { sub("AAA", "BBB") }'
+
+awk 'FNR==34 { sub("AAA", "BBB") }'
+
+sed '34s/AAA/BBB/'
+
+// in-place replacement
+sed -i '34s/AAA/BBB/' file_name
+
+\end{verbatim}
+\subsection{Simple cases: no pattern search}
+
+
+Example: print the second and third fields, with semi-colon is the delimiter
+\begin{verbatim}
+awk < file1 -F: '{ print $2, $3;}'
+\end{verbatim}
+
+Example: arithmetic operation to convert fahrenheit-to-celsius
+\begin{verbatim}
+awk '{ print ($1-32)*(5/9) }'  < file1  
+\end{verbatim}
+
+\subsection{More complicated: with pattern search}
+\label{sec:awk-pattern-search}
+
+\verb!pattern! is a regular expression that \verb!{ command }! does what a line
+match it. AWK is line-oriented, so at get each line from input and analyze,
+doing some actions. BEGIN tell what to do before each line, and END tells what
+to do after each line. 
+
+Popular \verb!command! are \verb!print!
+\begin{verbatim}
+BEGIN { print "File\tOwner"," } \ 
+{ print $8, "\t", $3} \
+END { print " - DONE -" }
+\end{verbatim} 
+with \verb!$1, $2, $4!, etc. are column index, special characters like
+\verb!''\t''! (tab), \verb!''\n''! (newline), etc. NOTE: The dollar sign in Perl
+and shell-scripting language means the value of the variable name after, e.g.
+\verb!$name! is the value of variable 'name'; yet in AWK, it refers to the index
+of the field or column in the current line. To print the value of a variable,
+we just use its name like C-language
+\begin{verbatim}
+BEGIN { x=5 }
+{ print x, $x}
+\end{verbatim}
+
+
+\textcolor{red}{Script of awk}: put this in the first line of file
+\begin{verbatim}
+#!/bin/awk -f
+\end{verbatim}
+
+Example:
+\begin{verbatim}
+#!/bin/sh
+#NOTE - this script does not work!
+column=$1
+awk '{print $'$column'}'
+\end{verbatim}
+
+
+
+\subsection{-- use environment variable's content}
+
+NOTE:
+\begin{verbatim}
+sub( /docpath/, sitepath )
+\end{verbatim}
+replace the pattern 'docpath', not the content of variable 'docpath'. 
+
+To replace using the content of variable 'docpath', we need to use \verb!-v!
+option.
+\begin{verbatim}
+awk -v docpath="$DOCPATH" -v sitepath="$SITEPATH" '{sub(docpath, sitepath)}1' filename
+\end{verbatim}
+NOTE: if there are multiple matches on the same line, consider using \verb!gsub!
+instead of \verb!sub!.
+
+Another solution using sed
+\begin{verbatim}
+sed 's/'"$DOCPATH"'/'"$SITEPATH"'/' input
+\end{verbatim}
+However, if the variable \verb!$SITEPATH! contains the newline character, this
+won't work.
+
+\section{sed}
+\label{sec:sed}
+
+\verb!sed! is a {\bf s}tream {\bf ed}itor.
+\verb!sed! processing data, passing to it in the form or a stream of content, 
+at the level of single line.
+
+\subsection{commands}
+
+\url{http://www.grymoire.com/Unix/Sed.html#uh-0}
+
+{\bf Commands}: Editing commands in 'sed' are
+\begin{verbatim}
+    //In 's' command the default delimiter is forward slash /
+    // However, in case it's a part of the text, then we can use a different
+    // delimiter, e.g. @ or $ or ; or : or ,
+    //replacement (from begining to end)
+s/regular-expression/replacement-text/{flags}
+   //replacement 
+[address1[ ,address2]]s/pattern/replacement/[flags]
+
+   //the flags can be
+   g = global (replace all instances)
+   n = replace at n-th instance of 'pattern'
+   p = write the pattern space to STDOUT (for each successful substituion
+       occurs)
+   w file = write the pattern space to 'file' (for each ....)
+   (no flag) = replace the first match only
+   // an address can be either a regular expression enclosed by forward slashes
+   // e.g. /regex/
+   // or a line number (where $ is used to denote the last-line)
+   // If a regular expression is used, then substitution is applied to lines
+   // within the range of line that FIRST match [address1] 
+   // to line that FIRST match [address2]
+   
+   
+   //delete one or more lines
+[address1[ , address2 ] ]d   
+
+
+   // quit (no mores lines are read)
+q   
+
+   //subroutines (group commands as one unit)
+   //use curly braces
+address1[,address2]{
+    commands }   
+\end{verbatim}
+
+\subsection{simple use}
+
+How to call commands in 'sed'
+\begin{verbatim}
+sed -e 'command1' -e 'command2' -e 'command3' file
+{shell command}|sed -e 'command1' -e 'command2' 
+
+//run the script of 'sed' commands
+sed -f sedscript.sed file
+{shell command}|sed -f sedscript.sed
+\end{verbatim}
+
+At first we need to get data using 'ls' or any other commands. The input data is
+passed to 'sed' using pipeline mechanism (|). For each line, which may contains
+filename, a single line in file's content, 'sed' executes a series of editing command. The
+output is written to STDOUT, which can now be pipelined to another command, e.g.
+'cat' or 'xargs'.
+
+Example:
+\begin{verbatim}
+
+ls <folder> | sed ... | other commands (e.g. xargs)
+\end{verbatim}
+
+\verb!sed! works a lot with regular expressions.
+
+\begin{verbatim}
+^     = match beginning of line
+$     = match end of line (end of file in the case of file)
+.     = match any character
+(character)* = match zero or more occurence of (character)
+(character)? = match 0 or 1 occurrence of (character)
+[abcdef]     = match any characters enclosed in [], we can also use range
+               a-z or 0-9
+[^abcdef]    = match any character NOT in the list
+(character)\{m,n\} = match m to n repetitions of (character)
+(character)\{m,\}  = match m or more repetitions
+(character)\{,n\}  = match n or less (possibly 0) repetitions
+(character)\{n\}   = match exactly n repetitions
+\( expression \)   = group operator ????
+\n                 = back-reference (i.e. match n-th group)
+                    which can be used not only for the search test
+                    but also for the replacement text
+expr1 \| expr2     = match expression1 or expression2 (GNU sed) 
+                     may not work with other form of sed tool
+\end{verbatim}
+Special characters (like 'grep' tool, except forward slash / is a special
+character in 'sed').
+
+
+
+Example: here we call two substitution commands. Each one is preceded by
+\verb!-e! (execute)
+\begin{verbatim}
+$cat file
+I have three dogs and two cats
+>cat file | sed -e 's/dog/cat/g' -e 's/cat/elephant/g' 
+\end{verbatim}
+
+Example: URL address
+\begin{verbatim}
+>cat file
+
+http://www.foo.com/mypage.html
+
+>sed -e 's@http://www.foo.com@http://www.bar.net@' file
+
+http://www.bar.net/mypage.html
+\end{verbatim}
+
+Example: Using address (e.g. the second line matching 'not' will be searched for
+replacement)
+\begin{verbatim}
+>cat file
+
+the black cat was chased by the brown dog.
+the black cat was not chased by the brown dog
+
+>sed -e '/not/s/black/white/g' file
+
+the black cat was chased by the brown dog.
+the white cat was not chased by the brown dog. 
+\end{verbatim}
+
+Example: Delete lines
+\begin{verbatim}
+>cat file
+
+line 1 (one)
+line 2 (two)
+line 3 (three)
+
+>sed -e '1,2d' file
+
+line 3 (three)
+
+ //search for the first line starting with 'line' and containe 'one'
+ //on this line, substitute 'line' with 'LINE'
+>sed -e '/^line.*one/s/line/LINE/' -e '/line/d' file
+\end{verbatim}
+
+
+\subsection{replace with content from variable}
+
+
+as we cannot use the content of the variable directly, we need to assign a name
+for it using \verb!-v! option
+\begin{verbatim}
+awk -v docpath="$DOCPATH" -v sitepath="$SITEPATH"  '{sub(docpath, sitepath)}1' filename
+\end{verbatim}
+%awk -v type=$TYPE 
+
+
+\section{Difference between file and merge}
+
+\subsection{vimdiff}
+\label{sec:vimdiff}
+
+\begin{verbatim}
+vimdiff <file1> <file2>
+\end{verbatim}
+
+\subsection{sdiff/diff}
+\label{sec:diff}
+\label{sec:sdiff}
+
+It's recommended to compare and display side-by-side
+\begin{verbatim}
+diff <file1> <file2> --side-by-side
+
+sdiff <file1> <file2>
+\end{verbatim}
+By default, the side-by-side format has 130 column for each line, i.e. only the
+first 61 characters from each line of both files are showed. We can make it's
+shorter or longer using \verb!-w! option
+\begin{verbatim}
+sdiff file1 file2 -w 40
+\end{verbatim}
+
+With side-by-side, a {\it gutter } is used to split the first-half of line (from
+file1) to the second-half of line (from file2). Depending on the comparison, the
+{\it gutter} can be one of 
+\begin{enumerate}
+  \item a tab: if both lines are the same
+  \item *A | : (use vertical bar) first line is different
+  \item *A \verb!<! : (use left angle bracket) 	the line only occurs in file1
+  \item *A \verb!>! : (use right angle bracket) the line only occurs in file2
+\end{enumerate}
+
+\begin{verbatim}
+$> sdiff -w 30 file1a file1b
+
+line 1        | line one
+line 2          line 2
+line 2a       <
+line 3          line 3
+              > line 3b
+\end{verbatim}
+The lowercase (-l or --left-columns) option keep the similar lines, e.g. line 2,
+to be printed as one copy on the left column. The left parentheses ( is used
+accordingly in the gutter meaning the same line for file2.
+\begin{verbatim}
+sdiff -w 30 -l file1[ab]
+line 1        | line one
+line 2        (
+line 2a       <
+line 3        (
+               > line 3b
+\end{verbatim}
+
+
+We use \verb!-s! to suppress the similar part, only display the difference in
+two columns layout
+\begin{verbatim}
+sdiff <file1> <file2> -s
+\end{verbatim}
+
+
+We can also choose line-by-line, from which file to use based on the following
+\begin{verbatim}
+sdiff -o <final_output> <file1> <file2>
+\end{verbatim}
+It will display line-by-line, and you use the following commands
+\begin{verbatim}
+ed:     Edit then use both versions, each decorated with a header.
+eb:     Edit then use both versions.
+el:     Edit then use the left version.
+er:     Edit then use the right version.
+e:      Edit a new version.
+l:      Use the left version.
+r:      Use the right version.
+s:      Silently include common lines.
+v:      Verbosely include common lines.
+q:      Quit.
+\end{verbatim}
+
+
+
+
+
+\subsection{colordiff (with syntax highlight)}
+\label{sec:colordiff}
+
+It has the same interface as diff; with the addition to recognize code in files
+and add syntax hightlighting.
+
+\subsection{wdiff (word-based comparison)}
+\label{sec:wdiff}
+
+It has the same interface as diff; yet comparison is based on words, not
+characters.
+
+It is very useful when comparing two texts for changed words and for which
+paragraphs have been refilled.
+
+
+\section{ctags/etags (generate indexing from source-codes)}
+\label{sec:ctags}
+\label{sec:etags}
+
+When using editors like {\bf vi/emacs}, we may want to quickly jump to the
+function definition, typically from the location where the function is called.
+To be able to do so, we use {\bf ctags} (for vi), and {\bf etags} (for emacs).
+There are many more editors that support ctags
+\footnote{\url{http://en.wikipedia.org/wiki/Ctags}}.
+
+{\bf ctags} was the first implementation (by Ken Arnold), with first appeared in
+BSD Unix 3.0 and was distributed as a part of {\bf vi} editor. The tag files
+were first recognized by \verb!vi! and \verb!ex! only. The tag contains function
+names and pattern match so that it can easily detect the function even the
+location in the file has been changed.
+
+{\bf etags} was written to create tag file that Emacs can understand. A single
+tag file contains multiple sections, each one for one input source file. There
+are several non-ASCII characters used for special purposes.
+\begin{verbatim}
+{src_file},{size_of_tag_definition_data_in_bytes}
+\end{verbatim}
+
+{\bf Exuberant ctags} written by Darren Hiebert, became a separate project since
+Vim 6.0, with support for Emacs
+\footnote{\url{http://vimdoc.sourceforge.net/htmldoc/version6.html\#ctags-gone}}
+as it's designed to work with different kinds of editors and programming
+languages (AWK, ASP, BETA, Bourne/Korn/Z shell, C++, COBOL, Eiffel, Fortran,
+Java, Lisp, Lua, Makefile, Pascal, Perl, PHP, Python, REXX, Ruby, S-Lang,
+Scheme, Tcl, Verilog, Vim and YACC). The format of ctags is
+\begin{verbatim}
+{tagname}<Tab>{tagfile}<Tab>{tagaddress}
+\end{verbatim}
+while exuberant ctags, keeping backward compatible with ctags, add more features
+(after the \verb!;"! text). The reason to use \verb!;"! is that \verb!;! is a
+command separator and \verb!"! (double quotes) begin a comment in EX editor.
+\begin{verbatim}
+{tagname}<Tab>{tagfile}<Tab>{tagaddress}[;"<Tab>{tagfield}...]
+\end{verbatim}
+The extension \verb!tagfield! are tab-separated of 'key:value'
+
+The tool works with different predefined languages, and can be used to work with
+the extension that you can define yourself.
+
+\subsection{Create the tag file}
+\label{sec:ctags-create-tag}
+
+From the project root folder, we run
+\begin{verbatim}
+ctags -R .
+\end{verbatim}
+
+CUSTOMIZE: to remove certains file/folder from being indexed, we use
+\verb!--exclude=! option
+\begin{verbatim}
+ctags -R --exclude='.git' .
+\end{verbatim}
+The final 'dot' (.) means to parse the current folder. If we have multiple
+folder, we can put them into a single file (\verb!~/MyProject/.srclist!)
+\begin{verbatim}
+~/MyProject/Code_1
+~/MyProject/Code_2
+~/MyProject/Code_3
+\end{verbatim}
+and run with \verb!-L! option with filename
+\begin{verbatim}
+ctags -R --exclude=".git" -L .srclist
+\end{verbatim}
+
+\subsection{Use tag file in Vim}
+\label{sec:ctags-vim}
+
+First, create the tag file (Sect.\ref{sec:ctags-create-tag}), then tell Vim
+where is the tag file
+\begin{verbatim}
+:set tags=./tags;~/Projects
+\end{verbatim}
+or we can add to \verb!~/.vimrc! file so that we don't have to load each time we
+run vim.
+
+Commands:
+\begin{enumerate}
+  \item \verb!Ctrl-[!: To navigate tag under cursor
+  \item \verb!:tag <tag name>! : To navigate tag by writing the tag name
+  \item \verb!:pop! : return to the previous location
+  \item \verb!:tnext! : in case there are multiple source location to be
+  detected, jump to the next one
+  \item \verb!:tprev! : in case there are multiple source location to be
+  detected, jump to the previous one
+\end{enumerate}
+
+\begin{framed}
+To jump to the function, in Emacs, at the location of the function call, we
+press \verb!Alt-.!
+
+\end{framed}
+
+
+\section{Check}
+
+\subsection{last time reboot}
+
+To see how long the system has been up and running, type \verb!uptime!.
+\begin{verbatim}
+root@leak:/home/minhtuan# uptime
+ 16:33:38 up 32 min,  1 user,  load average: 1.06, 1.11, 0.73
+\end{verbatim}
+
+\verb!last! utility display the list of logged-on users, the start/stop time for
+each session. It also displays the last time the system reboot.
+
+\begin{verbatim}
+> last reboot  //past reboots (one or more, if they are in the system-log)
+reboot   system boot  2.6.32-35-server Thu Jul  3 16:00 - 16:34  (00:33)    
+wtmp begins Tue Jul  1 16:18:13 2014
+
+> who -b   //the last time system reboot
+        system boot  2014-07-03 16:00
+
+\end{verbatim}
+
+
+or
+\begin{verbatim}
+ minhtuan@leak:~ last -x
+minhtuan pts/0        129.174.64.8     Thu Jul  3 16:19   still logged in   
+minhtuan pts/0        129.174.64.8     Thu Jul  3 16:08 - 16:19  (00:10)    
+runlevel (to lvl 2)   2.6.32-35-server Thu Jul  3 16:00 - 16:20  (00:19)    
+reboot   system boot  2.6.32-35-server Thu Jul  3 16:00 - 16:20  (00:19)    
+minhtuan pts/0        129.174.64.8     Thu Jul  3 14:32 - crash  (01:28)    
+minhtuan pts/0        10.196.76.27     Wed Jul  2 14:47 - 17:58  (03:11)    
+minhtuan pts/0        10.196.76.27     Wed Jul  2 10:57 - 12:37  (01:39)    
+minhtuan pts/0        10.196.76.27     Tue Jul  1 16:18 - 17:08  (00:50)    
+
+\end{verbatim}
+
+Only root previleged programs can gracefully shutdown a system. Thus, it can
+either be done by a user with 'root' privileges	or an ACPI script.
+An ACPI shutdown can be caused by either power-button press, overheating or low
+battery (laptop).
+
+\subsection{memory usage}
+
+\begin{verbatim}
+ps aux --sort -rss | less
+\end{verbatim}
+NOTE: 
+\begin{enumerate}
+  \item \verb!-rss! sort resident by non-swapped physical memory usage. However,
+  RSS can be misleading as it shows a higher value than the real one if the
+  pages are shared (e.g. several threads or dynamically linked libraries).
+  
+  \item \verb!-vsz! (virtual size) the amount of memory reserved for the program
+  (which include RSS value).
+\end{enumerate} 
+
+Then we can kill the program using its PID
+\begin{verbatim}
+kill -9 <PID>
+\end{verbatim}
+
+
+\subsection{running processes}
+
+We can use \verb!top! or \verb!htop! (can scroll the list of processes
+vertically or hotizontally).
+
+
+
+
+\section{Alien (software)}
+\label{sec:alien}
+
+\verb!alien! is a Perl script written by Joey Hess
+\footnote{\url{https://joeyh.name/code/alien/}} to convert between package
+formats (e.g. *.rpm, *.deb, *.slp, *.pkg).
+\begin{verbatim}
+  apt-get install alien alien-extra
+  
+  alien --veryverbose -c -d -g -k pbeagent-9.0.0-613.i386.rpm
+\end{verbatim}
+
+Example: convert from .deb to .rpm
+\begin{verbatim}
+# alien --to-rpm --scripts ./mypkg.deb
+\end{verbatim}
+
+Example: convert from .rpm to .deb (the system needs to have dpkg, dpkg-dev,
+debhelper, gcc, make packages), and then install the .deb file
+\begin{verbatim}
+alien -k pbeagent-9.0.0-613.i386.rpm
+
+dpkg -i <name.deb> 
+\end{verbatim}
+
+We can also use \verb!alien!
+
+\subsection{Coding Alien}
+
+\verb!alien! needs Perl 5.0004 or greater. 
+
+\section{Add GUI to Ubuntu server}
+
+
+The Ubuntu server is just the Ubuntu distro without the default Desktop
+environment. To install the default Desktop environment, we do
+\begin{verbatim}
+sudo apt-get install ubuntu-desktop
+\end{verbatim}
+However, GUI will leads to utilize high resource and still you want GUI , you
+can choose lightweight packages. Install ubuntu-desktop with
+--no-install-recommends.
+\begin{verbatim}
+ // the below command adds about 800MB to Ubuntu Server 14.04
+sudo apt-get install --no-install-recommends ubuntu-desktop
+
+// Old Gnome only
+sudo apt-get install gnome-core
+\end{verbatim}
+This will exclude major softwares and tools like libreoffice, firefox ,
+thunderbird etc.
+
+Other options:
+\begin{enumerate}
+  \item Gnome 3: 
+  \begin{verbatim}
+  sudo apt-get install gnome-shell
+  \end{verbatim}
+  
+  \item KDE (Kubuntu) kubuntu-desktop
+  
+  \item XFCE: \verb!xubuntu-desktop!, or less resource \verb!xfce4!
+  
+  LXDE is lighter and thus faster than XFCE. Xfce will be ported to Gtk3, which
+  is not exactly lightweight, so the difference will be much larger between
+  Lubuntu and Xubuntu. 
+  
+  \item LXDE: \verb!lxde!, or less resource \verb!lxde-core!
+  
+  LXDE using GTK-3, and a newer replacement is LXQt (LXDE using Qt).
+   
+  
+  \item LXQt: formed by (LXDE and RazorQt teams).
+   Openbox is the default window manager for LXQt, but can also be replaced by a
+   different one.
+   
+  \begin{verbatim}
+sudo apt-get install   
+sudo add-apt-repository ppa:lubuntu-dev/lubuntu-daily 
+sudo add-apt-repository ppa:gilir/q-project
+sudo apt-get update
+sudo apt-get install lxqt-metapackage lxqt-panel openbox
+  \end{verbatim}
+  This takes about 800MB. 
+  \url{http://askubuntu.com/questions/464741/how-to-install-lxqt-de-in-ubuntu-14-04-lts}
+  
+  MoonLightDE is a fork of LXQt.
+  
+  \item OpenBox: openbox
+  
+  \item Gnome classic (a Gnome-3 but looks like Gnome-2)
+  
+\begin{verbatim}
+sudo apt-get install gnome-session-fallback
+\end{verbatim}
+\end{enumerate}
+\url{http://askubuntu.com/questions/53822/how-do-you-run-ubuntu-server-with-a-gui}
+
+\section{Remote control your server via Web}
+
+We can use web-based solution
+\begin{enumerate}
+  \item Webmin
+  \item Zentyal: 
+\end{enumerate}
+\url{http://askubuntu.com/questions/53822/how-do-you-run-ubuntu-server-with-a-gui}
+
+
+\section{Web Browsers}
+
+\subsection{Qupzilla}
+
+
+Qupzilla use WebKit
+\begin{verbatim}
+sudo add-apt-repository ppa:nowrep/qupzilla
+
+sudo apt-get update
+
+sudo apt-get install qupzilla
+\end{verbatim}
+
+
+\section{Undelete file (recover file)}
+\label{sec:debugfs_utility}
+
+Deleted files can be recovered on ext3 file systems using the debugfs program.
+\url{http://www.cyberciti.biz/tips/linux-ext3-ext4-deleted-files-recovery-howto.html}
+
+
+
+
+You can use {\bf PhotoRec} which is a companion program to TestDisk, an app for
+recovering lost partitions on a wide variety of file systems and making
+non-bootable disks bootable again.
+
+\url{http://www.cs.montana.edu/courses/309/topics/4-disks/debugfs_example.html}
+
+\section{Bring an orphan process (background process) back to life}
+\label{sec:reptyr}
+
+Once a terminal from that a process was launched, if the terminal die, the only
+way to bring the process back to life is to attach it to a new terminal
+
+\verb!reptyr! is a utility for taking an existing running program and attaching
+it to a new terminal, i.e. making it eligble for running \verb!fg! command on
+that process. reptyr depends on the ptrace(2) system call to attach to the
+remote program. \url{https://wiki.ubuntu.com/Security/Features}
+
+NOTE: reptyr only attaches a process to another terminal. This does not mean the
+process becomes a child of your current shell.
+\url{https://github.com/nelhage/reptyr}
+
+\begin{verbatim}
+sudo apt-get install reptyr
+
+reptyr PID
+\end{verbatim}
+with PID is the process ID of the process you want to attach. Then, just run
+\verb!fg! to reopen that process.
+\url{http://serverfault.com/questions/55880/moving-an-already-running-process-to-screen}
+
+\textcolor{red}{IMPORTANT}: To know the location of the folder from which the process runs
+\begin{verbatim}
+readlink /proc/<PID>/cwd
+
+pwdx <PID>
+
+lsof -p PID | grep cwd
+\end{verbatim}
+this can help to tell which is the right one you want to bring back. 
+
+\textcolor{red}{On UBUNTU}: A troubling weakness of the Linux process interfaces
+is that a single user is able to examine the memory and running state of any of
+their processes.
+Example: if one application was compromised, it would be possible for an
+attacker to attach to other running processes using \verb!ptrace! to extract
+additional credentials and continue to immediately expand the scope of their
+attack without resorting to user-assisted phishing or trojans.
+
+On Ubuntu Maverick (11.10) and higher, this ability is disabled by default for
+security reasons, i.e. users cannot ptrace processes that are not a descendant
+of the debugger. You can enable it temporarily by doing
+\begin{verbatim}
+sudo echo 0 > /proc/sys/kernel/yama/ptrace_scope
+\end{verbatim}
+or permanently by editing the file
+\begin{verbatim}
+sudo vi  /etc/sysctl.d/10-ptrace.conf
+\end{verbatim}
+, which also contains more information about this setting.
+\url{https://superuser.com/questions/1231023/how-to-foreground-a-process-started-by-upstart}
+
+\subsection{ptrace}
+\label{sec:ptrace}
+
+ptrace() system call provides a means by which one process (the "tracer") may
+observe and control the execution of another process (the "tracee"), and examine
+and change the tracee's memory and registers.
+It can single-step through the target's code, can observe and intercept system
+calls and their results, and can manipulate the target's signal handlers and
+both receive and send signals on its behalf.
+
+It is primarily used to implement breakpoint debugging and system call tracing.
+
+ptrace is used 
+\begin{enumerate}
+  \item by debuggers (such as gdb and dbx), 
+  
+  \item by tracing tools like strace and ltrace, and 
+  
+  \item by code coverage tools.
+  
+  \item by specialized programs to patch running programs, to avoid unfixed bugs or to overcome security features
+  
+  \item as a sandbox[1][2] and as a run-time environment simulator (like emulating root access for non-root software[2][3]).
+  
+\end{enumerate}
+
+
+For security reason, the O/S typically is configured so that ptrace, run by a
+specific user, can attach only to processes that the owner can send signals to
+(typically only their own processes).
+
+the superuser account can ptrace almost any process (except init on kernels
+before 2.6.26).
+
+In Linux, the ability to ptrace is further limited by the \verb!CAP_SYS_PTRACE! capability,
+or by the YAMA Linux Security Module (LSM - Sect.\ref{sec:LSM}).
+
+In FreeBSD, it's limited by FreeBSD jails and Mandatory Access Control policies.
+
+\subsection{Linux Security Module (LSM)}
+\label{sec:LSM}
+
+Linux Security Modules (LSM) is a framework that allows the Linux kernel to
+support a variety of computer security models while avoiding favoritism toward
+any single security implementation.
+
+LSM is a standard part of the Linux kernel since Linux 2.6. 
+
+LSM is an interface for the Linux kernel that provides sufficient "hooks"
+(upcalls) from within the Linux kernel to a loadable module
+
+
+LSM framework supports the following loadable modules of security
+implementation.
+IMPORTANT: One can have SELinux, Smack, and TOMOYO enabled in a kernel, but only
+one—chosen at boot time—can be active. The reason is that LSM does not support
+'stack' or 'chaining' of multiple security modules.
+There have been discussions and proposals for LSM stacking (or chaining) along
+the way, but nothing has ever been merged \url{https://lwn.net/Articles/114588/}
+
+
+\begin{enumerate}
+  \item  AppArmor  (version 2.6.36) 
+  
+  \item SELinux, 
+  
+  \item  Smack (added into Linux kernel version 2.6.25),
+  
+  Simplified Mandatory Access Control Kernel) is a Linux kernel security module
+  that protects data and process interaction from malicious manipulation using a
+  set of custom mandatory access control (MAC) rules, with simplicity as its
+  main design goal.
+  
+  It is the main access control mechanism used by  MeeGo mobile Operating
+  System, by Intel's Ostro OS for IoT devices; as  sandbox HTML5 web
+  applications in the Tizen architecture.
+  \url{https://en.wikipedia.org/wiki/Smack_(software)}
+  
+  \item TOMOYO Linux (first added into Linux kernel version 2.6.30, June 2009):
+  
+  Tomoyo Linux allows each process to declare behaviours and resources needed to
+  achieve their purpose.
+  When protection is enabled, Tomoyo Linux restricts each process to the
+  behaviors and resources allowed by the administrator.
+  \url{https://en.wikipedia.org/wiki/Tomoyo_Linux}
+  
+  NOTE: 2.5.0 included in Linux kernel 3.2
+  
+  
+  \item Yama:
+  
+  Yama provides security by restricting the ptrace() system call.
+  It it creates a sysctl called 
+  \verb!ptrace_scope! that defaults to zero, which
+  chooses the existing behavior. If it is set to one, though, it only allows
+  ptrace() to be called on descendants of the tracing process.
+  
+  
+  \url{https://lwn.net/Articles/398607/}
+  
+\end{enumerate}
+ 
+
+\subsection{process tree}
+\label{sec:process-tree}
+
+When you launch a process, it belongs to a particular shell terminal process.
+
+A process tree shows the tree of hierarchical structure of all process, with
+root is \verb!init! process (Sect.\ref{sec:init}). The \verb!pstree! command
+shows that process tree of running processes, better than \verb!ps! command
+\begin{verbatim}
+pstree
+\end{verbatim}
+
+fg and bg only work with processes on the same process tree. 
+
+
+When SIGSTOP or SIGTSTP is sent to a process, the usual behaviour is to pause
+that process in its current state. The process will only resume execution if it
+is sent the SIGCONT signal.
+\begin{verbatim}
+   //When SIGSTOP is sent to a process, the usual behaviour is to pause that process in its current state. 
+   //The process will only resume execution if it is sent the SIGCONT signal.
+kill -SIGSTOP [pid]
+
+kill -SIGCONT [pid]
+\end{verbatim}
+\url{https://unix.stackexchange.com/questions/317492/list-of-kill-signals}
+
+\url{https://www.techonthenet.com/linux/commands/kill.php}
+
+The following command show you a complete table with a brief summary of the
+meaning of each signal
+
+\begin{verbatim}
+man 7 signal
+\end{verbatim}
+
+
+\section{Troubleshoot}
+
+\begin{verbatim}
+Some packages could not be installed. This may mean that you have
+requested an impossible situation or if you are using the unstable
+distribution that some required packages have not yet been created
+or been moved out of Incoming.
+The following information may help to resolve the situation:
+
+The following packages have unmet dependencies:
+ python-dev : Depends: libpython-dev (= 2.7.5-5ubuntu3) but it is not going to be installed
+              Depends: python2.7-dev (>= 2.7.5-1~) but it is not going to be installed
+E: Unable to correct problems, you have held broken packages.
+\end{verbatim}
+
+The problem is that python-dev depends on 2.7.5, but your python is 2.7.6
+\begin{verbatim}
+apt-cache policy python-dev
+apt-cache policy python2.7-dev
+\end{verbatim}
+You can see that they are not the same
+\begin{verbatim}
+thoangtr@thoangtr:~$ apt-cache policy python2.7-dev
+python2.7-dev:
+  Installed: (none)
+  Candidate: 2.7.6-8
+  Version table:
+     2.7.6-8 0
+        500 http://us.archive.ubuntu.com/ubuntu/ trusty/main amd64 Packages
+thoangtr@thoangtr:~$ apt-cache policy python-dev
+python-dev:
+  Installed: (none)
+  Candidate: 2.7.5-5ubuntu3
+  Version table:
+     2.7.5-5ubuntu3 0
+        500 http://us.archive.ubuntu.com/ubuntu/ trusty/main amd64 Packages
+\end{verbatim}
+It suggests that you are using some mismatched repositories, or have some
+apt-pins in place keeping the version dependencies from lining up.
+
+To resolve the problem, add
+\begin{itemize}
+  \item Ubuntu 12.04 (precise)
+\begin{verbatim}
+echo "deb http://us.archive.ubuntu.com/ubuntu/ precise-updates main restricted"
+| sudo tee -a /etc/apt/sources.list.d/precise-updates.list
+\end{verbatim}
+
+  \item Ubuntu 14.04 (trusty)
+\begin{verbatim}
+echo "deb http://us.archive.ubuntu.com/ubuntu/ trusty-updates main restricted"
+| sudo tee -a /etc/apt/sources.list.d/trusty-updates.list
+\end{verbatim}
+\end{itemize}
+and then run
+\begin{verbatim}
+sudo apt-get update
+sudo apt-get install python2.7-dev
+\end{verbatim}
+\url{http://askubuntu.com/questions/275861/problem-installing-python-dev}
+
+\url{http://manpages.ubuntu.com/manpages/utopic/man5/sources.list.5.html}
+
+\section{sendmail vs. mail vs. qmail vs. mailx vs. mutt}
+\label{sec:sendmail}
+\label{sec:mail}
+\label{sec:mailx}
+
+\verb!sendmail! is a professional mail server service allowing your system to
+handle incoming and outgoing mail requests. However, Sendmail is complicated to
+configure and overused for most users needs. If you are not looking to receive
+mail and are instead looking to simply send mail (i.e. from a script or
+whatever), you don't need sendmail.
+
+Using \verb!mailx! (nail) is much simpler by not setting up a mail server at
+all.
+\begin{itemize}
+  \item On openSUSE, /bin/mail is a symlink that points to /usr/bin/mailx
+  
+  \item Debian systems do things the other way around: /usr/bin/mailx points to
+  /usr/bin/mail.
+\end{itemize}
+For attachment, we use \verb!-A! option.
+\begin{verbatim}
+//multiple files
+$ uuencode hej.jpg hej.jpg > attach_image.txt
+$ mailx -s 'photo' petronella@huhnix.org < attach_image.txt
+
+  // or
+$ mailx -s 'photo' petronella@huhnix.org -A "file1" -A "file2"
+\end{verbatim}
+
+The \verb!mutt! mail client not only offers -s for subject, -c for copy, and -b
+for blind copy options referred to in this article, but also the -a parameter
+for simple attachment sending. 
+\begin{verbatim}
+mutt -s 'Photo' -a hej.jpg petronella@huhnix.org < mail.txt
+\end{verbatim}
+
+\subsection{sendmail} 
+
+\begin{verbatim}
+ // Ubuntu
+sudo apt-get install sendmail
+\end{verbatim}
+
+In short, 'mail' is a client program wheres 'sendmail' is a server program. They
+are also called MUA and MTA (Mail User Agent vs. Mail Transfer Agent). 
+\verb!sendmail! implements the SMTP listening on port 25, and it is pretty much
+the same program in all Unixes. \verb!mail! may be rewritten by the vendor
+(Solaris, AIX, etc.).
+
+NOTE: The difference
+\begin{verbatim}
+mail [emailid] <filename1 
+
+sendmail -t -i <filename2 
+\end{verbatim}
+\begin{enumerate}
+  \item \verb!mail! accepts a very basic input, i.e. filename1 whose content is
+  treated as the body of the email
+  
+  Other part of the email can be passed using options, e.g. \verb!-s! (subject), 
+  \verb!-f! (email-from)
+  
+  \item \verb!sendmail! accepts filename2 whose content all the headers
+  including to,from,subject,contenttype etc.
+\end{enumerate}
+
+Example:  
+\begin{verbatim}
+echo "testing" | /usr/sbin/sendmail -f fromuser@coldmail.com touser@somemail.com
+
+echo "testing" | /bin/mail -s "haha" touser@somemail.com -- -f fromuser@coldmail.com
+\end{verbatim}
+
+However, sendmail is not without competitors, and perhaps the most prominent is
+\verb!qmail!, developed by Dan Bernstein. 
+\url{http://www.linuxplanet.com/linuxplanet/reviews/1640/1}
+
+In general, sendmail has some significant advantages. It is very mature, being
+one the of oldest MTAs around. Its wide use and availability has given rise to a
+vast pool of experienced sendmail administrators and consultants. sendmail is
+well documented in O'Reilly's sendmail book written by Bryan Costales
+with Eric Allman.
+
+\section{pkg-config, PKG\_CONFIG\_PATH}
+\label{sec:pkg-config}
+\label{sec:PKG_CONFIG_PATH-env}
+
+
+A script that helps to install a software typically requires checking the
+presence of or installed packages. It oftens use \verb!pkg-config!.
+
+pkg-config is a computer program that provides a unified interface for querying
+installed libraries. pkg-config was originally designed for Linux, but it is now
+also available for the various BSDs, Microsoft Windows, Mac OS X, and Solaris.
+
+
+IDEA: When a package (e.g. library) is installed, via a package manager (e.g.
+RPM, .deb - Sect.\ref{sec:package-manager}), a  .pc file should be included and
+placed into a directory with other .pc files. 
+These files are named after the package, with the extension .pc. To locate these
+files, pkg-config will look for certain folders (as being described later in
+this section).
+
+\begin{verbatim}
+/packages/pcre2/lib/pkgconfig/libpcre2-posix.pc
+/packages/pcre2/lib/pkgconfig/libpcre2-8.pc
+\end{verbatim}
+This .pc file has several entries
+
+Example of the content of a .pc file
+\begin{verbatim}
+# Package Information for pkg-config
+
+prefix=/packages/pcre2
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libpcre2-8
+Description: PCRE2 - Perl compatible regular expressions C library (2nd API) with 8 bit character support
+Version: 10.21
+Libs: -L${libdir} -lpcre2-8
+Libs.private:  
+Cflags: -I${includedir} 
+\end{verbatim}
+
+\textcolor{red}{List all installed libraries}
+\begin{verbatim}
+pkg-config --list-all
+\end{verbatim}
+
+NOTE: The location of pkg-config can be specified using \verb!PKG_CONFIG!
+environment variable.
+
+NOTE: On a typical Unix system, it will search in the directories
+/usr/lib/pkgconfig and /usr/share/pkgconfig. This built-in search pathes can be
+overriden by modifying \verb!PKG_CONFIG_LIBDIR! environment variable.
+
+NOTE: \verb!PKG_CONFIG_PATH! is a environment variable that specifies additional
+paths in which pkg-config will search for its .pc files. So, when using
+\verb!module! for package versin management (Sect.\ref{sec:modules}), remember
+to update this environment variable as well, e.g.
+\begin{verbatim}
+prepend-path PKG_CONFIG_PATH /packages/pcre2/lib/pkgconfig
+\end{verbatim}
+
+Example: to get compilation flags to libpng
+\begin{verbatim}
+pkg-config --libs --cflags libpng
+
+// so we can automate
+gcc -o test test.c $(pkg-config --libs --cflags libpng)
+\end{verbatim}
+
+
+\section{ldconfig, LD\_LIBRARY\_PATH}
+\label{sec:ldconfig}
+\label{sec:LD_LIBRARY_PATH-env}
+
+When you run a program, or you want to install a package, the program or the
+build script needs to find locations of shared libraries that need to be
+dynamically loaded and linked to the program. By default, the shared library
+files in /lib, /usr/lib and a few other standard directories are maintained in
+the cache by ldconfig.
+
+ldconfig is a program that is used to maintain the shared library cache. This
+cache is typically stored in the file /etc/ld.so.cache and is used by the system
+to map a shared library name to the location of the corresponding shared library
+file.  
+
+If a new program or library might be installed in a non-standard
+directory, you need to tell the system where to find it. Choose one of the two
+options
+\begin{enumerate}
+  \item (without root privilege): update \verb!LD_LIBRARY_PATH! environment
+  variable
+  
+  \item (with root privilege): rebuild the cache
+  
+\begin{verbatim}
+sudo /etc/ld.so.conf
+\end{verbatim}
+add a new line with the new library directory.
+
+Finally, run
+\begin{verbatim}
+sudo ldconfig
+\end{verbatim} 
+
+\end{enumerate}
+Check if the shared library cache now includes the new library location
+\begin{verbatim}
+ldconfig -p | grep <package-name>
+\end{verbatim}
+
+
+
+\section{m4 macros}
+\label{sec:m4}
+
+Macros are either builtin or user-defined, and can take any number of arguments.
+GNU m4 is a general purpose macro processor. Besides just doing macro expansion,
+m4 has builtin functions for including named files, running shell commands,
+doing integer arithmetic, manipulating text in various ways, performing
+recursion, etc.... m4 can be used either as a front-end to a compiler, or as a
+macro processor in its own right.
+
+{\it The m4 macro processor is widely available on all UNIXes, and has been
+standardized by POSIX.}
+\begin{itemize}
+  \item  Autoconf (Sect.\ref{sec:autoconf}), which requires GNU m4 for
+  generating configure scripts (Sect.\ref{sec:configure})
+  
+  \item 
+\end{itemize}
+
+\url{https://www.gnu.org/software/m4/manual/m4.html#Preliminaries}
+
+
+
+\url{https://geeksww.com/tutorials/libraries/m4/installation/installing_m4_macro_processor_ubuntu_linux.php}
+
+
+\section{gperf utility}
+\label{sec:gperf}
+
+gperf helps to parse command-line input easily.  The input has to be passed in
+via a file which contains a set of keywords; and then
+it generates C/C++ sources for the hash table, hashing, and lookup methods.
+\begin{verbatim}
+gperf  -L C++ command_line_options.gperf > perfecthash.hpp
+\end{verbatim}
+
+The \verb!*.gperf! file has the format
+\begin{verbatim}
+%{
+/* C code that goes verbatim in output */
+%}
+declarations
+%%
+keywords
+%%
+functions
+\end{verbatim}
+Similar to the syntax of the grammar file used by Flex and Bison.
+
+\url{https://www.ibm.com/developerworks/library/l-gperf/index.html}
+
+
+\section{wireshack}
+\label{sec:wireshack}
+
+\url{https://www.wireshark.org/}
+
+{\bf Wireshack} is  widely-used network protocol analyzer, started in 1998. It
+lets you see what's happening on your network at a microscopic level and is the
+de facto (and often de jure) standard across many commercial and non-profit
+enterprises, government agencies, and educational institution.
+
+
+\section{libjpeg-turbo}
+\label{sec:libjpeg-turbo}
+
+We may need to install nasm (Sect.\ref{sec:NASM}).
+
+\begin{verbatim}
+cd libjpeg-turbo
+autoreconf -fiv
+
+mkdir build
+cd build
+sh ../configure --prefix=/packages/libjpeg-turbo/9
+\end{verbatim}
+
+\section{gnulib}
+\label{sec:gnulib}
+
+\verb!pty.h! can be missing in some platforms. To fix, install \verb!gnulib! package.
+
+\url{https://www.gnu.org/software/gnulib/manual/html_node/pty_002eh.html}
+
+\url{http://manpages.ubuntu.com/manpages/bionic/man1/gnulib-tool.1.html}
+
+\section{NASM, YASM}
+
+
+\subsection{NASM}
+\label{sec:NASM}
+
+The Netwide Assembler, NASM, is an 80x86 and x86-64 assembler designed for
+portability and modularity. It supports a range of object file formats,
+including Linux and *BSD a.out, ELF, COFF, Mach-O, 16-bit and 32-bit OBJ (OMF)
+format, Win32 and Win64.  
+
+\url{http://www.nasm.us/xdoc/2.13.01/html/nasmdoc1.html#section-1.1}
+
+\url{http://www.nasm.us/pub/nasm/releasebuilds/2.13.01/linux/}
+
+\subsection{YASM}
+\label{sec:YASM}
+
+Yasm is a complete rewrite of the NASM assembler under the "new" BSD License.
+
+Yasm currently supports the x86 and AMD64 instruction sets, accepts NASM and GAS
+assembler syntaxes, outputs binary, ELF32, ELF64, 32 and 64-bit Mach-O, RDOFF2,
+COFF, Win32, and Win64 object formats, and generates source debugging
+information in STABS, DWARF 2, and CodeView 8 formats.
+
+\section{gnulib}
+\label{sec:gnulib}
+
+Gnulib is a central location for common GNU code, intended to be shared among
+GNU packages. It is a {\bf source code library} that provides basic
+functionality to programs and libraries. As a source code library, its
+components are intended to be shared at the source level, rather than being a
+library that gets built, installed, and linked against. Thus, there is no
+distribution tarball; the idea is to copy files from Gnulib into your own source
+tree.
+
+To use GNUlib, just wrap the code
+\begin{verbatim}
+git clone git://git.savannah.gnu.org/gnulib.git
+
+cd gnulib
+ ./gnulib-tool --help
+\end{verbatim}
+
+The easiest, and recommended, way to do this is to use the gnulib-tool script
+\begin{verbatim}
+ln -s $HOME/gnu/src/gnulib.git/gnulib-tool $HOME/bin/gnulib-tool
+\end{verbatim}
+
+\section{libiberty}
+\label{sec:libiberty}
+
+
+The libiberty library is a collection of subroutines used by various GNU
+programs.
+
+IMPORTANT: To date, libiberty is generally not installed on its own. It has
+evolved over years but does not have its own version number nor release schedule.
+
+The easiest way to use libiberty in your projects is to drop the libiberty code
+into your project's sources, and to build the library along with your own
+sources; the library would then be linked in at the end. This prevents any
+possible version mismatches with other copies of libiberty elsewhere on the
+system.
+
+You can also choose libiberty that installed as part of GCC, and use that for
+all software built with that compiler. To link, use \verb!-liberty! option.
+
+\subsection{install}
+
+Pass \verb!--enable-install-libiberty! to the configure script when building
+libiberty causes the header files and archive library to be installed when make install is run.
+Also, consider using \verb!--prefix! option.
+
+
+
+\section{Apport (crash report utility)}
+\label{sec:apport}
+
+Ubuntu has a program called Apport that is responsible for detecting such
+crashes and upon user consent, report these crashes to developers. This process
+intends to get the problem fixed by the developers.
+
+However it can be very annoying to common users, and there is no point in
+showing errors to users when they cannot do anything about it themselves. So you
+might want to disable them.
+
+
+\begin{verbatim}
+gksudo gedit /etc/default/apport
+
+# set 
+enabled=0
+
+# then (Ubuntu 14.04)
+sudo service apport restart
+
+
+# or (Ubuntu 16.04+) which use systemd to manage services
+sudo systemctl restart apport
+\end{verbatim}
+\url{https://askubuntu.com/questions/615478/constant-startup-error-issue-what-is-com-ubuntu-apport-support-gtk-root}

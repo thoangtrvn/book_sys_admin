@@ -1,0 +1,103 @@
+\chapter{Security O/S}
+
+\section{Time-sharing}
+
+In early days of computer, {\bf batch processing} was the only method.
+
+In 1960s, {\bf time-sharing processing} was a novel feature that enable (1)
+multiple programs to use the CPU, (2) multiple users to use one machine at the
+same time. The time-sharing system was first designed for mainframe computer,
+and implemented by SDC (System Development Corporation, the world's first
+computer software company) for AN/FSQ-32 mainframe computer.
+\url{http://en.wikipedia.org/wiki/System_Development_Corporation}
+
+The "state" of each user and their programs would have to be kept in the
+machine, and then switched between quickly. The first project to implement this
+system took place on a modified IBM 704 (in 1957), and then on a modified IBM
+7090 computer. The name of the time-sharing system was called {\bf CTSS}
+(Compatible Time-Sharing System) - remained in use until 1973. Another system
+developed around the same time was PLATO II at University of Illinois
+\url{http://en.wikipedia.org/wiki/PLATO_(computer_system)}.
+The first commercially successful (large-scale) time-sharing system was the
+Dartmouth Time Sharing System in 1963 - remained in use until 1999.
+\url{http://en.wikipedia.org/wiki/Dartmouth_Time_Sharing_System}
+
+Different computer terminals were {\it multiplexed} onto a single large
+mainframe computer via techniques:
+\begin{itemize}
+  \item mainframe computer sequentially polled the terminals to see whether any
+  additional data was available or action was requested before switching to the
+  next one.
+  
+  \item {\bf interrupt} driven
+  \item parallel data transfer technologies: such as IEEE 488 standard in
+  1975.
+  
+  The (GPIB (General Purpose Interface Bus)) bus was relatively easy to
+  implement using the technology at the time, using a simple parallel bus and
+  several individual control lines.
+  \url{http://en.wikipedia.org/wiki/IEEE-488}
+  
+\end{itemize}
+
+In the 1960s, several companies started providing time-sharing services as
+service bureaus.
+
+\section{Time-sharing vs. Security}
+
+Time-sharing was the first time that multiple processes, owned by different
+users, were running on a single machine, and these processes could interfere
+with one another.
+
+This raised new concerns about system security, when a system's resource is made
+available to multiple users via the remote connection. The phrase {\bf
+"penetration"} was used (at Spring 1967 Joint Computer Conference) to describe
+an attack against a computer system.
+
+{\it Tiger team} - a group backed by government - was created to test and
+detect a system's security holes to patch it. The leading computer penetration
+experts: James P. Anderson, \ldots
+
+The skillset of a penetratio tester is certified by Information Assurance
+Certification Review Board (IACRB) which issues Certified Penetration Tester
+(CPT).
+The CPT requires that the exam candidate pass a traditional multiple choice
+ exam, as well as pass a practical exam that requires the candidate to perform a
+ penetration test against servers in a virtual machine environment.
+
+\section{O/S for penetration testing}
+
+
+{\bf BackTrack} provided users with easy access to a comprehensive and large
+collection of security-related tools ranging from port scanners to Security Audit
+It was released from Feb-2006 to Aug-2012. BackTrack was replaced by {\bf Kali
+Linux}.
+\url{http://en.wikipedia.org/wiki/BackTrack}
+
+{\bf Kali Linux} is Debian (Wheezy)-derived Linux distribution, a rewrite of
+BackTrack O/S by its creators. Kali Linux is developed in a secure location with only a
+small number of trusted people that are allowed to commit packages, with each package being
+signed by the developer. Kali also has a custom built kernel that is patched for
+injection.
+\url{http://en.wikipedia.org/wiki/Kali_Linux}
+
+
+{\bf Pentoo} based on Gentoo Linux and 
+
+{\bf WHAX} based on Slackware Linux
+
+here are many other specialized operating systems for penetration testing, each
+more or less dedicated to a specific field of penetration testing.
+
+\url{http://en.wikipedia.org/wiki/Penetration_test}
+
+
+\section{Kali Linux}
+
+POSTGRESQL is used to store te database. 
+{\bf MetaSploit Framework} (penetration testing software) is integrated into the
+ditro.
+  
+  \url{http://lifeofpentester.blogspot.com/2013/03/kali-linux-complete-review-by-pen.html}
+  
+\subsection{msfconfole}

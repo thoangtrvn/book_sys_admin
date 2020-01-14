@@ -1,0 +1,3040 @@
+\chapter{NAS (Network-Attached Storage)}
+\label{chap:NAS}
+
+\section{Introduction}
+
+NAS is a 'cutdown' computer that can function like a file server.
+A NAS has only the bear essentials needed to store and serve out files - discs,
+NIC, a basic processor and a bit of RAM. No fancy GFX card (super-duper gaming
+GFX cards eat power whilst doing all that 3D rendering,) no 50 TeraHertz (or
+whatever the current superlative is) processor, no built-in sound cards, serial
+ports, etc.
+
+
+Using NAS has been getting more porpular since 2010. What you can do
+\begin{enumerate}
+  \item share files between multiple computers
+  \item files accessible from any where using HTTP, FTP, etc.
+  \item protect file lost using RAID1 (2 disks) or RAID5 (minimal 4 disks)
+  \item support different filesystem format: NFS, EXT3, EXT4
+\end{enumerate}
+
+For best compatibility of the NAS device with other wifi-enabled devices (smart
+TV, BluRay player), you should choose a DLNA-compliant NAS device. Also, you
+choose the O/S that you are most comfortable with (Sect.\ref{sec:O/S_for-NAS}).
+
+
+You can build your own NAS device (Chap.\ref{chap:build_NAS}), or select NAS devices from the market: \url{http://nas-tweaks.net/devices/}
+
+To benchmark NAS devices, we can look into
+\url{http://www.smallnetbuilder.com/nas/nas-howto/31249-how-we-test-networked-storage-devices-revision-4}
+
+Some companies allow you to try their NAS in demo mode (e.g. Sysnology/QNAP)
+\url{http://mkvxstream.blogspot.com/2014/01/qnap-vs-synology-best-nas-for-2014.html}
+
+\section{Zyxel NSA}
+\label{sec:Zyxel_NAS}
+
+We focus on Zyxel NSA325 v1. It has
+\begin{enumerate}
+  \item \textcolor{red}{power consumption}: 15W (under operation) and 7W (idle)
+  \url{http://www.smallnetbuilder.com/nas/nas-reviews/32333-zyxel-nsa325-v2-2-bay-power-plus-media-server-reviewed}
+  
+  \item 1 x 10/100/1000M Ethernet port
+  
+  Ethernet card: Marvell 88E1318
+  
+  \item 1 x USB3.0 + 2 x USB2.0
+
+  USB 3.0: NEC D72022F
+  
+  \item CPU Marvell Kirkwood \verb!@1600MHz! (88F6282A1C160 - ARMv5TE), 256KB
+  unified, 4-way, set-associative L2 cache. NOTE: ARMv5TE is soft-float, and
+  hard-float are ARMv6 and ARMv7.
+
+  \item 512 MB DDR3 (upto 1066 MHz)
+  \item Flash 128 MB  
+\end{enumerate}
+
+\begin{mdframed}
+NSA325 v2 has the same hardware as NSA325, only with a new drive tray that
+enable using either 2.5'' or 3.5'' SATA disks or solid-state disks
+\footnote{\url{http://www.smallnetbuilder.com/nas/nas-reviews/32333-zyxel-nsa325-v2-2-bay-power-plus-media-server-reviewed}}
+\end{mdframed}
+
+% Zyxel NSA 325 can be connected with devices running: Squeeze
+% Center, DLNA 1.5-compliant server, UPnP AV Server, iTunes Server.
+
+File system support:
+\begin{itemize}
+  \item Internal HDD to run: XFS or EXT4
+  \item External HDD to run: NTFS, EXT2, EXT3, FAT32, FAT16, ReiserFS, XFS
+  \item RAID: RAID 1, JBOD, RAID0
+\end{itemize}
+
+Support internal HDD:
+\url{http://www.zyxel.com/ProductTab.shtml?pid=20110415131908&idx=8&c=gb&l=en}
+Suggested HDD
+\begin{itemize}
+  \item Hitachi 3TB, SATA-III (6Gbps): HDS723030ALA640 (64MB-cache),
+  HDS5C3030ALA630 (32MB-cache)
+  \item WD 3TB, 64MB cache, SATA-III: WD30EFRX 
+  
+  NOTE: the first 3TB is WD30EZRS (3Gbps)
+\end{itemize}
+
+The first step is to \textcolor{red}{update the latest Firmware}
+(Sect.\ref{sec:nas_zyxel_firmware}).
+
+Zyxel NSA comes with some pre-installed packages that we can enable or disable
+if needed
+\begin{itemize}
+  \item Flickr / YouTube/ FTP uploaders, Dropbox
+  \item FTP server
+  \item  Twonky UPnP/DLNA media server
+  \item iTunes server
+  \item  HTTP / FTP / Torrent downloader
+  \item Basic webserver ("Web Publishing")
+  \item  "Broadcatching" downloader for media with RSS feeds
+  \item  Print server
+  \item  Dropbox support
+  \item  Apple Time Machine backup
+\end{itemize}
+If we want to have more packages, we should look into using \verb!fun_plug!
+(Sect.\ref{sec:fun_plug}).
+
+Other information about the Zyxel NAS325 can be retrieved from here: 
+\url{http://zyxel.nas-central.org/wiki/Category:NSA-325}
+
+\subsection{Accessing Zyxel NAS}
+\label{sec:access-Zyxel-NAS}
+
+Zyxel NAS comes with a software {\bf NAS Starter Utility} 
+\url{http://www.zyxel.com/uk/en/support/download_library/product/nsa310_16.shtml?c=uk&l=en&pid=20110426084939&tab=Software&pname=NSA310&mtname=Software}
+or via web interface
+\begin{verbatim}
+http://192.168.1.46
+\end{verbatim}
+for interacting with the NAS system 
+\begin{verbatim}
+NSA325: (username: admin, password: ioadmin123).
+NSA325 v2: (username: admin, password: 1234).
+\end{verbatim}
+We may need to configure the static IP, Fig.\ref{fig:Zyxel-NAS-network}
+\begin{verbatim}
+## from the URL, select the single wheel (control admin)
+select Network 
+    - TCP/IP
+\end{verbatim}
+
+\begin{figure}[hbt]
+  \centerline{\includegraphics[height=7cm,
+    angle=0]{./images/Zyxel-NAS-network.eps}}
+\caption{How to configure IP for Zyxel NAS}
+\label{fig:Zyxel-NAS-network}
+\end{figure}
+
+
+The advanced way to work with Zyxel is via SSH (\ref{sec:SSH}), 
+which you may need to enable if (Sect.\ref{sec:enable-SSH}).
+
+Once you are able to login via SSH (Sect.\ref{sec:enable-SSH}), you can check 
+many useful information by running the utilities in \verb!/zyxel/sbin! folder
+
+\begin{verbatim}
+## Print 
+$>/zyxel/sbin/fw_printenv
+bootargs=console=ttyS0,115200 mtdparts=nand_mtd:0x100000(uboot),0x80000(uboot_env),0x80000(key_store),0x80000(info),0xA00000(etc),0xA00000(kernel_1),0x2FC0000(rootfs1),0xA00000(kernel_2),0x2FC0000(rootfs2) root=/dev/nfs rw init=/init
+bootcmd=nand read.e 0x2000000 $(kernel_addr) 0xA00000; bootm 0x2000000
+bootdelay=2
+baudrate=115200
+loads_echo=0
+ipaddr=10.4.52.165
+serverip=10.4.52.7
+rootpath=/srv/ubuntu
+netmask=255.255.255.0
+nandEcc=1bit
+kernel_addr=C80000
+MODEL_ID=AA03
+PRODUCT_NAME=NSA-325
+FEATURE_BIT=00
+CONTRY_TYPE=FF
+VENDOR_NAME=MitraStar Technology Corp.
+run_diag=yes
+ethaddr=FC:F5:28:5F:E2:CD
+\end{verbatim}
+
+\begin{verbatim}
+$>/zyxel/sbin/info_printenv
+kernel_addr_1=0xc80000
+kernel_mtd_1=5
+sysimg_mtd_1=6
+kernel_addr_2=0x4640000
+kernel_mtd_2=7
+sysimg_mtd_2=8
+fwversion_2=NSA325_4.61(AAAJ.1)
+revision_2=39941
+modelid_2=AA03
+core_checksum_2=b851a66b921c5ef69e6ad62596349e29
+zld_checksum_2=cdab6fc9e5a3b85997f53abc72ac2806
+romfile_checksum_2=6AE8
+img_checksum_2=eb4e9eb7d989bf3a8760743be9903492
+fwversion_1=NSA325_4.71(AAAJ.0)
+revision_1=44091
+modelid_1=AA03
+core_checksum_1=f26a0403e4862150739bbf15f5bfa105
+zld_checksum_1=36cc52147132276944a6afee1c4896e7
+romfile_checksum_1=BCC4
+img_checksum_1=8d7a6c12f2d668e2f2129f869ebf57d3
+next_bootfrom=1
+curr_bootfrom=1
+\end{verbatim}
+
+\begin{verbatim}
+$> /zyxel/sbin/mrd_mac
+mrd_mac eth0(to get the mac of eth0)
+mrd_mac 00 a0 c5 xx xx xx(to setup the mac of eth0)
+admin@TuanThuy:~$ /zyxel/sbin/mrd_mac  eth0
+FC:F5:28:5F:E2:CD
+\end{verbatim}
+
+\subsection{Tweak Zyxel NAS}
+
+\url{http://zyxel.nas-central.org/wiki/3rd_party_zypkgs}
+
+\subsection{Java}
+\label{sec:Java}
+
+Prerequisite: FFP (Sect.\ref{sec:fun_plug}), SSH (Sect.\ref{sec:enable-SSH}).
+
+Choose ARMv5 Linux - headless (Zyxel NAS325) on Oracle page:
+\url{http://www.oracle.com/technetwork/java/embedded/downloads/javase/index.html}
+
+\begin{verbatim}
+mkdir -p /ffp/opt/java
+
+cd /ffp/opt/java
+tar xvzf /mnt/HD/HD_a2/ejre-7u6-fcs-b24-linux-arm-sflt-headless-10_aug_2012.tar.gz
+ln -s ejre1.7.0_06 jre
+
+echo "export PATH=/ffp/opt/java/jre/bin:\$PATH" >> /ffp/etc/profile.d/java.sh
+chmod a+x /ffp/etc/profile.d/java.sh
+\end{verbatim}
+Finally, logout and login NAS
+\footnote{\url{http://nas-tweaks.net/419/installation-of-java-on-the-nas-under-fun_plug/}}
+
+As the \verb!admin! user (not \verb!root!), check if java is working properly
+\begin{verbatim}
+java -version
+\end{verbatim}
+
+
+\subsection{Multimedia: video/music}
+
+The device can also be used as a media server
+\begin{enumerate}
+  \item DLNA 1.5 media server
+  \item UPnP AV server
+ \item  iTunes server
+ \item  SqueezeCenter support
+ \item  Photo album server
+\end{enumerate}
+
+For comparisons of UPnP media servers:
+
+\begin{enumerate}
+  \item \url{http://en.wikipedia.org/wiki/Comparison_of_UPnP_AV_media_servers}
+  \item \url{http://www.universalmediaserver.com/comparison/}
+\end{enumerate}
+
+
+We can use smartphone to connect to the device via \verb!zMedia! app 
+\begin{enumerate}
+  \item NSA configuration, 
+  \item system status monitoring, 
+  \item file browsing and 
+  \item media playback (media streaming)
+\end{enumerate}
+
+Zyxel NSA325 comes with Twonky server (Sect.\ref{sec:twonky}).
+To be able to play video with subtitles, embeded transcoding may need to be
+enabled from NAS side. However, CPU used in Zyxel is not strong enough for
+transcoding. Also, Twonky server doesn't support well this feature. If you want
+to try
+\begin{itemize}
+  \item Serviio (Sect.\ref{sec:Serviio})
+  \item Plex Media Server (Sect.\ref{sec:Plex_mediaserver})  
+  \item Install ffmpeg/lame and manually convert the video to a different
+  format (Sect.\ref{sec:ffmpeg-lame})
+\end{itemize}
+
+You need FFP package (\verb!fonz fun_plug!).
+Also, you need to use wired gigabit networking to the NAS as your server will
+need to respond to requests from a client for a particular media file, find that
+file on the NAS volume, pull it back to the server, transcode if necessary, and
+then send the output to the client.
+
+\subsection{* ffmpeg/lame}
+\label{sec:ffmpeg-lame}
+
+Download the package to \verb!/ffp/home/root!, or we can use slacker to install
+(Sect.\ref{sec:slacker})
+
+barmalej2 maintains the \verb!br2! repository
+\footnote{\url{http://forum.nas-central.org/viewtopic.php?f=249&t=11831&start=60}}
+\begin{verbatim}
+ x x [ ] install   br2:ffmpeg2/fdk-aac-0.1.2-arm-0.txz                    x x
+ x x [ ] install   br2:ffmpeg2/ffmpeg-2.0.1_git20130924-arm-0.txz         x x
+ x x [ ] install   br2:ffmpeg2/fontconfig-2.10.95_git20130907-arm-0.txz   x x
+ x x [ ] install   br2:ffmpeg2/freetype-2.5.0.1-arm-0.txz                 x x
+ x x [ ] install   br2:ffmpeg2/fribidi-0.19.5-arm-0.txz                   x x
+ x x [ ] install   br2:ffmpeg2/lame-3.99.5-arm-0.txz                      x x
+ x x [ ] install   br2:ffmpeg2/libass-0.10.1-arm-0.txz                    x x
+ x x [ ] install   br2:ffmpeg2/opus-1.0.3-arm-0.txz                       x x
+ x x [ ] install   br2:ffmpeg2/rtmpdump-2.4_git20130907-arm-0.txz         x x
+ x x [ ] install   br2:ffmpeg2/shine-3.0.0-arm-0.txz                      x x
+ x x [ ] install   br2:ffmpeg2/twolame-0.3.13-arm-0.txz                   x x
+ x x [ ] install   br2:ffmpeg2/x264-0.136_git20130925-arm-0.txz           x x
+\end{verbatim}
+which contains the list of codecs and packages related to ffmpeg. The list of
+dependencies is given in
+\url{http://downloads.zyxel.nas-central.org/Users/barmalej2/ffp/0.7/arm/packages/PACKAGES.html}.
+Users need to install them manually.
+\begin{verbatim}
+slacker -ui ffmpeg
+slacker -ui lame
+\end{verbatim}
+and select 
+\begin{verbatim}
+mz:3rd-party/SnackByte/lame-3.99.5...
+mz:ffmpeg-1.1.1-arm
+\end{verbatim}
+
+
+Sintel mkv: extract srt and transcode to \verb!ass!
+\begin{verbatim}
+ffmpeg.exe -i Sintel.2010.720p.mkv -y -map 0:5 -scodec ass Sintelfr.ass
+
+ffmpeg.exe -i Sintel.2010.720p.mkv -q:a 0 -q:v 0 -vf "ass=Sintelfr.ass" outfrremux.avi
+\end{verbatim}
+
+External srt file (NOTE: first line in srt should be removed):
+\begin{verbatim}
+ffmpeg.exe -i sintel_fr.srt -y -scodec ass sintel_fr_out.ass
+
+ffmpeg.exe -i Sintel.2010.720p.mkv -q:a 0 -q:v 0 -vf "ass=sintel_fr_out.ass" OUT.avi
+\end{verbatim}
+
+
+How to burn subtitles into the video: \url{https://trac.ffmpeg.org/wiki/How to
+burn subtitles into the video}
+\begin{verbatim}
+// .srt  (ffmpeg need to be compiled with --enable-libass)
+ffmpeg -i video.avi -vf subtitles=subtitle.srt out.avi
+
+// .ass (ffmpeg need to be compiled with --enable-libass)
+// [convert subtitle]: ffmpeg -i subtitle.srt subtitle.ass
+ffmpeg -i video.avi -vf "ass=subtitle.ass" out.avi
+
+// mkv
+ffmpeg -i input.mkv -filter_complex "[0:v][0:s]overlay[v]" -map [v] -map 0:a
+           <output options> output.mkv
+\end{verbatim}
+
+\subsection{* media servers}
+
+Zyxel NAS325 comes with a default media server: Twonky (Sect.\ref{sec:twonky}).
+However, Twonky doesn't support external subtitles. A better option is to use
+Serviio (Sect.\ref{sec:Serviio}).
+
+\subsection{image: RAW format}
+
+Install \verb!dcraw! package to have RAW image support. 
+
+\subsection{Torrent: download}
+
+Download/Upload support:
+\begin{enumerate}
+\item  Auto-download from FTP/HTTP/BitTorrent/eMule
+\item Scheduled download
+\item One-click hosting sites downloading
+\item Auto-upload photos and videos to YouTube/Flickr/FTP server  
+\end{enumerate}
+
+First, enable Download service in Application list via Web-interface.
+If you link Dropbox to NSA (Sect.\ref{sec:Dropbox}), then create a zDownload
+folder (Dropbox/zDownload), then NSA automatically copy the torrent files into
+\verb!admin/download/torrents! folder, and it will automatically start download
+them.
+
+
+\subsection{USB}
+
+USB are automatically mounted in \verb!/e-data/<number>!
+Example:
+\begin{verbatim}
+/e-data/14e34fc35430245456c574ffba7a352d/
+\end{verbatim}
+
+We can check using 
+\begin{verbatim}
+blkid
+\end{verbatim}
+
+\subsection{Power management and CPU usage}
+
+Power control
+\begin{itemize}
+\item Power control:
+\item  Internal disk hibernation support
+\item  Scheduled power on/off/reboot
+\item  Wake-on-LAN support
+\item  System automatically resume after power outage
+\item  APC USB UPS monitoring and auto shutdown
+\end{itemize}
+
+Thermal control
+\begin{enumerate}
+  \item Smart fan speed control
+\item  High temperature alert/buzzer
+\item  Auto shutdown while high temperature
+\end{enumerate}
+
+Polkast, if enabled, uses many CPU. If you need CPU for copying, handling stream
+transcoding, then disable Polkast.
+\url{http://support.polkast.com/entries/30648606-How-do-I-monitor-the-top-10-CPU-usage-on-the-ZyXEL-NSA-}
+
+
+\subsection{Reset (Factory)}
+
+To reset to FACTORY configuration, all setings will be lost, i.e.  IP address,
+password, user accounts, groups, etc. The reset DOESN'T affect volume setting
+and data on NSA.
+\begin{enumerate}
+  \item Press reset button until you hear 2 beeps.
+  \item After the second beep, hold for addition 5 seconds and release it.
+  \item You need to hear three quick beeps after you release it. Now the system
+  is reset.
+\end{enumerate}
+
+\subsection{Copy/Backup}
+
+\textcolor{red}{\bf Backup files from NAS to another place (which can be
+internal/external or on another NAS machine)} 
+
+Open URL to Zyxel NAS:
+\url{http://192.168.1.46/r39941,/playzone,/}
+
+Go to System/Administration: System Setting/Firmware/Package. Click Package, and
+select the package you want to install (e.g. BackupPlanner). Then, for
+backing-up data from your PC/laptop, you can do
+\begin{itemize}
+  \item Install Zyxel NAS Start Utility: you can drag-n-drop your
+  files/folders to \verb!zPilot!. The files/folders will be automatically
+  identified and delivered to Music/Photos/Video/ or other designated folders on
+  NSA320/NSA325.
+  
+  \item Mount it as a local partition: Go to My Computer/Network, right-click
+  and select \verb!Map Network Driver...!, and select something like 
+  \begin{verbatim}
+  \\192.168.1.46\Volume1
+  \end{verbatim}
+  and type in the username/password
+  
+  \item Use ftp: \verb!ftp://192.168.1.46/!
+
+  \item One-touch copy/sync button for external USB-capable devices backup, i.e.
+connect your device through USB (2.0 or 3.0) port and backup
+
+  \item Backup planner: Instant/Scheduled backup, NSA to NSA
+synchronization/archive backup, NSA to external USB hard disk backup
+
+  \item Dropbox support:
+\end{itemize}
+
+\textcolor{red}{\bf Windows PC to NAS backup}
+\begin{itemize}
+  \item  Memeo AutoBackup software
+  
+  \item SyncBackFree v7: 
+  \url{http://www.2brightsparks.com/syncback/sbfree-intro.html}
+
+  \item AOMEI Backupper: \url{http://www.backup-utility.com/}
+\end{itemize}
+\url{http://mashable.com/2008/07/24/synching-files-and-folders/}
+
+
+\subsection{Asset UPnP}
+
+\url{http://oss.linn.co.uk/trac/wiki/MediaServers}
+
+
+
+\subsection{Upgrade: Firmware}
+\label{sec:nas_zyxel_firmware}
+
+If you're using \verb!fun_plug! (Sect.\ref{sec:fun_plug}), disable it first (Go
+to Firmware/Package, select Package and disable it) or rename \verb!/ffp! to
+another name.
+\footnote{\url{http://www.zyxel.com/support/download_library/product/nsa325_7.shtml?c=us&l=en&pid=20110415131908&tab=Firmware}}
+ 
+
+Then download the firmware, or we can open the main page from browser
+\begin{verbatim}
+http://192.168.1.46/r40851,/adv,/admin/index.html
+\end{verbatim}
+select 
+\begin{verbatim}
+<DeviceName> / System Setting / 
+     Firmware/Packages
+     FW Upgrade
+\end{verbatim}
+then you can click ``Check for Latest Firmware now'', or upload the firmware
+file if we already download it. The current firmware is 
+\begin{verbatim}
+NSA325_4.70(AAAJ.0)
+\end{verbatim}
+which uses Twonky 7.2.
+
+The new firmware 4.71 (Zyxel NAS325 v1/v2) released  August 14, 2014 will
+support
+\begin{itemize}
+  \item Twonky 7.2.8 (Sect.\ref{sec:twonky}), as Twonky 7.3.1 is still unstable.
+  \item 6TB 
+\end{itemize}
+
+\begin{verbatim}
+// NAS325 v1
+ftp://downloader:Af13-ssg6Lk8@ftp.zyxel.de/TH/Firmware/NSA325_471AAAJ0b1.bin
+ftp://downloader:Af13-ssg6Lk8@ftp.zyxel.de/KK/NSA325/4.71/NSA325_471AAAJ0C0.bin
+
+// NAS325 v2
+ftp://downloader:Af13-ssg6Lk8@ftp.zyxel.de/TH/Firmware/471AALS0b1.bin
+\end{verbatim}
+
+Older firmwares:
+\begin{enumerate}
+  \item \verb!NSA325_4.70(AAJ.0)C0!:
+\begin{verbatim}
+ftp://ftp.zyxel-tech.de/2.new_mirror/NSA325/firmware/NSA325_V4.70(AAAJ.0)C0.zip
+\end{verbatim}   
+  
+  \url{http://www.zyxelforum.de/firmware-updates-nsa-220-220plus-210-221-und-320-neu-t1706.html}
+  
+  \item \verb! NSA325_4.61(AAAJ.1)!: fix bugs, change VLC from 2.0.2 to  2.0.6,
+  upgrade libupnp
+  
+  
+  \url{http://forum.nas-central.org/viewtopic.php?f=249&t=10993}
+  
+  
+\end{enumerate}
+
+
+\subsection{Upgrade Linux kernel}
+\label{sec:zyxel_linux-kernel}
+
+Zyxel NSA325 use a Linux-based kernel that comes with Busybox
+(Sect.\ref{sec:create-RFS-BusyBox}), with the default version is Linux 2.6.31.8.
+\begin{verbatim}
+uname -r
+uname -a
+\end{verbatim}
+\url{https://github.com/pkirchhofer/nsa325-kernel/wiki}
+
+You don't need to install a new Linux kernel. 
+We can consider upgrading the kernel if we need it to support some new hardwares 
+\url{https://github.com/pkirchhofer/nsa325-kernel/tree/master/Documentation}
+
+There are many options
+\begin{enumerate}
+  \item Debian Squeeze/Wheezy (Sect.\ref{sec:Debian}):
+
+  \url{http://forum.nas-central.org/viewtopic.php?f=249&t=5145},
+  \url{https://www.debian.org/ports/arm/}
+
+  \item FreeNAS: Sect.\ref{sec:FreeNAS} \url{http://doc.freenas.org/index.php/Upgrading_FreeNAS}
+\end{enumerate}
+
+To install Debian on Zyxel NAS325, watch this video
+\url{https://www.youtube.com/watch?v=PoWfGVcIi3k} which explains how to connect
+a monitor to it.
+
+Debian Linux kernel doesn't impose the hardware requirement beyond what is
+required by Linux or FreeBSD kernel and GNU tools. So, you are safe to install
+Debian Linux kernel on these
+hardwares.\footnote{\url{https://www.debian.org/releases/stable/i386/ch02s01.html.en}}
+Debian has 3 architectures for ARM processors 
+\begin{enumerate}
+  \item OABI: don't require FPU (but very slow if it's not present). ARM
+  processors :   Lenny (Debian 5.0) and earlier
+  
+  \item EABI: don't use FPU. ARMEL processors: Lenny and later
+  
+  \item EABI: require FPU. ARMHF processors: Wheezy (Debian 7.6) and later
+  
+EABI can perform floating-point operations with or without FPU very fast,
+compared to OABI. It enables mixing soft and hard-float codes.
+\end{enumerate}
+
+To compile the buildroot in EABI
+\footnote{\url{http://facetlife.blogspot.com/2010/02/eabi-vs-oabi.html}}
+\begin{verbatim}
+BR2_ARM_EABI=y BR2_GNU_TARGET_SUFFIX=linux-uclibcgnueabi
+\end{verbatim}
+To compile the buildroot in OABI
+\begin{verbatim}
+BR2_GNU_TARGET_SUFFIX=linux-uclibc
+\end{verbatim}
+\url{https://wiki.debian.org/ArmEabiPort}
+
+\url{http://forum.doozan.com/read.php?2,14188}
+
+
+% \subsection{busybox}
+% 
+% Busybox is known as ``The Swiss Army Knife of Embedded Linux''. It provides more
+% than 60 common utilities used in Linux (ls, mkdir, tar, cp, \ldots). Everything
+% is handled by a single program, named busybox.
+% 
+% If you do
+% \begin{verbatim}
+% cd /bin
+% ls -l | more
+% \end{verbatim}
+% you will see many utilities link to the same program
+% \begin{verbatim}
+% lrwxrwxrwx    1 root     root            7 Apr  1 12:53 ln -> busybox
+% lrwxrwxrwx    1 root     root            7 Apr  1 12:53 ls -> busybox
+% lrwxrwxrwx    1 root     root            7 Apr  1 12:53 md5sum -> busybox
+% lrwxrwxrwx    1 root     root            7 Apr  1 12:53 mesg -> busybox
+% lrwxrwxrwx    1 root     root            7 Apr  1 12:53 mkdir -> busybox
+% \end{verbatim}
+% 
+% \url{http://nas-tweaks.net/45/busybox/}
+
+\subsection{Package installer: Slacker}
+\label{sec:slacker}
+
+To install any packages in the repositories, you type
+\begin{verbatim}
+slacker -i  //then select packages
+slacker -i <package>
+\end{verbatim}
+
+To remove packages
+\begin{verbatim}
+slacker -r <packages>
+\end{verbatim}
+
+Other commands:
+\begin{itemize}
+  \item Help
+\begin{verbatim}
+slacker -h
+\end{verbatim}
+  \item Refresh
+\begin{verbatim}
+slacker -U
+\end{verbatim} 
+
+  \item There are many repositories, and you want to show packages from one
+  particular repositories, say fonz we use \verb!s:!
+\begin{verbatim}
+slacker -aA s:
+\end{verbatim}
+ 
+   \item Choose package using pattern search
+\begin{verbatim}
+slacker -a <pattern>
+\end{verbatim}
+\end{itemize}
+
+
+\subsection{Package manager: Zy-pkg}
+\label{sec:zypkg}
+
+Zyxel use \verb!zy-pkg!, a derivative of \verb!ipkg! (Sect.\ref{sec:ipkg}).
+It keeps the database of packages at two places:
+\begin{verbatim}
+/i-data/md0/admin/zy-pkgs/  (or /i-data/md0/admin/package on a Medion)
+    ZYPKGS : the file whose content is overwritten each time you hit
+              "Retrieve Packages" button from the webinterface.
+    <all available packages, as a cache for reinstall>
+
+/usr/local/zy-pkgs/zypkg_conf/ 
+    status : the file contains info about all installed packages
+    info/  : the folder contains control.tar.gz, 
+                 <PackageName>.postrm
+                 <PackageName>.insttime  (the installed time)
+                 <PackageName>.list (list of installed files from data.tar.gz)
+\end{verbatim}
+
+On the webinterface, it only shows the packages listed in \verb!ZYPKGS!, a
+workaound solution
+\begin{itemize}
+  \item manual edit the file
+  \item use a third-party tool \verb!MetaRepository! - a CGI script which runs
+  locally on the NAS. The script downloads the \verb!ZYPKG_INFO.tgz! or ZYPKGS
+  file from several repositories, and combines that to a single file, on base of (alphabetically) sorting the packages
+  
+  \url{http://zyxel.nas-central.org/wiki/3rd_party_zypkgs#MetaRepository}
+\end{itemize}
+%The Zyxel package manager is stored in \verb!i-data/md0/admin/zy-pkgs/! folder.
+
+\begin{enumerate}    
+  \item Use one of the below steps
+  
+  \begin{itemize}
+    \item Create/edit the file (Not available in NSA-212 (Medion)):
+    \verb!web_prefix! in \verb!<nas>!/admin/zy-pkgs/. Tell Zyxel NAS to use a
+    repository that has FFP  
+\footnote{\url{http://zyxel.nas-central.org/wiki/FFP_as_zypkg}}  
+  
+Make sure the URL below is the content of the file: 
+\begin{verbatim}
+ftp://ftp.zyxel-tech.de/2.new_mirror/
+\end{verbatim} 
+
+NOTE: Here, we can only use one repository at a time, a better solution is to
+use MetaRepository (Sect.\ref{sec:metarepository})
+
+    \item In older NAS (e.g. NSA-212), there is no support with
+    \verb!web_prefix!, so a work-around solution is to inject a lower level
+\begin{verbatim}
+echo ftp://ftp.zyxel-tech.de/2.new_mirror/<NAS-TYPE>/4.40/zypkg/
+     >>   /etc/package_src_url
+\end{verbatim}
+Remember to replace \verb!<NAS-TYPE>! with your type, e.g. NAS-325 (double check
+by open this link on the browser)
+\footnote{\url{http://zyxel.nas-central.org/wiki/Package_management}}. NOTE: The
+file \verb!/etc/package_src_url! is on the RAM, so it's reset after reboot. This
+can be worked around by putting a script in /usr/local/zy-pkgs/etc/init.d/,
+which is executed on each boot. 
+
+    \item You can also manually download the package you want and put
+it there (the same folder). The package name is \verb! ffp_0.7_arm_003.zpkg! 
+  
+The packages can be downloaded from:   \url{ftp://ftp.zyxel-tech.de/2.new_mirror/NSA325/4.40/zypkg/}
+  \end{itemize}
+  
+  \item Login NAS, click on the icon ``System Settings", then
+  go to Firmware/Packages $\rightarrow$ Package, and click ``Retrieve List from
+  the Internet'', and install FFP package (click 'ffp', then select
+  Install/Upgrade, Apply with all default settings).
+  
+After \verb!ffp! is installed, it creates a folder \verb!.../admin/zy-pkgs/ffp!.   
+  
+ \item Now we can ssh to the system:
+\begin{verbatim}
+ssh admin@192.168.1.46
+\end{verbatim}  
+   
+  \item Disable Telnet
+\begin{verbatim}
+/ffp/start/telnetd.sh stop
+chmod a-x /ffp/start/telnetd.sh 
+\end{verbatim}
+
+  \item Login as \verb!root! (password is the same as that for \verb!admin!)
+  using ssh (Sect.\ref{sec:enable-SSH})
+  
+\end{enumerate}
+
+
+\subsection{fun\_plug}
+\label{sec:fun_plug}
+
+Firmwares (Sect.\ref{sec:firmware}) of many NAS devices allow users to execute a
+script file named \verb!fun_plug! when the NAS's O/S is booted. This script
+tells which services should be run at boot up.
+
+% What the script \verb!fun_plug! does is (1) mount the disk, (2) startup daemons
+% running on the device, (3) run another script \verb!/usr/sbin/chk_fun_plug!. The last thing is
+% what we call the magic that allows us to get access to the device. This script
+% check the mounted disk for the presence of a file called \verb!fun_plug! and
+% execute if it there.
+
+The custom boot script \verb!fun_plug! locates in \verb!Volume_1! of the
+harddisk, rather than in the flash memory. As the file \verb!fun_plug! resides
+on the hard disk, we can replace it with a different script file (but the name
+must be \verb!fun_plug!, i.e. the custome boot script. So, it's safe to modify
+the script. This modification is gone when you delete the content of the file or
+change the harddisk.
+
+The script functions as a hook to extend the boot process, i.e. start additional
+modules or services. Instead of writing your own \verb!fun_plug! script, we can
+use a script called \verb!ffp! written by someone else (Sect.\ref{sec:ffp}). 
+
+Here, we use \verb!ffp 0.7/arm! for Zyxel NAS-325
+(Sect.\ref{sec:ffp_versions}), and we can install via either
+\begin{itemize}
+  \item change the repository URL so that the package manager (accessible via
+  the webinterface)
+\begin{verbatim}
+http://192.168.1.46
+\end{verbatim}
+and choose package menu, click \verb!Retreive list from Internet!.
+Now ffp should be in the list. 
+
+  \item put the \verb!*.zkpg! (i.e. \verb!ffp_0.7_arm_003.zkpg!) file into the
+  folder
+\begin{verbatim}
+/i-data/md0/admin/zy-pkgs/
+\end{verbatim} 
+and go to the webinterface chooce package manager.
+  
+  \item via command-line (Sect.\ref{sec:ffp_install-via-command_line}).
+\end{itemize}
+\url{http://zyxel.nas-central.org/wiki/FFP_as_zypkg}
+
+% The linux kernel comes with NAS deivce (Sect.\ref{sec:zyxel_linux-kernel}) has
+% very limited enabled services/packages that run at boot-time. However, more
+% services/packages can be added during boot time, e.g. ssh(d), lighttpd,
+% rsync(d), buildtools, editors, etc. by modifying a special script (to be
+% discussed next).
+% 
+% When Zyxel NAS 325 boots, it reads \verb!/etc/inittab! which executes
+% \verb!/etc/init.d/rcS! script (Sect.\ref{sec:inittab}).
+
+% Different URLs to the repository website can be used to
+% retrieve the programs compiled into the appropriate ABI for your hardware.
+
+\subsection{Metarepository}
+\label{sec:metarepository}
+
+\url{http://zyxel.nas-central.org/wiki/3rd_party_zypkgs}
+\subsection{Network access}
+
+\begin{itemize}
+  \item Network protocol: CIFS/SMB, NFS (for Linux/Unix), FTP, HTTP, DHCP
+  client, PPPoE, Network Time Protocol (NTP)
+\end{itemize}
+
+
+You can access the device from virtually everwhere as the device can function as
+a web server
+\begin{enumerate}
+  \item FTP server
+  \item  phpMyAdmin/MySQL/PHP
+  \item  RSS client \& server
+\end{enumerate}
+using network security: 
+\begin{itemize}
+\item  Support HTTPS and FTPES (FTP over explicit TLS/SSL)
+\item  Encrypted NSA to NSA remote replication
+\item  Encrypted NSA to external disk archive backup
+\end{itemize}
+that comes with network management software: 
+\begin{itemize}
+  \item User \& group management
+\item  Package Management for setting up applications
+\item  One-click-hosting sites download manager
+\end{itemize}
+
+\subsection{* SSH to NAS}
+\label{sec:enable-SSH}
+
+On some NAS system (Chap.\ref{chap:NAS}), SSH (Sect.\ref{sec:SSH}) is disabled
+by default. To enable SSH, you need to install \verb!ffp!
+(Sect.\ref{sec:fun_plug}) first.
+
+The only available and also passwordless protocol is \verb!telnet!
+(Sect.\ref{sec:telnet}). From windows, you can use Putty to connect to the NAS
+via Telnet (remember to choose Telnet as connection type), default port is 23.
+On Zyxel NSA-300 series, since Firmware 4.22, SSH-server is enabled by default.
+
+First, we connect to the system using Telnet (Sect.\ref{sec:telnet}). Login to
+\verb!root! (the same password as \verb!admin!), and run
+\begin{verbatim}
+su
+chmod a+x /ffp/start/sshd.sh
+sh /ffp/start/sshd.sh start
+\end{verbatim}
+
+Now, we logout telnet and login via SSH (suppose the IP is 192.168.1.46)
+\begin{verbatim}
+ssh admin@192.168.1.46
+\end{verbatim}
+If you can login to the NAS via SSH, we can now safely disable Telnet (as Telnet
+has major security issue) - Sect.\ref{sec:telnet}.
+% \begin{verbatim}
+% sh /ffp/start/telnetd.sh stop
+% chmod a-x /ffp/start/telnetd.sh
+% \end{verbatim}
+
+
+\subsection{* LFTP}
+
+\url{http://lftp.yar.ru/}
+
+To install, run uwsiteloader and select 
+\begin{verbatim}
+Uli   rsync:...
+\end{verbatim}
+run slacker
+\begin{verbatim}
+slacker -ui
+\end{verbatim}
+and select
+\begin{verbatim}
+uli:lftp-4.4.8-arm
+\end{verbatim}
+
+\subsection{* Telnet}
+\label{sec:telnet}
+
+An easy and unsecure method to connect a shell on a remote machine, e.g. to
+Zyxel NAS device, is
+\begin{verbatim}
+telnet <IP> 23
+\end{verbatim}
+A \verb!telnet! server operates on port 23.
+
+NOTE: If telnet is not recognized, you need to enable Telnet client in ``Turn
+on/off Windows features" using the link.
+\footnote{\url{http://social.technet.microsoft.com/wiki/contents/articles/910.windows-7-enabling-telnet-client.aspx}}
+
+Login information: \verb!nascentral/ioadmin123!
+
+After login is successful, switch to root 
+\begin{verbatim}
+su  // password: ioadmin123
+\end{verbatim}
+
+Make sure you have SSH enabled (Sect.\ref{sec:enable-SSH}), before disabling
+telnet service (as we don't need to use it anymore, with ssh working)
+\begin{verbatim}
+su 
+/ffp/start/telnetd.sh stop
+chmod a-x /ffp/start/telnetd.sh 
+\end{verbatim}
+Another way is using the web UI (Sect.\ref{sec:access-Zyxel-NAS})
+\begin{verbatim}
+# Control
+Network
+   Telnet services
+      select ON/OFF
+\end{verbatim}
+
+\subsection{* access from mobile devices}
+
+\begin{enumerate}
+  \item zCloud: view and access all files from your phone anywhere
+  \item zMedia: file browsing and media playback 
+  \item Polkast: access every file, edit photo, listen to music (the NAS need
+  to have Polkast service enabled)
+  \item Twonky Beam: beam the media stored on NSA (the NAS need to have Twonky
+  Beam server enabled)
+  \item ownCloud: universal access to files in NSA from your phone
+\end{enumerate}
+\url{http://www.zyxel.com/us/en/ProductTab.shtml?pid=20130508112312&idx=3&c=us&l=en}
+
+
+\subsection{Git}
+\label{sec:Git}
+
+Remember to add uwsiteloader (Sect.\ref{sec:uwsiteloader}) and ffp
+(Sect.\ref{sec:fun_plug})
+
+\begin{verbatim}
+slacker -UaA uli:git
+\end{verbatim}
+
+\subsection{SickBear (vMaster)}
+
+\subsection{NZBGet (v14)}
+
+\subsection{Transmission (v2.84)}
+
+\subsection{Web Interface}
+
+If you cannot browse the NAS325v2 from the browser, make sure the \verb!httpd!
+server is running on the NAS
+\begin{verbatim}
+- login via ssh
+- run
+su
+/etc/init.d/httpd.sh restart
+\end{verbatim}
+
+\subsection{Troubleshoot}
+
+If you get the error
+\footnote{\url{http://forum.nas-central.org/viewtopic.php?f=237&t=5445}}
+\begin{verbatim}
+can't load library 'libcrypto.so.1.0.0'
+\end{verbatim}
+then 
+\begin{verbatim}
+cd /ffp/lib 
+  // find the library, e.g. libcrypto.so.0.9.8
+ln -s libcrypto.so.0.9.8 libcrypto.so.1.0.0
+
+\end{verbatim}
+
+If you get the error
+\begin{verbatim}
+OpenSSL version mismatch. Built against 1000105f, you have 1000007f
+\end{verbatim}
+then 
+\begin{verbatim}
+slacker -ui openssl
+\end{verbatim}
+\url{http://forum.nas-central.org/viewtopic.php?f=249&t=12249}
+
+\section{D-link DNS-345}
+
+\url{http://www.dlink.com/us/en/home-solutions/share/network-attached-storage/dns-345-sharecenter-4-bay-cloud-storage-4000}
+
+\subsection{Using DNS-xxx}
+
+Please ensure that the internal ``Remote Backup" Services is deactivated
+(Sect.\ref{sec:DNS_remote-backup}) before installing \verb!fun\_plug!
+(Sect.\ref{sec:fun_plug}).
+
+\subsection{fon\_plug}
+
+We can review Sect.\ref{sec:fun_plug}
+
+When DNS-323 boots, it reads \verb!/etc/inittab! which executes
+\verb!/etc/init.d/rc.sh! script (Sect.\ref{sec:inittab}).
+
+Firmwares (Sect.\ref{sec:firmware}) of many NAS devices allow users to execute a
+script file when the NAS's O/S is booted. This script tells which services
+should be run at boot up.
+What the script does is (1) mount the disk, (2) startup daemons running on the
+device, (3) run another script \verb!/usr/sbin/chk_fun_plug!. The last thing is
+what we call the magic that allows us to get access to the device. This script
+check the mounted disk for the presence of a file called \verb!fun_plug! and
+execute if it there.
+
+The custom boot script \verb!fun_plug! locates in \verb!Volume_1! of the
+harddisk, rather than in the flash memory. As the file \verb!fun_plug! resides
+on the hard disk, we can replace it with our own script file, i.e. the custome
+boot script. So, it's safe to modify the script. This modification is gone when
+you delete the content of the file or change the harddisk.
+
+Instead of writing your own \verb!fun_plug! script, we can use a script written
+by someone else. \verb!ffp! stands for \verb!Fonz fun_plug!, a \verb!fun_plug!
+package written by a Berlin-based developer named Fonz.
+Also, the package contains the links to the repositories that have binary
+applications and packages compiled by Fonz and some others. This saves
+us the time from compiling the code on NAS devices and adding them to
+\verb!fun_plug!. 
+
+
+\url{http://dns323.kood.org/howto:fun_plug}
+
+
+\subsection{Twonky}
+
+
+\url{http://nas-tweaks.net/384/installation-of-twonky-server-7-on-nas-devices/}
+
+\subsection{Remote Backup}
+\label{sec:DNS_remote-backup}
+
+This server is shipped with newer NAS like the DNS-320/DNS-320L/DNS-325/DNS-345
+and conflicts with the SSH-Server of the \verb!fun_plug!. If you want to use the
+Backup-Service, please take a look at this tutorial after you have executed the
+installation of the \verb!fun_plug!.
+\url{http://nas-tweaks.net/276/how-to-mirror-one-folder-from-one-nas-to-another-using-rsync-and-fun_plug/}
+
+
+\url{http://nas-tweaks.net/276/how-to-mirror-one-folder-from-one-nas-to-another-using-rsync-and-fun_plug/}
+
+
+\section{Lacie 2big Network 2}
+
+\url{https://www.lacie.com/support/support_manifest.htm?id=10245}
+
+\section{Qnap}
+\label{sec:QNAP}
+
+QNAP \url{http://www.qnap.com/i/en/product/}
+
+QNAP TS-470 PRO
+\begin{verbatim}
+Dual-Core 3.3 GHz processor that facilitates high definition media transcoding
+     and the 5.1 channel surround sound with the HD Station via HDMI connection.  
+Memory: 1GB DDR3
+Internal HDD: 4x 3.5" SATA 6Gb/s
+Max Internal Capacity: 16TB
+LAN: 2x Gigabit ports (expandable to 4 x GbE ports or 2 x GbE + 2 x 10GbE ports)
+\end{verbatim}
+
+\section{NetGear NAS}
+
+\section{Seagate BlackAmor}
+\label{sec:BlackAmor_NAS}
+
+
+\section{Drobo}
+\label{sec:Drobo_NAS}
+
+DroboFS is not the NAS. The correct one is Drobo 5N 5-bay NAS which supports
+\begin{itemize}
+  \item Network Protocols - Common Internet File System (CIFS)/Server Message
+  Block (SMB) and Apple Filing Protocol (AFP)
+  
+  \item Drobo BeyondRAID
+  
+\end{itemize}
+
+
+
+\section{Sysnology}
+\label{sec:Sysnology}
+
+Synology DiskStation DS413
+\begin{verbatim}
+CPU: Dual Core 1.067 GHz 
+Memory: 1GB DDR3 
+Internal HDD: 4x 3.5" or 2.5" SATA2
+Max Internal Capacity: 16TB (4x 4TB HDD) 
+External HDD Interface: 2x USB 3.0 Ports, 1x USB 2.0 Port, 1x eSATA Port 
+LAN: 1x Gigabit 
+\end{verbatim}
+\url{http://mkvxstream.blogspot.com/2014/01/qnap-vs-synology-best-nas-for-2014.html}
+
+Backup software - Goodsync (Only for Synology NAS):
+\url{http://www.goodsync.com/for-nas}
+
+\url{https://originwww.synology.com/en-us/knowledgebase/tutorials/641}
+
+\section{Software + Applications}
+
+\subsection{Ripping softwares}
+
+\verb!MakeMKV! is the popular ripping softwares: that rips DVDs to MPEG2, and
+Blu-ray to AVC L4.1
+
+
+\verb!Ripbot264! is another ripping software: MKV movies (V: AVC @ 6144 Kbps High Profile
+A: AC-3 @ 640 Kbps 6 channel 48 KHz)
+
+
+\subsection{TV}
+
+If you use smart TV connect to DLNA-compliant device, then 
+
+\begin{enumerate}
+  \item LG LET 3D Smart TV + Zyxel NAS310/NAS325:
+  \footnote{\url{http://www.howtoshot.com/5120/zyxel-nsa310-nas-server-on-lg-tv-with-subtitles/}}
+  
+\end{enumerate}
+
+
+\subsection{BluRay}
+
+
+Playing subtitle (.srt) via a DLNA-compliant device is not supported in many
+TVs. The DLNA standard actually does support additional subtitle (.srt) files,
+and is already used by many DNLA media renderers, e.g. Philips HMP5000, Samsung B/C/D
+TV series, LG TV/player, Panasonic Viera and WD TV HD Live (see profiles.xml
+from Serviio Media Server and their page on subtitle support for details).
+It is specified in the DMR profile by using e.g.
+\begin{verbatim}
+<SubtitlesMimeType>text/srt</SubtitlesMimeType>
+\end{verbatim}
+
+As you can see, the URI to the .srt file is given in the media directory and can
+be read through HTTP.
+Now it's just a matter of the Philips TV to actually detect and load the
+text/srt resource entry and display it like an USB-based srt file. One or
+several external subtitle files can be added like any other additional resource,
+such as JPEG thumbnails, to the ContentDirectory.
+\footnote{\url{http://www.supportforum.philips.com/en/showthread.php?2704-DLNA-streaming-support-for-external-subtitle-files-srt&p=33833&viewfull=1\#post33833}}
+
+
+
+For US TV models, subtitle (.srt file format) is not supported by the Digital
+Living Network Alliance server (DLNA) hence will not be displayed when streaming videos.
+Sony TV only support subtitles (mkv + srt) by usb to TV
+Sony Bravia 42W651.
+
+ (mkv + srt) in a Samsung and LG and everything works fine. 
+
+
+\subsubsection{Sony BDP-S3100}
+
+\begin{verbatim}
+AVCHD Disc Format Folder...Yes (BD, DVD,CD, USB, DLNA)
+MPEG-1 Video/PS (.mpg .mpeg, .m2ts, .mts)...Yes (BD, DVD,CD, USB, DLNA)
+MPEG-2 Video/PS, TS ( .mpg. mpeg, .m2ts, .mts)...Yes (BD, DVD, CD, USB, DLNA)
+MPEG-4 AVC (.mkv, .mp4, .m4v, .m2ts, .mts)...Yes (BD, DVD, CD, USB, DLNA)
+WMV9 (.wmv, .asf)...Yes (BD, DVD, CD, USB, DLNA)
+Motion JPEG (.mov, .avi)...Yes (BD, DVD, CD, USB)
+MPEG-4/ AVC (.mov, 3gp, .3g2, .3gpp, .3gpp2)...Yes (BD, DVD, CD, USB)
+VC1 (.m2ts, .mts) ...es (BD, DVD, CD, USB)
+XVID ...Yes (BD, DVD, CD, USB, DLNA)
+\end{verbatim}
+
+To use this on serviio console (Sect.\ref{sec:serviio_console}), first change
+the profile to \verb!Generic! \verb!Profile!, and then list all file formats
+that are not displayed on menu and file not playable.
+
+You can also select \verb!Sony BDP-Sx90 (2012)! as the profile, then Serviio can
+stream MKV natively. Chapter skipping may not work for some MKV movies from
+Serviio. Fast forwarding works until you hit \verb!play! to stop the fast
+forward which then skip to the next movie (huh).
+\subsection{PS3}
+
+PS3 media servers support transcoding and works on Sony TV  KDL-26EX320.
+
+\url{http://en.wikipedia.org/wiki/PS3_Media_Server}
+
+\subsection{Transcoding engine}
+
+References:
+\begin{itemize}
+  \item
+  \url{https://support.plex.tv/hc/en-us/articles/201373793-Is-Plex-Media-Server-on-a-NAS-Right-for-Me-}
+\end{itemize}
+
+
+Suppose you want a video stored on the NAS to be played on a client device (e.g.
+smart phone or the bluray device); but the client device does not support the
+format.
+You either (1) have to install the decoder on the client, or (2) let the media
+server does the transcoding and send the right format that the client device
+support. Transcoding engine enables the on-the-fly transcoding of the video to
+the supported format while playing. Transcoding can be a very CPU intensive
+process in many cases.
+Not all CPU supports transcoding. ARM and PowerPC CPU do not support
+transcoding. 
+
+PS3 Media Server handle on-the-fly transcoding into the format that the device
+can support. New contents need to be manually updated.
+
+Twonky server (Sect.\ref{sec:twonky}) doesn't support transcoding well, but it
+handles playlist, new files better, i.e. automatically watches folders for
+changes. To enable transcoding (i.e. burning the subtitle into the stream)
+
+Plex media server (Sect.\ref{sec:Plex_mediaserver}) can transcode the video,
+but it also depends on the type of CPU. The process is automatic.
+There are two transcoders built in Plex media server
+\footnote{\url{https://support.plex.tv/hc/en-us/articles/201373823}}
+
+\begin{enumerate}
+  
+  \item Plex Transcoder: The original Plex Transcoder is based on FFMPEG - as is
+  the new one. As the Server has evolved, development of the original Plex
+  Transcoder has stopped and it will be phased out. It is still included with
+  the Server for compatibility reasons. This original Plex Transcoder will be
+  replaced completely by the Plex Universal Transcoder.     
+  
+  \item Plex Universal Transcoder: It includes all the smarts of the
+old transcoder but is much more powerful, faster and smarter. If you see an
+option in a client to use the Universal Transcoder, it should generally be
+enabled. If you're having problems with certain media, try turning the Universal
+Transcoder off.   
+\end{enumerate}
+ARM architecture that have capabilities low enough that transcoding is simply
+disabled altogether for them in Plex Media Server. In such NAS devices, you may
+get error instead. \textcolor{red}{If you run on Zyxel NAS325, you cannot
+transcode, with the error message}
+\begin{verbatim}
+This media server does not support transcoding.
+\end{verbatim}
+
+\subsection{Media server}
+
+By installing a media server on NAS, you can connect to the server if you have a
+device with the client softwared installed that can talk to the proper
+media server, and then can stream the media (song, video, photos) to your
+device. The device can be smart phone, bluray DVD player or smart TV, etc.
+
+\url{http://en.wikipedia.org/wiki/Comparison_of_UPnP_AV_media_servers}
+
+To play video with subtitles, it depends on the devices, and the media server
+\begin{itemize}
+  \item some devices do not support external subtitle, and requires them to be
+  burned into the video stream. It means the media server running on NAS should
+  have the feature to transcode the video with text to the device, and it take
+  high CPU usage to do the job. This method is not suitable for low-powered NAS
+  devices. The .MKV file contains subtitle
+  
+  \item media servers support a limited number of video formats, and subtitle
+  formats.
+\end{itemize}
+
+The default media package installed on Zyxel NAS325 is Twonky
+(Sect.\ref{sec:twonky}). However, it doesn't support well with media (external
+subtitles, some formats (.mkv)). 
+
+
+\subsection{* Twonky server}
+\label{sec:twonky}
+
+Twonky (formerly Twonky MediaServer) is a media server. Twonky
+server is installed on NAS so that it can provide streaming video/music/photos
+to other devices (Smartphone - Android, IOS; Laptop, DLNA-compliant devices like
+Smart TV, etc.) It provides transcoding support (i.e. combining video with the
+external subtitles before streaming to the media player). Twonky SDK provides
+core API libraries to enable rapid deployment of media solutions on consumer
+electronic and mobile devices.  
+
+Twonky server 7.2.1 is built-in Zyxel NAS-325. When you enabled Twonky server,
+you can access via \verb!http://192.168.1.46:9001/!. However, that version has limited
+supports to subtitles, and video formats.
+
+Twonky 7.3
+\footnote{\url{http://www.pv.com/press/packetvideo-releases-twonky-7-3-provide-better-rich-media-experiences/}}
+
+\url{http://checkkey.twonky.com/products/twonkylinux/downloads.aspx}
+
+Clients:
+\begin{enumerate}
+  \item Smartphone: Twonky Beam
+\end{enumerate}
+
+\begin{mdframed}
+You can install a newer version of Twonky on NAS, yet you need to uninstall the
+previous version first. Also, the newer version of Twonky requires you to buy
+it. You have 30-day ful-feature trial period. 
+\end{mdframed}
+
+You can customize which devices and cannot to it, Fig.\ref{fig:Twonky_interface_01}
+
+\begin{figure}[hbt]
+  \centerline{\includegraphics[height=6cm,
+    angle=0]{./images/Twonky_interface_01.eps}}
+  \caption{Sharing option from Twonky Web-UI}
+  \label{fig:Twonky_interface_01}
+\end{figure}
+
+
+You should login and choose which folders to allow remote-accesible (photos,
+video, music, admin, public?).
+You can also try other packages like Serviio (Sect.\ref{sec:Serviio}) or
+TVmobili (Sect.\ref{sec:tvmobili}). The reason is that Twonky server doesn't
+support subtitles, or transcoding feature. Transcoding means the server need to
+convert the file format to the format that the target device can read. A
+complete lists is here:
+\url{http://en.wikipedia.org/wiki/Comparison_of_UPnP_AV_media_servers}
+
+Supported media:
+\begin{verbatim}
+Music:
+MP3, WMA, WAV, 3GP, M4A, MP4, LPCM, Ogg Vorbis, 
+FLAC, MP2, AC3, MPA, MP1, AIF
+
+Photo:
+JPEG, PNG, TIF, BMP
+
+Video:
+MPEG1, MPEG2, MPEG2-TS, MPEG4, AVI, WMV, VOB, DivX, 
+3GP, VDR, ASF, MPE, DVR-MS, Xvid, M1V, M4V
+
+Audio: LPCM, MP3, WMA,
+
+Images: JPEG
+Video: WMV, MPEG2, MPEG4 
+\end{verbatim}
+
+Since Twonky 6.x
+\begin{verbatim}
+Audio: M4A, M4B, MP4, 3GP, WAV, OGG, FLAC, AAC, MP2, AC3, MPA, MP1, AIF, ASF 
+
+Images: PNG, TIF, TIFF, BMP, GIF
+
+Video: MP1, MPG, SPTS, MP4, AVI, VOB, DivX, 3GP, VDR, MPE, 
+       DVR-MS, Xvid, M1V, M4V,MOV, MPV, MKV, FLV, MTS
+
+Playlists: M3U, M3U8, PLS, WPL
+\end{verbatim}
+
+Time seek is supported only in MPEG, WMA and WMV content. It means that you
+cannot move forward the movies in other
+format.\footnote{\url{http://esupport.thecus.com/support/index.php?_m=knowledgebase&_a=viewarticle&kbarticleid=207}}
+
+Twonky runs on port 9000 or 90001 (web access)
+\begin{verbatim}
+http://<NAS-address>:9000/
+http://<NAS-address>:9001/
+\end{verbatim}
+Make sure no firewall blocking port 9050 or 9055.
+
+To enable web access, modify \verb!twonkyvision-mediaserver.ini! (remember to
+backup first)
+\begin{verbatim}
+// enableweb=0
+enableweb=2
+\end{verbatim}
+and restart twonky server
+
+To check if Twonky server's running, you can login NAS-325
+via SSH (Sect.\ref{sec:enable-SSH}) and type
+\begin{verbatim}
+ps -ef|grep twonky
+\end{verbatim}
+
+Results:
+{\small
+\begin{verbatim}
+root      5602     1  0 Sep29 ?        00:00:00 /usr/local/dmsf/binary/twonkystarter -appdata /i-data/md0/.media/twonkymedia
+root      5603  5602  0 Sep29 ?        00:08:03 /usr/local/dmsf/binary/twonkyserver -appdata /i-data/md0/.media/twonkymedia
+root     29547 15716  0 02:45 pts/0    00:00:00 grep twonky
+\end{verbatim}
+}
+
+To disable/enable Twonky server's service, we connect via SSH connection
+as \verb!admin!, and run
+\begin{verbatim}
+/ffp/start/twonky.sh start	
+\end{verbatim}
+
+
+\url{http://nas-tweaks.net/384/installation-of-twonky-server-7-on-nas-devices/}
+
+\url{http://www.twonkyforum.com/viewtopic.php?f=2&t=10627#p40577}
+
+\url{http://community.twonky.com/twonky/topics/how_do_i_edit_the_twonkyserver_config_js_on_a_zyxel_nsa325}
+
+\subsection{* Polkast (personal cloud)}
+
+Zyxel NAS 300series with firmware 4.60 (AAAJ.0) has Polkast service.
+You can share data and access it from anywhere using Polkast service. It has
+free and pro. account. The free version supports only 1 device.
+\begin{enumerate}
+  \item Polkast 10.5: support Music app.
+  \item Polkast 10.6+: can pre-generate thumbnails.
+  \item Polkast 11.7: support folder sharing (Pro. account)
+  \item 
+\end{enumerate}
+
+TROUBLESHOOT: If you have an issue setting up a Polkast account on Zyxel NAS325,
+uninstall the package and reinstall it. Follow the
+link\footnote{\url{http://support.polkast.com/entries/21150638-How-do-I-install-update-Polkast-application-on-the-ZyXEL-NSA-300-series-}}.
+
+TROUBLESHOOT: CPU usage is 100\% after installing Polkast. This will happens for
+a few days, depending how many pictures you have. This is a one time process, as
+Polkast will go through 2-stage process: (1) scanning and building metadata
+(indexing) (if you can't connect to your NAS remotely it means this process has
+not completed yet. During this stage, the CPU is fully utilized). The second
+phase is thumbnails generation to help photo viewing faster as NAS lack a
+graphics processor. It generates 2 thumbnails for each image. During the
+second-stage, CPU usage will be 50\%, and it takes about 16 seconds to generate
+2 thumbnails for each image, i.e. 54000 pictures a day. The three processes:
+\begin{enumerate}
+  \item \verb!polkast_mediainfo! : run once for metadata extraction/indexing
+  service
+  \item \verb!polkast_gd! : thumbnails generation process (continue to run with
+  about 50\% CPU until all thumbnails generated)
+  \item \verb!polkast!: polkast service
+\end{enumerate}
+
+{\bf Make more files available on Polkast}:
+\url{http://support.polkast.com/entries/23453768-How-do-I-make-more-files-available-on-ZyXEL-NAS-}
+
+{\bf Playing movies with Polkast}: There are some limitations
+\footnote{\url{http://support.polkast.com/entries/21105607-Playing-movies-with-Polkast}}
+\begin{enumerate}
+  \item Some movies are not playable: DRM-protected movie (unless the 
+  device you watch video is authorized to play DRM protected file), proper CODEC
+  is not available (iOS currently supports; H.264, MPEG-4)
+  
+  \item Streaming issue: some movies requires downloading the whole-file before
+  watching. Some can be streamed using {\it progressive download streaming}
+  technology, i.e. movie starts being played when sufficient data has been
+  buffered and no need to wait until the whole file has been downloaded and the
+  whole file will be cached so that it can be viewed later.
+  Those files can be streamed using this technology requires the {\bf moov atom}
+  within the movie file precedes any {\bf mdat atoms}. Forward is not allowed
+  while streaming the movie.
+  
+NOTE: Encoding the {\bf MOOV atom} at the end of the file is usually a default
+operation for video encoders (as the exact contents and size of the MOOV atom
+can only be known after having written audio and video data entirely). To make
+the movie file ``web otimized'', MOOV atom should be written at the beginning of
+the file. FFMPEG has an option to reserve space for this atom (but not
+guarantee the data will fit perfectly).
+
+A tool called {\bf HandBrake} \footnote{\url{http://handbrake.fr}} can be used
+to convert and optimize the movie.
+\end{enumerate} 
+
+Links:
+\begin{enumerate}
+  \item \url{http://support.polkast.com/home}
+  \item
+  \url{http://support.polkast.com/entries/20556472-How-do-I-stream-my-movies-to-Polkast-mobile-apps-}
+\end{enumerate}
+
+\subsection{* Serviio}
+\label{sec:Serviio}
+
+Serviio is Sony recommended media server. However, Serviio is unable to detect
+appropriate Sony BDP/SMP devices due to the limitation in the Sony's DLNA
+firmware design. The way Serviio work is that it has a profile for each
+detected device that tell what features the device supports. Check
+Sect.\ref{sec:Sony_bluray} for the devices with DLNA-capable.
+
+Serviio supports external and embedded subtitles to all devices. Some
+devices support external subtitles, some require them to be burned into the
+video stream (hardsubs), and only transcoding the video with the text on the
+screen. 
+
+Serviio needs the exact version of ffmpeg to work.
+
+\subsection{* Serviio 1.1}
+
+\url{http://forum.serviio.org/viewtopic.php?f=14&t=8933}
+\url{http://forum.nas-central.org/viewtopic.php?f=249&t=11553}
+
+
+\textcolor{red}{Step 1}: Install ffmpeg/lame (ffmpeg 0.11.1 or 0.11.2) -
+(including libRTMP, libASS, libx264, libmp3lame)
+\begin{verbatim}
+su
+slacker -i ffmpeg-0.11.1-arm-1
+slacker -i lame
+\end{verbatim}
+NOTE: ffmpeg 11.1 works; but not other versions.
+
+
+NOTE: As ffmpeg has not been compiled with \verb!--enable-libmp3lame!, it
+doesn't transcode FLV. So you may need to recompile ffmpeg yourself (check the
+result when you run 'ffmpeg --version').
+
+It should be
+\begin{verbatim}
+$> ffmpeg --version
+
+ffmpeg version 0.11.1
+built on Jun 25 2012 20:34:06 with gcc 4.5.4 20111110 (prerelease)
+configuration: --prefix=/ffp --disable-static --enable-shared --enable-gpl
+--enable-nonfree --enable-small --disable-encoder=aac --disable-decoder=aac
+--disable-armv6 --disable-armv6t2 --disable-armvfp  
+libavutil      51. 54.100 / 51. 54.100 
+libavcodec     54. 23.100 / 54. 23.100
+libavformat    54.  6.100 / 54.  6.100
+libavdevice    54.  0.100 / 54.  0.100
+libavfilter     2. 77.100 /  2. 77.100
+libswscale      2.  1.100 /  2.  1.100
+libswresample   0. 15.100 /  0. 15.100
+libpostproc    52.  0.100 / 52.  0.100
+\end{verbatim}
+To use FLV movies, you may need to recompile ffmpeg to use
+\verb!--enable-libmp3lame!
+
+\textcolor{red}{Install Java} 1.7.0-10 (Sect.\ref{sec:Java}) as Serviio uses
+Java
+\begin{verbatim}
+$> java -version
+
+ java version "1.7.0_10"
+  Java(TM) SE Embedded Runtime Environment (build 1.7.0_10-b18, headless)
+  Java HotSpot(TM) Embedded Client VM (build 23.6-b04, mixed mode)
+\end{verbatim}
+
+\textcolor{red}{Download
+Serviio}\footnote{\url{http://www.serviio.org/download}}, and copy the tar file
+to NAS (say admin/Softwares)
+
+\begin{verbatim}
+ cd /ffp/opt
+wget http://download.serviio.org/releases/serviio-1.1-linux.tar.gz
+#tar xfvz serviio-1.1-linux.tar.gz
+#tar xfvz /i-data/md0/data/ZyxelNAS/serviio-1.1-linux.tar.gz
+tar xfvz /mnt/HD_a2/admin/Softwares/...
+
+// set permissions (log, plugins)
+ cd /ffp/opt/serviio-1.1
+  chmod a+w library
+  mkdir log
+  chmod a+w log
+  chmod a+w plugins
+  
+// create symbolic link  
+cd /ffp/opt
+  ln -s /ffp/opt/serviio-1.1 serviio  
+  
+//Create the temporary directory for Serviio
+ mkdir /ffp/tmp
+ 
+\end{verbatim}
+
+\textcolor{red}{Create startup script}:
+\begin{verbatim}
+  cd /ffp/start
+  touch serviiod.sh  
+\end{verbatim}
+file content
+
+{\footnotesize
+\begin{verbatim}
+#!/ffp/bin/sh
+
+# FFP Startup script for Serviio
+
+EXEC=/ffp/opt/serviio/bin/serviio.sh
+PIDFILE=/var/run/serviiod.pid
+JAVA_HOME=/ffp/opt/java/jre
+OPTS=
+
+test -x $EXEC || exit 0
+
+case "$1" in
+  start)
+   echo "Starting Serviio"
+   
+   # set required JAVA home environment variable   
+   export JAVA_HOME
+   
+   # Use the normal serviio.sh script to ensure correct environment is set up
+   if start-stop-daemon --start --quiet --oknodo --make-pidfile --background --pidfile $PIDFILE --exec $EXEC -- $OPTS; then
+       echo "OK"
+   else
+       echo "Failed"
+   fi
+   ;;
+   
+  stop)
+   echo "Stopping Serviio"
+   
+   # Kill both serviio.sh script and Java process
+   serv_kill=`ps aux | grep serviio.sh | grep -v grep | awk '{print $2}'`
+    java_kill=`ps aux | grep org.serviio.MediaServer | grep -v grep | awk '{print $2}'`
+            if [ "$serv_kill" = "" ]; then
+                    echo "Serviio shell is not running"
+                    RETVAL=1
+            else
+                    kill $serv_kill
+                    RETVAL=0
+            fi
+
+            if [ "$java_kill" = "" ]; then
+                    echo "Serviio Java is not running"
+                    RETVAL=1
+            else
+                    kill -9 $java_kill
+                    RETVAL=0
+            fi
+   
+   echo "OK" 
+   ;;
+   
+   status) 
+            
+         serv_pid=`ps aux | grep serviio.sh | grep -v grep | awk '{print $2}'`
+            java_pid=`ps aux | grep java | grep -v grep | awk '{print $2}'`
+            if [ "$serv_pid" != "" ]; then
+                    echo "Serviio shell (pid $serv_pid) is running"
+                    RETVAL=0
+            else
+                    echo "Serviio shell is stopped"
+                    RETVAL=1
+            fi
+         
+         if [ "$java_pid" != "" ]; then
+                    echo "Serviio Java (pid $java_pid) is running"
+                    RETVAL=0
+            else
+                    echo "Serviio Java is stopped"
+                    RETVAL=1
+            fi
+         
+esac
+
+exit 0
+\end{verbatim}
+}
+
+save and make the file executable
+\begin{verbatim}
+chmod a+x serviiod.sh
+\end{verbatim}
+
+We then need to enable transcoding, edit 
+\begin{verbatim}
+/ffp/opt/serviio/bin/serviio.sh
+\end{verbatim}
+and find the line with \verb!JAVA_OPTS! (put on a single line)
+{\tiny
+\begin{verbatim}
+JAVA_OPTS="-Djava.net.preferIPv4Stack=true -Djava.awt.headless=true
+-Dderby.system.home=$SERVIIO_HOME/library -Dserviio.fixedPointEncoders 
+-Dserviio.defaultTranscodeFolder=/ffp/tmp -Dserviio.home=$SERVIIO_HOME"
+\end{verbatim}
+}
+%Edit the file \verb!/ffp/opt/serviio/bin/serviio.sh!
+change the last line to decrease memory usage 
+\begin{enumerate}
+  \item Modify (512M to 384M (NSA325) and 256M (NSA310))
+
+%change the last line to decrease memory usage to 384 MB
+{\tiny
+\begin{verbatim}
+ "$JAVA" -Xmx384M -Xms20M -XX:+UseParNewGC -XX:MinHeapFreeRatio=10
+-XX:MaxHeapFreeRatio=20 $JAVA_OPTS -classpath "$SERVIIO_CLASS_PATH" org.serviio.MediaServer "$@"
+\end{verbatim}
+}  
+\begin{verbatim}
+"$JAVA" -Xmx256M -Xms20M -XX:+UseParNewGC -XX:MinHeapFreeRatio=10
+-XX:MaxHeapFreeRatio=20 $JAVA_OPTS -classpath "$SERVIIO_CLASS_PATH" org.serviio.MediaServer "$@"
+\end{verbatim}
+\end{enumerate}
+
+
+Finally, check
+\begin{verbatim}
+ sh /ffp/start/serviiod.sh start
+ 
+  ps -ef | grep serviio
+\end{verbatim}
+you expect to see
+\begin{verbatim}
+  root     27790     1  0 10:53 ?        00:00:00 /bin/sh /ffp/opt/serviio/bin/serviio.sh
+  root     27795 27790  4 10:53 ?        00:03:34 /ffp/opt/java/jre/bin/java -Xmx384M -Xms20M -XX:+UseParNewGC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Dderby.system.home=/ffp/opt/serviio/library -Dserviio.fixedPointEncoders -Dserviio.defaultTranscodeFolder=/ffp/tmp -Dserviio.home=/ffp/opt/serviio -classpath /ffp/opt/serviio/lib/*:/ffp/opt/serviio/config org.serviio.MediaServer
+\end{verbatim}
+
+On your PC/laptop, you can install a Serviio console to manage the data
+remotely (Sect.\ref{sec:serviio_console}).
+
+
+% Download Serviio\footnote{\url{http://www.serviio.org/download}}, and copy the
+% tar file to NAS (say admin/Softwares)
+% \begin{verbatim}
+% cd /ffp/opt
+% wget http://download.serviio.org/releases/serviio-1.1-linux.tar.gz
+% 
+% ##tar xfvz /i-data/md0/data/ZyxelNAS/serviio-1.1-linux.tar.gz
+% tar xfvz /mnt/HD_a2/admin/Softwares/...
+% \end{verbatim}
+
+% Set permissions for library, log, plugin
+% \begin{verbatim}
+% cd /ffp/opt/servio-1.1
+% chmod a+w library
+% mkdir log
+% chmod a+w log
+% chmod a+w plugins
+% \end{verbatim}
+% 
+% Create the temporary directory for Serviio
+% \begin{verbatim}
+% mkdir /ffp/tmp
+% \end{verbatim}
+
+
+\subsection{* Serviio 1.2}
+
+Serviio 1.2 use ffmpeg 1.1.1
+
+
+\subsection{* Serviio 1.4.1}
+
+Serviio 1.4.1 use ffmpeg 1.2.1, libRTMP 2.4+, lame mp3 encoder.
+We can use \verb!br2:ffmpeg2/ffmpeg-2.1.3! and these libraries
+\footnote{\url{http://downloads.zyxel.nas-central.org/Users/barmalej2/ffp/0.7/arm/packages/PACKAGES.html}}
+\begin{verbatim}
+expat fdk-aac fontconfig freetype fribidi gcc-solibs gettext lame libiconv
+libass openssl opus rtmpdump shine twolame x264 uClibc-solibs zlib bzip2
+\end{verbatim}
+
+openssl uClibc-solibs zlib bzip2
+
+
+% \subsection{* Serviio }
+% 
+% 
+% Install ffmpeg/lame 
+% \begin{verbatim}
+% slacker -i ffmpeg-0.11.1-arm-1
+% slacker -i lame
+% \end{verbatim}
+
+% Install Java (Sect.\ref{sec:Java}) as serviio runs on Java platform.
+
+
+
+\subsection{* Serviio console}
+\label{sec:serviio_console}
+
+Download the file \footnote{\url{http://serviio.org/download}}, but
+when you install, uncheck ``Serviio server'', only keep 'Serviio console'. As
+the console is running on a different machine than the server, we need to add a
+system environment variable \verb!serviio.remoteHost! with the value is the IP
+of the machine running Serviio server (e.g. the Zyxel NAS325). Also, make sure
+TCP port 23423 is open on both the console machine and the server.
+\footnote{\url{http://www.serviio.org/component/content/article?id=21\#q2}}
+Open the Library tab, and add the path to the video,
+Fig.\ref{fig:Serviio_1_1_console}. \textcolor{red}{Don't select 'generate
+thumbnails on NAS as it's slow}
+\begin{verbatim}
+ /i-data/md0/<SHARE NAME>/<MEDIA FOLDER>
+\end{verbatim}
+
+\begin{figure}[hbt]
+  \centerline{\includegraphics[height=6cm,
+    angle=0]{./images/Serviio_1_1_console.eps}}
+  \caption{Serviio 1.1. console screen}
+  \label{fig:Serviio_1_1_console}
+\end{figure}
+
+
+Install Serviio Console (Manage Serviio and add media): ServiioDroid (Android
+App), PHP UI, WebUI or ServiioWHS to control the Serviio server
+\footnote{\url{http://www.serviio.org/component/content/article?id=21}}
+%http://www.serviio.org/component/content/article?id=21#q7
+
+Change permission (if you cannot play music)
+\begin{verbatim}
+chmod 757 /ffp/tmp/Serviio
+\end{verbatim}
+so that normal (admin) user can modify it.
+
+
+To restart Serviio server
+\begin{verbatim}
+/ffp/start/serviio.sh restart
+\end{verbatim}
+
+{\bf Subtitles}
+
+Some files type (MKV/MPEG4(DX50)/AAC) are not supported by Sony bluray BDP-S590.
+It should be transcoded to MPEGTS/MPEG2VIDEO/AAC. Edit the file:
+\verb!serviio/conf/profiles.xml! and replace the session for Sony BDP-Sx90
+(2012) with
+\begin{verbatim}
+    <!-- h264 videos with high/main profile level > 4.1 will be transcoded to mpegts with mpeg2video and ac3 audio -->
+         <Video targetContainer="mpegts" targetVCodec="mpeg2video" maxVBitrate="17000" targetACodec="ac3" aBitrate="320" forceInheritance="true">
+            <Matches container="*" vCodec="h264" profile="high" levelGreaterThan="4.1" />
+            <Matches container="*" vCodec="h264" profile="main" levelGreaterThan="4.1" />
+            <Matches container="matroska" vCodec="vp8" />
+            <Matches container="matroska" vCodec="mpeg4" />
+            <Matches container="matroska" vCodec="msmpeg4" />
+         </Video>
+\end{verbatim}
+New lines are
+\begin{verbatim}
+<Matches container="matroska" vCodec="mpeg4" />
+<Matches container="matroska" vCodec="msmpeg4" />
+\end{verbatim}
+
+\url{http://forum.serviio.org/viewtopic.php?f=11&t=9676}
+
+{\bf Troubleshoot}
+
+For errors lated to Serviio, check the log file
+\begin{verbatim}
+vi /ffp/opt/serviio/log/serviio.log
+\end{verbatim}
+
+For debugging purpose, to get more information in the log file, we modify
+\verb!/ffp/opt/serviio/config/log4j.xml! and change
+\begin{verbatim}
+   <category name="org.serviio">
+      <priority value="INFO"/>
+   </category>
+\end{verbatim}
+to 
+\begin{verbatim}
+   <category name="org.serviio">
+      <priority value="DEBUG"/>
+   </category>
+\end{verbatim}
+NOTE: Make sure changing it back after debugging, otherwise the log will be
+huge.
+
+
+Link: \url{http://wiki.serviio.org/doku.php?id=talk:wiki:user:deanox}
+
+\url{http://wiki.serviio.org/doku.php}
+
+
+\subsection{* tvmobili}
+\label{sec:tvmobili}
+
+Like Twonky server (Sect.\ref{sec:twonky}), TVmobili
+\footnote{\url{http://www.tvmobili.com/stream-to-nas.php}} when installed on a
+NAS device, the media on the NAS can be accessed from Smart TV/Blu-Ray/ Games
+Console. To install TVmobili on NAS, you may need to use \verb!fun_plug! package
+(Sect.\ref{sec:fun_plug})
+
+
+\begin{verbatim}
+// some use: /usr/local/tvmobili
+mkdir /ffp/opt/tvmobili
+
+cd /ffp/opt/tvmobili
+wget http://tvmobili.com/release-candidate/tvmobili-glibc2.5.0-linux-arm.tar.gz
+tar -zxvf tvmobili-glibc2.5.0-linux-arm.tar.gz
+cd tvmobili-generic-linux-arm_glibc_2.5.0-1.4.2830/
+./setup.sh
+
+// /etc/init.d/twonky stop
+/ffp/start/twonky.sh stop
+\end{verbatim}
+now go to \verb!http://<NAS-IP>:30888! to add media.
+
+
+\subsection{* universalmediaserver}
+
+\url{https://github.com/UniversalMediaServer/UniversalMediaServer/}
+
+\subsection{* miniDLNA server}
+
+\url{http://forum.nas-central.org/viewtopic.php?f=249&t=5841&start=45#p56567}
+
+\begin{verbatim}
+/ffp/start/minidlna.sh stop
+
+slacker -UaA br2/ffmpeg1.1.1 s:zlib s:bzip2 s:uClibc s:openssl s:gcc
+
+
+slacker -aA s:libjpeg s:libexif s:sqlite s:libiconv s:gettext uli:flac
+     uli:libid3tag uli:libogg uli:libvorbis
+\end{verbatim}
+Specify path to your video in \verb!/ffp/etc/minidlna.conf!
+
+\begin{verbatim}
+/ffp/start/minidlna.sh start
+\end{verbatim}
+It takes some times to rescan and build the database
+
+\subsection{* MediaTomb}
+
+\url{http://oss.linn.co.uk/trac/wiki/MediaServers}
+
+
+\subsection{* Mezzmo}
+
+\subsection{* TVersity}
+
+\subsection{* iSedora}
+
+iSedora media server can perform online transcoding for multiple devices
+simultaneously and support subtitles. It's best suitable for Sony Bravia, PS3
+and Microsoft Xbox 360. However, it only works in Windows or Mac O/S.
+
+\url{http://www.isedora.com/}
+
+\subsection{* Plex media server}
+\label{sec:Plex_mediaserver}
+
+References:
+\begin{itemize}
+  \item PMS on NAS 
+  \url{https://support.plex.tv/hc/en-us/articles/201373793-Is-Plex-Media-Server-on-a-NAS-Right-for-Me-}
+  
+  \item
+  \url{http://www.pcper.com/reviews/General-Tech/Building-Configuring-Ultimate-Plex-Media-Server/Building-Plex-Media-Server}
+
+  \item \url{http://forum.nas-central.org/viewtopic.php?f=249&t=7603}
+   
+  \item Not support: ISO, \verb!VIDEO_TS!, and other disk formats
+  \url{https://support.plex.tv/hc/en-us/articles/201426506-Why-are-ISO-VIDEO-TS-and-other-Disk-Image-Formats-Not-Supported-}
+\end{itemize}
+
+Plex Media Server has a list of supported NAS:
+\url{https://docs.google.com/spreadsheets/d/1MfYoJkiwSqCXg8cm5-Ac4oOLPRtCkgUxU0jdj3tmMPc/htmlview?pli=1&sle=true}
+
+Many NAS devices feature ARM-based CPU. They can run Plex Media Server, but
+can't do transcoding at all (NOTE:  ARM and PPC models do not support
+transcoding at all).  Some NAS use Intel CPU that can do transcoding, but they
+are not powerful enough to keep real-time HD transcoding. Only high-end NAS
+feature powerful x86 CPUs.
+A list of CPUs being used on different NAS:
+\url{https://docs.google.com/spreadsheets/d/1MfYoJkiwSqCXg8cm5-Ac4oOLPRtCkgUxU0jdj3tmMPc/htmlview?pli=1&sle=true}
+
+You don't have to maintain a set of different decoders at different client
+(e.g. iPad, mobile phone, BluRay devices), you only need to install Plex Media
+Server on the machine that host the media (video, music).
+ Plex only transcodes video if you
+explicitly tell it to, or if the client device can't play back the original file. If the client can play back the original
+file, Plex will use something called 'Direct Play' and simply serve the original
+file across the network to the client, a process that virtually any modern NAS
+can handle.
+
+Also, a great feature of PMS is that it doesn't require all of your media to be
+in the same location.
+Users can combine multiple media locations into a single virtual "library,"
+allowing for the use of disparate storage solutions that appear unified to the
+end user.
+
+Run uwsiteloader, and select Mijzelf  repository, then install Plex media server
+via slacker (Sect.\ref{sec:slacker})
+\begin{verbatim}
+slacker -UaA mz:plexmediaserver
+\end{verbatim}
+
+It only copy \verb!file-plexmediaserver.sh! into /ffp/start directory, to avoid
+licensing and distributing restrictions.
+\begin{verbatim}
+sh /ffp/start/plexmediaserver.sh help
+
+Usage: /ffp/start/plexmediaserver.sh [ start | stop | status | restart | version ]
+\end{verbatim}
+
+Now, we need to install Flex media server
+\begin{verbatim}
+sh /ffp/start/plexmediaserver.sh
+\end{verbatim}
+Select Install command, press OK; and then 
+select the latest version to install.   
+
+Plex media player runs on port 32400 by default.
+Finally, you can use Web-UI to configure Plex
+\begin{verbatim}
+ http://Your_NAS_IP:32400/web
+\end{verbatim}
+
+
+\subsection{Communicate between 2 NAS}
+
+Mirror one folder between 2 NAS using \verb!rsync!
+\url{http://nas-tweaks.net/276/how-to-mirror-one-folder-from-one-nas-to-another-using-rsync-and-fun_plug/}
+
+\section{ffp}
+\label{sec:ffp}
+
+\verb!ffp! stands for \verb!Fonz fun_plug!, a \verb!fun_plug! package
+(Sect.\ref{sec:fun_plug}) written by a Berlin-based developer named Fonz.
+Also, the package contains the links to the repositories that have binary
+applications and packages compiled by Fonz and some others. This saves us the
+time from compiling the code on NAS devices and adding them to \verb!fun_plug!.
+
+\subsection{versions}
+\label{sec:ffp_versions}
+
+There are different versions of \verb!ffp! to choose, depending on the CPU of
+the NAS system (Sect.\ref{sec:ABI}).
+\begin{enumerate}
+  \item 0.5: use the kernel with OABI support 
+  \item 0.6: a testing version with EABI kernels
+  \item 0.7: a working version that available two branches: OABI and EABI. 
+
+[NOTE: There are 3 different versions of 0.7: arm, oarm, oabi (aka 0.7.1/oarm)].
+\end{enumerate}
+
+There are two ways to install \verb!ffp!, we can
+\begin{enumerate}
+  \item Install from USB:
+  \url{http://zyxel.nas-central.org/wiki/FFP-stick#What_it_is}
+  
+  \item Install from commandline (see below)
+  
+  \item Install from Web-interface, via package manager
+\end{enumerate}
+
+To upgrade, make sure you uninstall everything first. There is no way to update
+so far. To uninstall ffp, there is the simple way, rename or remove \verb!/ffp!
+folder, or use the script
+\url{http://nas-tweaks.net/59/removing-the-fonz-fun_plug/}
+
+\subsection{To build ffp}
+
+We first need to have slacker installed (Sect.\ref{sec:slacker})
+
+\url{https://github.com/SirUli/funplug}
+
+
+\subsection{ffp from USB}
+
+\subsection{ffp from command-line}
+\label{sec:ffp_install-via-command_line}
+
+{\bf To install \verb!ffp fun_plug!} (version 0.7/arm for Zyxel NAS325): 
+\begin{enumerate}
+  \item It's recommended to set NAS a fixed IP (from the network router).
+  
+  \item Disable Remote Backup as it conflicts with the SSH-server of
+  \verb!fun_plug!.
+  
+Some NAS models have this feature; Zyel NAS 325 doesn't have this. 
+    
+NOTE: Remote Backup is available in DNS-320/DNS-320L/DNS-325/DNS-345
+(Sect.\ref{sec:DNS_remote-backup}.
+  
+  \item Enable FTP connection to Zyxel NAS.
+  
+  \item Download two files: \verb!fun_plug! and \verb!fun_plug.tgz! from the
+  site
+  \url{http://www.inreto.de/ffp/0.7/} (choose 'arm' folder for Zyxel NAS325).
+  
+  \textcolor{red}{IMPORTANT: The second file must ends with} \verb!.tgz! (the
+  reason is that \verb!tar! has to run twice due to a problem with \verb!tar!
+  utility of the Busybox that supplied with the Zyxel NAS).   
+  
+  Use FTP to copy the files, and put them both at the highest level of the
+  harddisk \verb!/i-data/md0/!.
+  \url{http://nas-tweaks.net/371/hdd-installation-of-the-fun_plug-0-7-on-nas-devices/}
+  
+  \item  Make \verb!fun_plug! executable (i.e. chmod 777), and run it. What it does are:
+(1) a log file \verb!/ffp.log! is created, (2) create the folder \verb!/ffp! and untar
+\verb!fun_plug.tgz! into this folder, (3) run some scripts inside this folder
+if they exists, (4) remove the existing .tar file.
+  
+  \item Reboot the NAS device
+  
+\end{enumerate}
+
+{\bf Install using Web-UI Zyxel package manager} - Sect.\ref{sec:zypkg}
+
+
+IMPORTANT packages to install with FFP
+\begin{enumerate}
+  \item uwsiteloader (Sect.\ref{sec:uwsiteloader})
+\end{enumerate}
+
+\subsection{uwsiteloader}
+\label{sec:uwsiteloader}
+
+FFP maintains a list of sites that serve as repositories. By default, a single
+site can be used as repository. FFP 0.7 allows combinding these multiple sites
+into a single file, using a script called \verb!uwsiteloader!.
+
+\verb!uwsiteloader! can be installed using (login via SSH as root)
+\begin{verbatim}
+wget http://wolf-u.li/u/441 -O /ffp/bin/uwsiteloader.sh
+chmod a+x /ffp/bin/uwsiteloader.sh
+uwsiteloader.sh 
+     //select ALL sites (accept to run 'slacker -U')
+\end{verbatim}
+\url{http://nas-tweaks.net/373/uwsiteloader-tool-to-download-the-sites-definitions-for-packages-of-the-fun_plug-0-7/}
+
+
+Sect.\ref{sec:slacker}.
+
+
+To install a package not in the repositories above
+\begin{verbatim}
+wget url-to-package.txz
+funpkg -i package.txz 
+\end{verbatim}
+{\bf Delete \verb!fun_plug!}:
+\url{http://nas-tweaks.net/59/removing-the-fonz-fun_plug/}
+
+\url{http://192.168.1.46/pkg/ffp/?0.7/arm,not_chrooted}
+
+
+\chapter{Build your own NAS system}
+\label{chap:build_NAS}
+
+\section{DIY NAS}
+\label{sec:NAS-DIY}
+\label{sec:DIY-NAS}
+
+\begin{itemize}
+  \item \url{https://blog.brianmoses.net/2016/02/diy-nas-2016-edition.html}
+  
+  \item
+  \url{http://lifehacker.com/5936546/how-i-built-the-media-center-of-my-dreams-for-under-500}
+
+\end{itemize}
+
+
+A critical factor when building NAS is 
+\begin{itemize}
+  
+  \item how many bays you need? - Sect.\ref{sec:chassis}
+  
+  2-bay: RAID1 only.
+  
+  3+-bays: RAID5 (not recommended)
+  
+  4+-bays: RAID10 (recommended)
+  
+  If using RAID10, ensure you buy a chassis that has enough bays
+  (Sect.\ref{sec:chassis}). A good choice is Fractal Design Node 804 with 8x
+  3.5'' HDDs.
+  
+  \item choose a powerful enough CPU with low power consumption -
+  Sect.\ref{sec:CPU-choice}
+  
+  \url{http://embedded-computing.com/articles/getting-per-watt-embedded-systems/}
+  
+  
+\end{itemize}
+
+Discussion:
+\url{http://www.reddit.com/r/PleX/comments/1v7b70/tossing_around_the_idea_of_building_a_miniitx/}
+
+\url{https://blog.linuxserver.io/2017/06/24/the-perfect-media-server-2017/}
+
+
+
+Cost for Project:
+\begin{verbatim}
+Kingston Ram 2GB: $22.99
+Intel D945GCLF2: $83.99
+Seagate Barracuda 7200.11 1.5TB: $129.99
+Ikea "Emu" boxes: $6.00
+PicoPSU 120 60W kit: $54.95 
+Various Screws, Mounting Hardware: ~$10.00
+\end{verbatim}
+\url{http://www.instructables.com/id/Build-an-inexpensive-Ikea-NAS/?ALLSTEPS}
+
+Total: ~\$308 not including shipping. No doubt you could get a NAS for cheaper
+than this, but you won't get the expansion or flexibility.
+
+Example of early AMD-based DIY NAS system:
+\url{http://tech-stew.com/post/2014/04/28/A-Homebuilt-AMD-NAS-Media-backup-Server.aspx}
+
+Reference:
+\url{http://www.tested.com/tech/500455-building-home-server-using-freenas/}
+
+\subsection{NAS killer }
+
+\begin{verbatim}
+
+ $135 NAS Killer
+ 
+ 
+$171 NAS Killer v3.0 
+
+
+NAS killer 4.0: move to LGA socket 1155
+
+
+\end{verbatim}
+
+\subsection{Power consumption}
+
+Example: P4 2.8Ghz, 1Gb RAM, 120Gb 7200RPM HDD, 32Mb AGP graphics card, webcam
+for monitoring, analogue TV card, 350W PSU i.e. nothing special. Power
+consumption 2 kW approx over 24 hours.
+If 1kWh cost 12 cent, then a month costs \$7.08 (or \$84.1/yr).
+
+Example: a 4 disk PC based NAS used 20W more than a dedicated 4 bay NAS.
+
+
+For a 30W NAS running 12hrs/day for 365days = 12h * 365h * 0.03kW *
+\textsterling 0.125per kWh = \textsterling 16.43 per year.
+
+
+For a 200W PC running 12hrs/day for 365days 
+= 12h * 365h * 0.2kW * \textsterling 0.125per kWh = \textsterling 109.50 per year
+
+\url{https://www.avforums.com/threads/energy-cost-of-running-a-computer-24-7.1244177/}
+
+
+
+
+\section{Build your own Media Server}
+
+This section targets large size media servers.
+
+The article below describes the specs for a streaming server that can handle
+multiple 1080p quality
+\url{http://www.pcper.com/reviews/General-Tech/Building-Configuring-Ultimate-Plex-Media-Server/Building-Plex-Media-Server}
+\begin{verbatim}
+**CPU**
+Athlon X4 740            $75  - two 1080p streams
+Intel Core i5-4440       $195 - three 1080p streams
+Intel i7-4790            $310
+Intel i7-5820K           $389
+
+**RAM**
+1x4GB           - good enough
+
+**GPU**
+no need as Plex Media Server does not utilize any 
+    GPU-based processing for transcoding
+    
+**Case (Form Factor)**
+Silverstone GD07B,            151$ 
+     Tek GD07B Aluminum Extended ATX / SSI-EEB / SSI-CEB HTPC
+     Computer Case with Lockable Front Door Cases - Black
+Rosewill                      77$
+     RSV-R4000 Metal Server Chassis (Black)    
+
+**Motherboard** - choose one with 2 Ethernet ports (to NAS + LAN separate)
+
+** O/S ** 
+ 
+     
+\end{verbatim}
+
+\section{Select harddrive: 3.5'' HDD, 2.5'' SSD, M.2 NVMe}
+
+There are three types of sizes for your PC: 3.5 inches(usually HDD), 2.5
+inches(usually SSD), and M.2.
+
+Hard drives - depending on how much storage you need, this will vary.
+\begin{itemize}
+  
+  \item 3.5 inches HDD SATA: 5400 RPM drives offer an average of 100 MB/s read
+  and writes speeds while 7200 RPM drives deliver an average of 120 MB/s read
+  and writes speeds.
+  
+  If you’re really looking for performance, then you should consider the 7200
+  RPM hard drives. However, if you’re simply looking to store files, then you
+  should consider the 5400 RPM drives.
+
+
+2019:
+\begin{enumerate}
+  \item Seagate IronWolf 4TB NAS Internal Hard Drive HDD: up to 4TB (at 5900rpm), from 6TB (run at 7200rpm, 6Gbps) 
+  
+  Capable of running at a fast 7,200rpm spin rate throughout the day without risk of failure 
+  
+  \url{https://www.windowscentral.com/best-and-most-reliable-hard-drives-synology-nas}
+  
+  \item  
+\end{enumerate}
+
+% I went with a 1.5TB Seagate Barracuda 7200.11. I'll warn you that this drive has
+% a bad reputation for RAID setups, so if you're going to do something like that,
+% make sure you get a drive that has a better track record.
+
+\url{https://i.dell.com/sites/doccontent/shared-content/data-sheets/en/Documents/512e_4Kn_Disk_Formats_120413.pdf}
+
+  \item 
+\end{itemize}
+
+
+\subsection{3.5'' HDD: 512n, 512e and 4Kn Disk Formats}
+\label{sec:disk-sector-format-512n}
+\label{sec:disk-sector-format-512e}
+\label{sec:disk-sector-format-4Kn}
+
+Nowadays, all hard drive manufacturers have agreed to transition to the Advanced
+Format sector which is 4KB physical sector size.
+
+
+IN THE PAST: As storage densities dramatically increase, one of the most
+elemental aspects of hard drive design — the logical block format size known as
+a sector — has remained constant. The size is 512-byte native format at both
+logical and physical level (or 512n).
+
+
+NOW AND FUTURE (beginning in late 2009, and become mainstream in 2011): A new
+type of format for media, known as Advanced Format, which has a 4KB physical
+sector size. This change brings two new types of media to the enterprise market:
+\begin{enumerate}
+  
+  \item  4KB native (4096 bytes): the disk media has no emulation layer and directly exposes
+  4KB as its logical and physical sector size.
+  
+ PITFALLS: The majority of current and legacy applications and operating systems
+ do not query for and align I/Os to the physical sector size, which can result
+ in unexpected failed I/Os.
+  
+support by O/Ses: 
+\begin{verbatim}
+Windows Server 2016
+Windows Server 2012
+(4k data disks are supported and as boot
+disks in UEFI mode)
+
+RHEL 6.1* SLES 11 SP2** Ubuntu 13.10 Ubuntu 12.04.4
+\end{verbatim}
+  
+  \item 512e (512-byte emulative): the disk exposes 512 bytes as its logical
+  sector size (similar to a regular disk today), but makes its physical sector
+  size information (4KB) available.
+  
+  support by O/Ses: 
+\begin{verbatim}
+Windows Server 2016
+Windows Server 2012
+Windows Server 2008 R2 with MS KB 982018
+Windows Server 2008 R2 SP1 Windows Server 2008 with MS KB 2553708
+
+RHEL 6.1* SLES 11 SP2** Ubuntu 13.10 Ubuntu 12.04.4
+\end{verbatim}
+
+  
+\end{enumerate}
+NOTE: Windows Server 2003 and Windows Server 2003 R2 do not support 512e or 4Kn media.
+
+
+
+
+\section{Select Ethernet: 10Gbps vs. 1Gbps}
+
+Example: Synology DS1517+ (10Gbps) and Synology DS1019+ (1 Gbps). 
+
+
+
+\section{Select case tower (chassis)}
+\label{sec:chassis}
+
+REMEMBER:
+\begin{enumerate}
+  \item  how many HDD bays you need?
+  
+  \item do you need USB-C (USB 3.1) support?
+  
+  
+\end{enumerate}
+
+{\bf IMPORTANT:} Mini-ITX only works with entry-level CPUs. For mid-range and
+high-level CPUs, you should consider at least micro-ATX.
+ 
+{\bf Mini-ITX} only
+\begin{enumerate}
+  \item  Lian-LI PC-Q25B: Mini-ITX tower case, 7 x 3.5” HDD bays (5 hot-swappable), aluminum case.
+  
+  \item SilverStone Technology CS280B (specs): Tiny Mini-ITX case, 8 hot-swappable 2.5” drive bays, 2 internal 2.5” drive bays, super-compact design
+  
+  \item Norco ITX-S8 (specs): Mini-ITX case, 8 x 3.5” hot-swappable HDD bays, 1 x 2.5” internal drive bay, and uses a 1U ATX power supply.
+    
+\end{enumerate}
+\url{https://butterwhat.com/2019/06/16/brians-top-three-diy-nas-cases-as-of-2019.html}
+
+\url{https://www.reviewgeek.com/20181/8-awesome-computer-cases-with-usb-c-front-panels/}
+
+\url{https://www.reviewgeek.com/20181/8-awesome-computer-cases-with-usb-c-front-panels/}
+
+{\bf Micro-ATX}:
+\begin{enumerate}
+  
+  \item Phanteks PH-ES314ETGhAG EVOLV mATX 
+  
+  
+  \item InWin 301C: 14.3 lbs
+  
+\begin{verbatim}
+1 x 3.5"/ 2.5", 2 x 2.5"
+
+M/B Type: Micro ATX, Mini ITX
+
+Front Ports: USB 3.1 Gen 2 Type-C, 2 x USB 3.0, HD Audio
+\end{verbatim}  
+  
+  \item Fractal Design Node 804: 13.22 lbs (6kg)
+  
+\begin{verbatim}
+Internal Bay: 8x 3.5", 4x 2.5" or up to 10x 3.5", 2x 2.5" HDD/SSD
+
+M/B Type: MicroATX, Mini-ITX
+
+USB 3.0
+\end{verbatim}
+  
+USB 3.1 is also known as USB 3.1 Gen 2 (10Gbps). USB 3.0 is capable of data
+transfer speeds up to 5Gbps.
+
+  \item  H510: designed to support motherboards for AMD CPUs
+  
+\begin{verbatim}
+2.5”: 2+1 3.5”: 2+1 
+          [it means that if we use one NVMe, we loose the third HDD as they share the lane]
+
+M/B Type: Mini-ITX, MicroATX, and ATX
+
+USB 3.1 Gen 2-compatible USB-C connector 
+\end{verbatim}
+
+Don't choose  H510i or H510 Elite: the smart device that claimed to control the
+fan speed does not do its job well.
+\url{https://www.gamersnexus.net/hwreviews/3522-nzxt-smart-device-doesnt-do-anything-cam-deep-dive}
+
+The H510 Elite accommodates GPUs up to 381mm in length without a front radiator
+installed, and CPU coolers up to 165mm. The front and rear fan positions also
+accommodate radiators up to 60mm.
+
+H510i is different from H510 by having two of NZXT’s Aer RGB 2 140mm fans at the
+front, a tempered-glass front panel, the ability to remove that front panel,
+
+\end{enumerate}
+
+
+There are 3 types: ATX, MicroATXX and Mini-ATX. The terms mainly refer to the
+size of the motherboards that the chassis can host.
+
+The tower should match the size of the motherboard (Sect.\ref{sec:NAS-motherboard}).
+\begin{verbatim}
+
+ATX boards measure 12 by 9.6 inches, 
+
+MicroATX up to 9.6 by 9.6 inches (they're sometimes smaller), 
+
+Mini-ITX 6.7 inches square.
+
+\end{verbatim}
+
+NOTE: A case that supports a given motherboard size likely supports the
+smaller motherboard form factors, too, although that's worth verifying in a
+case's specs before buying.
+
+Case tower: belows refer to the shape and size of the case
+\begin{enumerate}
+  \item  Small-form-factor (SFF) encompasses a variety of compact cases, some flat, some
+tall; most employ Mini-ITX or smaller proprietary motherboard designs.
+
+  \item A desktop case, used specifically in the context of PC-case design
+  
+  Conventional vertical desktop towers are mini-towers, mid-towers, or full
+  towers, but the size distinctions among these are not exact
+  
+  \item 
+\end{enumerate}
+\url{https://www.pcmag.com/article/360849/buying-a-pc-case-20-terms-you-need-to-know}
+
+A "tool-free" design refers to parts of a PC case that don't require screws or a
+screwdriver to install. "Tool-free" might also refer to how a case's side panel
+is fastened to the chassis, using a lever or button as a release mechanism in
+place of screws.
+ 
+
+NAS 4.0: \url{https://forums.serverbuilds.net/t/nas-killer-4-0-build-guide-fast-quiet-power-efficient-and-flexible-starting-at-125/667/10}
+
+\url{https://www.makeuseof.com/tag/need-network-storage-heres-how-to-build-your-own-nas-box/}
+
+\begin{itemize}
+  \item LIAN LI PC-Q28B Black Aluminum Mini-ITX Tower Computer Case
+  \url{http://www.newegg.com/Product/Product.aspx?Item=N82E16811112402}
+  
+  \item Thermaltake Core X9 Black E-ATX Stackable Tt LCS Certified Cube Chassis
+  CA-1D8-00F1WN-00
+  \url{http://www.newegg.com/Product/Product.aspx?Item=N82E16811133275&nm_mc=KNC-GoogleAdwords-PC&cm_mmc=KNC-GoogleAdwords-PC-_-pla-_-Computer+Cases-_-N82E16811133275&gclid=Cj0KEQjw58ytBRDMg-HVn4LuqasBEiQAhPkhutgIOpWBGcQVmx-3JEkifO1NqEnVO6g44wPHJYWUMvoaAovU8P8HAQ&gclsrc=aw.ds}
+\end{itemize}
+
+\section{Select CPU chip: Intel vs. ARM vs. AMD}
+\label{sec:CPU-choice}
+
+
+An important factor is {\bf PassMark} score of the CPU. The higher the better
+\begin{enumerate}
+  \item single 4K transcoding: at least 4000 score
+\end{enumerate}
+
+
+Intel likes to change its socket specifications every generation or two. Even
+when it doesn’t change the physical layout of the socket, Intel often disallows
+support for the new generation of CPU in older boards. In effect, this means
+that when you want to upgrade your processor, you will also likely require a new
+motherboard to go with it.
+
+AMD promised to support AM4 socket in its original form until 2020.
+AMD allows its customers to use any B- or X-series AM4 motherboard to push their
+processors to the limits.
+
+\url{https://www.tomshardware.com/news/ryzen_2-vs-intel-9th_gen-core,38000.html}
+
+
+\subsection{AMD CPU?}
+
+Ryzen 7 2700x CPU (3.7 GHz 8-Core - core named Pinnacle Ridge) which use AM4 socket.
+
+Ryzen 7 2700X supports up to 64 GiB of dual-channel DDR4-2933 memory.
+
+
+\begin{verbatim}
+AMD Ryzen 7 2700X with Wraith Prism Cooler, 
+
+
+Bootable from NVME: Samsung 970 EVO+ 1TB M.2 2280 PCIe SSD
+	The third gen. of Samsung NVMe SSDs.
+	Sequential Read: up to 3,400 MB/s. 
+	Sequential Write: up to 2,500 MB/s. 
+	Max 4K Random Read Speed: up to 500,000 IOPS.
+\end{verbatim}
+
+\url{https://www.guru3d.com/articles_pages/asus_rog_strix_x470_f_gaming_review,25.html}
+
+
+\subsection{Intel CPU?}
+
+
+I choose
+\begin{enumerate}
+  \item LGA 1151: 
+  
+  \item LGA 2011-v3:  E5-2640 v3 or a E5-1650 v3
+  
+  E.g.: INTEL XEON PROCESSOR E5-2640 V3 (20M CACHE, 2.60 GHZ)
+  
+  "E5-2640 v3" Xeon is what I'm going to buy. I like it because it does not draw
+  as much WATTS (90W) compared to the "Xeon E5-1650 v3" and also how it offers more
+  cores.
+  \url{http://www.cpu-world.com/Compare/405/Intel_Xeon_E5-1650_v3_vs_Intel_Xeon_E5-2640_v3.html}
+  
+\end{enumerate}
+
+
+For gaming, Skylake is actually better than the 6+ core processors since games
+dont really utilize the extra cores and probably wont for quite some time still.
+
+
+\subsection{2018}
+
+\begin{enumerate}
+  
+  \item CPU: AMD's APU Ryzen 5 1600
+  
+  \item mini-ATX
+  
+  
+  \item dedicated GPU (optional, only if 4K is needed): MSI Gaming GeForce GTX 1050 Ti 4GB GDRR5 
+  
+  \url{https://www.amazon.com/MSI-GTX-1050-OC-TI/dp/B01M27X836?psc=1&SubscriptionId=AKIAJV4KMHBMUG36SMIQ&tag=pcm_rounduptable-20&linkCode=xm2&camp=2025&creative=165953&creativeASIN=B01M27X836&ascsubtag=8fa43a60-e0c1-4bbf-8512-f5311c3f85fb} 
+\end{enumerate}
+
+
+Hardware transcode only works on discrete GPUs and Intel integrated GPUs.
+
+AMD Ryzen APU 
+\begin{verbatim}
+$99 Ryzen 3 2400G and the $169 Ryzen 5 2400G
+\end{verbatim}
+
+AMD's new APUs have essentially enough CPU and GPU power to enable satisfying
+gaming at 720p to 1080p. Both APUs combine quad-core Zen x86 cores with up to 11
+Vega graphics cores, and the Ryzen 5 2400G also has SMT, e.g. H.264 + H.265
+hardware decoding works.
+
+AMD's APU from Ryzen basically offers from double to triple the gaming performance of
+Intel's HD 630 graphics, which is inside everything from an \$85 Pentium to a
+\$380 Core i7.
+\url{https://www.pcworld.com/article/3255012/computers/who-should-buy-a-ryzen-apu-and-who-shouldnt.html}
+\begin{verbatim}
+Socket: AM4
+Clockspeed: 3.5 GHz
+Turbo Speed: 3.7 GHz
+No of Cores: 4 (2 logical cores per physical)
+Typical TDP: 65 W
+
+Other names:  AMD Ryzen 5 1500X Quad-Core Processor
+CPU First Seen on Charts:  Q2 2017
+PassMark: 10065
+\end{verbatim}
+ 
+
+\begin{verbatim}
+Ryzen 5 1600, which gives you 6 cores with SMT for 12 threads, with $20 more from Ryzen 5 2400G.
+Socket: AM4
+Clockspeed: 3.2 GHz
+Turbo Speed: 3.6 GHz
+No of Cores: 6 (2 logical cores per physical)
+Typical TDP: 65 W
+
+Other names:  AMD Ryzen 5 1600 Six-Core Processor
+PassMark: 12267
+\end{verbatim}
+
+
+\begin{verbatim}
+Description: with Radeon Vega Mobile Gfx
+Socket: FP5
+Clockspeed: 2.0 GHz
+Turbo Speed: 3.6 GHz
+No of Cores: 4 (2 logical cores per physical)
+TDP Down: 12 W Up: 25 W Typical TDP: 15 W3
+PassMark: 7344
+\end{verbatim}
+
+
+\subsection{2015}
+
+The NAS market has been dominated by Intel's x86 platform at the mid- to
+high-end, and ARM-based SoCs at the lower end of the market. 
+\begin{verbatim}
+Intel J3355 processor 
+Description: Intel HD Graphics 500
+Socket: FCBGA1296
+Clockspeed: 2.0 GHz
+Turbo Speed: 2.5 GHz
+No of Cores: 2
+Typical TDP: 10 W
+PassMark: 1180 
+\end{verbatim}
+
+The only real disadvantage with Intel is slightly higher power usage (probably
+5-10W tops) but thats the cost of faster processing and more advanced
+instruction sets.
+
+AMD just recently joint the NAS market with QNAP product (TVS-x63+ series Turbo
+vNAS) using AMD SoC G-series (GX-424CC):
+quad-core 2.4 GHz processor with 10 GbE capability, and features a
+hardware-accelerated encryption engine with over 400MB/s throughput, legendary
+AMD Radeon graphics, and AMD-V virtualization support
+\begin{verbatim}
+Description: with Radeon R5E Graphics
+Socket: FT3b
+Clockspeed: 2.4 GHz
+No of Cores: 4
+Typical TDP: 25 W
+PassMark: 2488
+\end{verbatim}
+\url{http://www.amd.com/en-us/press-releases/Pages/embedded-g-series-2015jan05.aspx}
+
+The cost of powering the CPU outweights the cost of the CPU 
+\footnote{\url{https://en.wikipedia.org/wiki/Performance_per_watt}}.
+This shows the ranks of power consumption of different CPUs:
+\url{https://www.cpubenchmark.net/power_performance.html}
+\url{https://en.wikipedia.org/wiki/List_of_CPU_power_dissipation_figures}
+  
+NOTICE: GFLOPS is not important; but GFLOP per watt is more critical
+  \url{http://streamcomputing.eu/blog/2012-08-27/processors-that-can-do-20-gflops-watt/}
+
+\begin{itemize}
+  \item IBM BLueGene/Q: 3.75 GFLOPS/watt (top 20 in Green500 in 2012)
+  
+  \item K computer's SPARCS64 chip: 2.2 GFLOPS/watt
+  
+  \item Intel's Sandy Bridge, AMD's Interlagos and IBM's POWER7: below 1.5
+  GFLOPS/watt
+\end{itemize}  
+\url{http://www.overclock.net/t/586994/cpu-gflop-performance-database}
+
+
+\section{Select motherboard}
+\label{sec:NAS-motherboard}
+
+
+\subsection{AMD Ryzen CPU}
+
+Many motherboards only support hardward RAID0, RAID1 or RAID10. 
+So, if RAID10 is your choice, make sure the chassis supports at least 4 HDDs bays.
+
+
+Motherboards support AM4 socket with Ryzen
+CPUs, Radeon-bolstered APUs.
+\begin{itemize}
+  
+  \item X470, X370, B450, B350, or A320 for micro-ATX or ATX.
+  
+  \item X300 and A300 chipsets for small form factor motherboards
+  
+\end{itemize}
+AMD’s processors integrate support for many interfaces on-chip, including SATA, USB, NVMe, and PCIe.
+
+\url{https://www.pcworld.com/article/3175005/amd-ryzen-motherboards-explained-the-crucial-differences-in-every-am4-chipset.html}
+
+\begin{enumerate}
+  \item  A320 motherboard: budgeted option, no CPU overclocking.
+  
+  \item B350 and B450 motherboards: single-GPU setups
+  
+  B450 supports  2nd-gen Ryzen chips, and  AMD’s micro-tiering StoreMI
+  technology lets you combine multiple storage sources into a larger virtual
+  drive, and idle more efficient.
+  
+\begin{verbatim}
+ADD: 10Gbps USB 3.1 port as well as two more PCIe lanes for cutting-edge SSDs
+
+
+Motherboard: ASRock B450M Pro4 AM4, 
+	2 M.2 slots, 1 of which is NVMe, the other operates at standard SATA3.0 speeds.
+	So if you are using a m.2 ssd, the bottom m.2 slot is the only slot that supports that, the top slot is for Nvme.
+\end{verbatim}
+
+  \item  X370 chipset
+
+\begin{verbatim}
+RAM speed max at  2667MHz
+
+four more 5Gbps USB gen. 1 ports, twice as many SATA III connections, two more
+PCIe lanes, and—crucially, as detailed above—dual PCIe 3.0 x8 slots able to
+support CrossFire and SLI multi-GPU setups
+\end{verbatim}  
+
+  \item X470: 
+  
+\begin{verbatim}
+ support memory speeds up to 2933MHz, depending on the configuration
+ 
+\end{verbatim}
+\end{enumerate}
+
+
+\subsection{Intel CPU}
+
+I choose: 
+
+\begin{enumerate}
+  \item LGA 1151:
+  
+  \item LGA 2011-v3: {\bf ASUS Prime B360M-A LGA 1151 Micro-ATX}.
+   
+\end{enumerate}
+
+For high performance, consider LGA115x (up to 4 cores) or LGA 2011 motherboard.
+LGA 2011 targets the performance and high-end desktop and server platforms.
+If you want SATA3 and SAS3, I’d go with a LGA2011-R3 CPU and Motherboard.
+
+
+You may consider embedded board - Sect.\ref{sec:embedded-boards}.
+Mostlikely, you will choose the Mini-ITX for small size.
+1x Mini-ITX motherboard - The Mini-ITX form factor motherboard is really
+brilliant. Compact, powerful, low-power, and usually the processor is integrated
+right into the board, so you don't have to worry about anything. 
+
+A list of mini-ITX boards:
+\url{http://www.mini-itx.com/store/?c=2}
+
+Example:
+\begin{itemize}
+  \item Intl D945GCLF2
+\url{http://www.amazon.com/Intel-D945GCLF2-Essential-Integrated-Processor/dp/B001CK96QG}
+
+  \item  ASRock C2550D4I:
+\url{http://blog.brianmoses.net/2015/01/diy-nas-2015-edition.html}
+\end{itemize}
+
+
+\subsection{Size}
+
+
+ATX (Advanced Technology eXtended): motherboard configuration specification
+developed by Intel in 1995 to improve on previous de facto standards like the AT
+design.
+
+\begin{enumerate}
+  \item standard ATX: 12 x 9.6 in (305 x 244 mm), which is 25\% longer than
+  microATX.
+  
+  \item microATX ($\mu$ATX, mATX or uATX) - introduced 1997:
+  maximum size of a microATX motherboard is 9.6 x 9.6 in (244 x 244 mm), but
+  some microATX boards can be as small as 6.75 x 6.75 in (171.45 x 171.45 mm)
+  
+NOTE: The Zyxel NAS 320 size (the box, not the motherboard): 4.3 x 8.1 in,
+with power consumption (active: 21W, idle: 16W); while Zyxel NAS 325 v2 
+6.46 x 8.15 in (164 x 207 mm) with power consumption (active: 15W, idle: 7W)
+\url{http://webcache.googleusercontent.com/search?q=cache:c72x-ssG6coJ:www.smallnetbuilder.com/nas/nas-reviews/32333-zyxel-nsa325-v2-2-bay-power-plus-media-server-reviewed+&cd=1&hl=en&ct=clnk&gl=us}
+
+  \item FlexATX (released 1999 by Intel):  9 x 7.5 in (229 x 191 mm)   
+  
+  \item mini-ITX (developed by VIA Technologies in 2001): 6.7 x 6.7 in (17 x 17
+  cm)
+
+Shopping the chassis case: \url{http://www.mini-itx.com/store/nas}
+  
+  \item  
+\end{enumerate}
+
+ In 2003, Intel announced the BTX standard, intended as a replacement for ATX.
+ As of 2009, ATX is still the de-facto for do-it-yourself; while BTX is being
+ used mainly in pre-built systems.
+ 
+\section{Select RAM (DDR4 or DDR3?)}
+
+I choose: 4 x 8GB DDR4 ECC RDIMM’s  (that way you saturate the quad channel memory).
+
+The choice of RAM speed depends on many factors
+\begin{enumerate}
+  \item RAM type: single-rank (1Rx) or dual rank (2Rx)
+  
+  Single Rank has a 1Rx on it, for example 1Rx4 or 1Rx8, on the flip side Dual
+  Rank Memory has a 2Rx on it, for example 2Rx4 or 2Rx8.
+  
+  Generally Single Rank Memory is faster than Dual Rank Memory.
+  
+  
+  \item  motherboard:
+  
+  how many PCB layers on it?  more layers in a PCB board creates more surface
+  area to run signal traces and power shapes to different devices.
+  . If high speed data traces (DDR, PCI express, etc.) are on adjacent layers,
+  separated by a .008" - .015" sheet of fiber glass, the traces will cross talk
+  with each other. Put another way, the traces act as antennas and transfer
+  signals to each other through thin sheets of material. If the signals weren't
+  suppose to mix, the signals will corrupt each other as cross talk occurs.
+  
+  
+  \item 
+\end{enumerate}
+
+A1 "1"and B1 "3" are normally reserved for Single Channel of the same type
+
+A2 "2" and B2 "4" are typically reserved for Dual Channel of the same type
+
+Current boards don't really seem to give a * where you put dual channel but
+single channel still is preferred on A1 and B1.If you need to know more its time
+to start reading on the difference between Single and Dual Channel.
+
+
+\section{Select the cover}
+
+1x Stainless Steel Box from Ikea (Emu) - This actually comes in a set of two. I
+wanted something small, so I chose the use the 7x10 box, but the larger box will
+work just great.
+
+
+\section{Select power supply}
+
+
+Power Supply - The Pico PSU120. This is quite a bit of power in a little
+package, 120w to be precise. I love these things. There's no way you'll need
+more power than this thing can dole out.
+
+I’m recommending a 120W power supply which should be more that enough to cover
+6xHDD + the recommended processor.
+
+\section{Select a fan}
+
+A Fan - I had an 80mm fan from another project hanging around, and I realized
+that I'd probably need it if I didn't cut some vents in the top. My fan is extremely quiet. I'll warn you that the fan onboard the motherboard is not very quiet. DON'T TRY TO RUN WITHOUT IT. The video chipset will not survive with passive cooling. 
+
+\section{Select others}
+
+Ram - 2GB, it's the max this board will take.
+
+An ATX power-switch - This a little power switch to turn on and off.
+
+2x Right angle mounting brackets. You'll use these to mount the Hard-drive.
+
+Assortment of screws and nuts - 6-32 thread screws are the standard hard drive screw, and I found that those screws of different lengths worked great for everything. I did use 8-32 for a couple of things, but there was no difference practically speaking.
+
+
+\section{Select O/S}
+\label{sec:O/S_for-NAS}
+
+Using Linux/BSD O/S is recommended rather than a windows based OS mainly because
+they require far less hardware resources. Another benefit is that common Linux /
+BSD distributions are available for free.
+Also, NAS doesn't need a full-feature Linux/BSD operating system. A stripped
+down version of the operating system is used, e.g.
+\begin{enumerate}
+  \item {\bf FreeNAS} (started 2005): a free, open-source implementation based
+  on FreeBSD and ZFS file system, which can be managed via a
+  dedicated Web-interface (written first in PHP, then switch to Python/Django).  
+
+ ZFS makes it easy to add multiple hard drives to a single volume, and even
+supports using a SSD as a smart cache for the volume.
+\textcolor{red}{The main rule with FreeNAS is to load up your machine with as
+much memory as you can afford. The recommended configuration is 1GB of RAM for
+each terabyte of storage in your ZFS volume; however, that seems less important
+once you cross 8GB of RAM.}
+
+
+ A client can connect to it via one of the following protocols (rsync, ssh,
+FTP/TFTP, NFS, iSCSI, CIFS) if running either Windows, OS X, UNIX or
+virtualization hosts (VMWare, XenServer).
+  
+  \item  The below Linux-based O/S are good: CentOS
+6 (running a VPS on it (Sect.\ref{sec:VPS}), e.g. CentOS Debian 7
+(Sect.\ref{sec:CentOS}) and Ubuntu 12/13.
+
+  \item You may also want to try OpenFiler, or NASLite.
+  
+\end{enumerate}
+If you have experience with any Linux distribution, you should consider using a
+server version on that distribution.  
+% I can't vouch for either of those, but they have a dedicated following each, so
+% will probably serve you well.
+
+If you uses Raspberry Pi mainboard, the list of supported O/Ses (e.g. NOOBS O/S)
+\url{https://www.raspberrypi.org/help/noobs-setup/}
+
+\subsection{FreeNAS}
+\label{sec:FreeNAS}
+
+
+FreeNAS is based on FreeBSD 7.2,  with a web interface, PHP scripts, and
+documentation based on m0n0wall.
+
+FreeNAS supports the following protocols: SMB/CIFS (Windows), AFP (Apple/Mac),
+NFS (Unix/Linux), FTP, TFTP, RSYNC, Unison, iSCSI and UPnP. It also features
+support for Software RAID (0,1,5), ZFS, and disk encryption.
+
+It's networking features supports VLAN tagging, link aggregation, and Wake On
+Lan (WoL). The monitoring features include S.M.A.R.T (smartmontools), email alerts, SNMP, Syslog, and UPS (NUT) support.
+
+You'll also find extra services: bittorent client (Transmission), UPnP server
+(FUPPES), iTunes/DAAP server (Firefly), webserver (lighttpd), and network
+bandwidth measure (Iperf).
+% The current version of FreeNAS is mostly there, but doesn't quite work with
+% the Network hardware. I ended up using the version based on FreeBSD 7. You
+% will need to test it to see if it meets your needs. Alternatively, you can add
+% a PCI card and not worry about it. I intend to leave that slot open for
+% potential drive expansion.
+
+\url{http://forums.freenas.org/index.php?threads/how-to-edit-loader-conf-in-8-2-nightly-version.5303/}
+
+\url{http://forums.freenas.org/index.php?threads/freenas-ftw.14173/}
+
+\subsection{XigmaNAS}
+\label{sec:XigmaNAS}
+
+\url{https://thewirecutter.com/reviews/best-network-attached-storage/}
+
+
+\subsection{NASLite}
+\label{sec:NASLite}
+
+\subsection{Open Media Vault}
+\label{sec:OpenMediaVault_O/S-for-NAS}
+
+\url{http://www.openmediavault.org/}
+
+\subsection{CryptoNAS}
+
+CryptoNAS (formerly CryptoBox) is a NAS project concentrating on disk
+encryption.
+
+\url{http://www.linuxplanet.com/linuxplanet/reports/7153/1}
+
+\subsection{OpenFiler}
+\label{sec:OpenFiler_OS-for-NAS}
+
+Openfiler is another full-fledged NAS server, like FreeNAS. It's a Linux
+distribution based on rPath. 
+
+Openfiler is a heavier server requiring more on the minimum specs: 1GHz CPU, 2GB
+RAM, 10GB disk space, and an Ethernet adapter.
+
+Openfiler supports the following network protocols: SMB/CIFS, NFS, HTTP/WebDAV
+and FTP. Network directories supported by Openfiler include NIS, LDAP, Active
+Directory, and Hesiod. The Kerberos 5 authentication protocol
+(Sect.\ref{sec:Kerberos}) is also supported.
+
+
+Openfiler also offers extensive sharing management features, such as multi-group based access control on a per-share basis, SMB/CIFS shadow copy, and public/guest shares.
+
+
+\section{Upgrade firmware}
+
+
+The failure of upgrading firmware can put your system into 'brick', i.e. 
+you cannot do anything with the device.
+
+A solutio to reupload the firmware is via {\bf serial interface}.
+Typically,  there is no serial port to connect a serial cable to on the outside
+of the NAS, so the first thing to do is to find a serial port connector on the
+device's mainboard. Check the link:
+
+\url{http://zyxel.nas-central.org/index.php/FieldReport}
+
+
+\section{Example}
+
+\subsection{Option 1}
+
+\url{http://www.instructables.com/id/Build-an-inexpensive-Ikea-NAS/?ALLSTEPS}
+
+\subsection{Option 2}
+
+\url{http://www.ebay.com/itm/xbmc-Portable-Media-Center-Expandable-NAS-/171709257100?}
+
+\subsection{Option 3}
+
+\url{https://www.youtube.com/watch?v=e1n3rHlUY3k}
+
+\section{Connect motherboard with PC via Serial}
+
+\subsection{Zyxel NAS 220}
+\label{sec:NAS220-Zyxel}
+\label{sec:Zyxel-NAS220}
+
+\url{http://zyxel.nas-central.org/index.php/FieldReport}
+
+The details: The pin assignment is:
+\begin{verbatim}
+1 voltage
+2 TxD
+3 RxD
+4 empty
+5 ground
+\end{verbatim}
+
+You need an adapter with a Max3232 chip to translate the 3.3V serial port on the
+Zyxel mainboard to a 12V standard serial port of a desktop computer. You only
+need to connect the lines TxD, RxD and ground to the corresponding pins on the
+Max3232 (that is: leave out the voltage pin, you don't need it)
+
+Then you can use the minicom program on the desktop computer to see data on the
+serial line. Setup minicom to use your serial port (e.g. /dev/ttyS0), baudrate
+115200 and parity bits 8N1. Then startup the NSA-220 and see the boot log
+messages fly by.
+
+\url{http://www.cnet.com/products/zyxel-nsa-320-nas-server-series/specs/}
+

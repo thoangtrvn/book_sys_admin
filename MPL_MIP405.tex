@@ -1,0 +1,681 @@
+\chapter{MPL MIP405 + MIP405T}
+\label{chap:embedded_MPL_MIP405-MIP405T}
+
+MPL MIP405 and MIP405T are both embedded systems
+(Sect.\ref{sec:embedded-system}) which provides the hardware needed to run as a
+stand-alone system such as RAM, CPU, I/O ports, Ethernet port, a pre-installed
+boot-loader (Sect.\ref{sec:MIP405_MIP405T_specs}).
+
+
+The required setting to be able to 
+
+\section{MIP405 vs. MIP405T}
+\label{sec:MIP405_MIP405T}
+
+\subsection{Specifications}
+\label{sec:MIP405_MIP405T_specs}
+
+MIP405/MIP405T are highly integrated and robust
+PC/104-Plus Single Board Computers, which use/have
+\begin{enumerate}
+  \item Processor: extending x86 MIP family with either
+  IBM PowerPC 405GPr 608 DMIPS upto 400 MHz or 
+  PPC405GP with 375 DMIPS at 266MHz 
+  
+  IBM PowerPC 405GPr 608 DMIPS: 405GP processor maintains code compatibility
+  with other PowerPC processors.
+  \url{https://linuxlink.timesys.com/products/amcc_powerpc_405gp}
+  \url{http://archive.linuxgizmos.com/powerpc-405-evaluation-kit-available/}
+  
+  \item RAM: upto 128MB with ECC (soldered onboard)
+  
+  \item up to 4MB on-board soldered Flash
+  
+  \item multi purpose socket SRAM, EPROM, and Flash modules.
+  
+  \item O/S: various boot source (USB, IDE, Flash\ldots) and the O/S can be real
+  time Linux, various Linux distribution, open source U-boot loader for other
+  O/S (Sect.\ref{sec:U-boot_loader}).
+  
+  \item USB: 2
+  
+  \item 10/100 Ethernet port: 1
+   
+\end{enumerate}
+\url{http://www.mpl.ch/DOCs/MPLdoc_00000148.pdf}
+
+Application: hosting applications for medical, transportation systems, telecom,
+airborne systems or any other rugged and/or industrial application.
+
+
+MIP405 has 5 variants:
+\begin{verbatim}
+MIP405-1: 266 MHz CPU, 4MB Flash, 2x USB + 4xRS232 on header, 10/100 Ethernet on RJ45,
+MIP405-3: 400 MHz CPU, 8MB Flash, 2x USB + 4xRS232 + 10/100 Ethernet on header
+MIP405-4: 266 MHz CPU, 4MB Flash, 2x USB + 4xRS232 + 10/100 Ethernet on header
+MIP405-x
+XTEST-1 : extended operating temperature (-40 to +85 degree celcius)
+\end{verbatim}
+\url{http://www.mpl.ch/t2720.html}
+
+MIP405T is a further development of the MIP405, even more focussed on special
+requirements like small size, wide temperature range and ruggedness. MIP405T has
+4 variants
+\begin{verbatim}
+MIP405T-1 : ... 32MB SDRAM and 4MB Flash
+MIP405T-2 : ... 128MB SDRAM and 8MB Flash
+MIP405T-x
+XTEST-1
+\end{verbatim}
+\url{http://www.mpl.ch/t2740.html}
+
+
+\subsection{Setting up MIP405/MIP405T}
+
+It is important that you understand the Linux booting process
+(Sect.\ref{sec:boot-process-Linux-kernel}). 
+In order to work with
+MIP405/MIP405T, we need 3 things:
+\begin{enumerate}  
+  \item Linux kernel image: we need to build an image of the suggested kernel
+  version (Sect.\ref{sec:MIP405T_Linux2.6.x}) using the proper cross-compile tool-chain
+
+Here, we use MIP405T with Linux kernel 2.6.12
+(Sect.\ref{sec:MIP405T_Linux2.6.x}).
+Output of building Linux kernel: build the \verb!uImage!.
+
+Example: This is the Linux kernel 2.6.12 image built using the crosstool-ng
+1.9.3 (Sec.\ref{sec:compressed-kernel-file-format})
+\begin{verbatim}
+ls ~/Tuan/linux-2.6.12_crosstool_1.9.3./arch/ppc/boot/images/
+   uImage
+   vmlinux.bin
+   vmlinux.gz
+   zImage.elf
+   
+devel@pinky:~/Tuan/linux-2.6.12_crosstool_1.9.3$ ls arch/ppc/boot/images/ -lh
+total 6.6M
+-rw-r--r-- 1 devel devel  835 2015-03-05 12:09 Makefile
+-rw-r--r-- 1 devel devel 1.3M 2015-03-05 12:13 uImage
+-rwxr-xr-x 1 devel devel 2.8M 2015-03-05 12:13 vmlinux.bin
+-rw-r--r-- 1 devel devel 1.3M 2015-03-05 12:13 vmlinux.gz
+-rwxr-xr-x 1 devel devel 1.4M 2015-03-05 12:13 zImage.elf   
+\end{verbatim}
+
+At this step, we have \verb!arch/ppc/boot/images/uImage! is the compressed and
+U-bootified Linux kernel ready to use.
+  
+  \item (optional): build the loadable kernel modules (LKMs), and some other
+  modules to run on the target machine using the same tool-chain
+  
+  \item create a root filesystem(Sect.\ref{sec:root-file-system}): the
+  complexity of a root filesystem varies, and put the built Linux kernel into
+  this RFS, along with some other kernel modules, extra modules, \ldots
+
+Make sure the RFS contains the BusyBox (Sect.\ref{sec:create-RFS-BusyBox})
+  
+  \item a boot loader (Sect.\ref{sec:bootloader}): 
+  MIP405/MIP405T comes with a U-boot bootloader (Sect.\ref{sec:U-boot_loader}.
+  
+%   For embedded typically that's
+%   U-Boot, although not a hard requirement.
+  You can update a newer version of U-boot loader, or use the existing one on
+  the device.
+\end{enumerate}
+\url{http://unix.stackexchange.com/questions/136278/what-are-the-minimum-root-filesystem-applications-that-are-required-to-fully-boo}
+
+To configure MIP405T to use the new Linux kernel and/or root filesystem,
+connect MIP405T to your  host machine using the proper tool such as minicom
+(Sect.\ref{sec:minicom}); then configure it to find the root file system
+(which is located on your host machine). NOTE: during testing you want to put
+it on your host system for quickly change; and once it is stable, you can
+decide to move the whole RFS to the embedded system.
+
+You have a few options:
+\begin{enumerate}
+  \item Connect to the MIP405T with the host machine using COM port, and run
+  minicom (Sect.\ref{sec:minicom}) to communicate
+
+NOTE: MIP405T is a headless device, so there is no graphics port.  
+  
+  Once the device is one, it shows a command-prompt, where we can 
+in teract with the device using U-boot commands
+(Sect.\ref{sec:Uboot-commands}), which we use to configure (1)
+host name, IP, subnet mask (make sure in the same network with the host
+machine so that it can read the RFS on the host machine), (2) where to look for
+root filesystem (which can be networked mount).
+  
+  \item For final product: put the U-bootable (RFS or RFS+kernel) image file 
+  onto the MIP405 FLASH ROM.
+  
+You can download the initial ramdisk image to MPL MIP405T device using one of
+the way support by U-boot, e.g. via Ethernet connection
+(Sect.\ref{sec:Uboot_MIP405/MIP405T}).
+  
+OK, now you have two files
+\begin{verbatim}
+<Linux-kernel-2.6-source-folder>/arch/ppc/boot/images/vmlinux.gz
+/home/devel/mip405t_rfs.gz
+\end{verbatim}
+As the target device comes with the open-source U-boot loader
+(Sect.\ref{sec:U-boot_loader}), we may need to create the U-boot bootable image
+file. There are 2 supported formats: {\it legacy format} and {\it FIT format}
+(Flattened Image Tree). Here, we use legacy format.
+We can choose to build rom the RFS file only, or RFS + Kernel files.
+Both options need to use \verb!mkimage! command from U-boot
+(Sect.\ref{sec:mkimage}) to create a U-bootable image.
+\begin{itemize}
+  \item RFS image only
+
+\begin{verbatim}
+$> cd <Linux-kernel-2.6-source-folder>
+$> mkimage -A ppc -O linux -T ramdisk -C gzip -n "MIP405T RFS"  \ 
+          -d /home/devel/mip405t_rfs.gz mip405t_rfs.img
+Image Name:   MIP405T RFS
+Created:      Fri Mar  6 14:01:12 2015
+Image Type:   PowerPC Linux RAMDisk Image (gzip compressed)
+Data Size:    1031501 Bytes = 1007.33 kB = 0.98 MB
+Load Address: 0x00000000
+Entry Point:  0x00000000
+
+\end{verbatim}
+
+  \item RFS + kernel image: NOTICE : we need to use the non U-bootified compressed 
+  kernel image \verb!./arch/ppc/boot/image/vmlinuz.gz! (not the uImage file)
+  
+\begin{verbatim}
+$> cd <Linux-kernel-2.6-source-folder>
+mkimage -T multi -n "MIP405T (Kernel + RFS)" \
+    -d arch/ppc/boot/images/vmlinux.gz:/home/devel/mip405t_rfs.gz \ 
+    mip405t_multi.img
+\end{verbatim}  
+\end{itemize}
+The command creates an ramdisk image that can be copied to the SDRAM in the
+embedded system.
+
+  
+  
+  
+  
+\end{enumerate}  
+% 
+% Here, we explain how to build an image that can be loaded by U-boot.
+% Before you can do that, you need to build the Linux kernel
+% (Sect.\ref{sec:Linux_kernel_PowerPC}) and then build the RFS
+% (Sect.\ref{sec:create-RFS-BusyBox}).
+
+
+% \textcolor{red}{NOTE:} \verb!uImage! is the compressed and U-Bootified Linux kernel
+% and are ready to use. 
+%The output built kernel image is in
+
+
+
+
+\subsection{Boot MIP405/MIP405T with U-boot}
+\label{sec:Uboot_MIP405/MIP405T}
+%\subsection{U-boot command on MIP405/MIP405T}
+
+MPL MIP405/MIP405T devices comes with a pre-installed U-boot boot loader
+(Sect.\ref{sec:U-boot_loader}).
+
+U-boot is pre-installed on the . So
+from that device, we can download the kernel image via Ethernet connection.
+
+\textcolor{red}{NOTE}: As MIP405/MIP405T is a headless system
+(Sect.\ref{sec:headless_system}), you need to connect the system with the laptop
+that has a display via COM connection. The laptop should runs a Linux-based
+O/S. The program from the laptop that can display the output from the
+MIP405/MIP405T is minicom (Sect.\ref{sec:minicom}).
+
+The configuration
+\begin{verbatim}
+
+
+MIP405T  --------[Ethernet]---> router
+  |                               /
+  |  (COM)                       /
+  |                            /
+Laptop  --------[Ethernet]---/ 
+\end{verbatim}
+
+Once the system boot-up you need to configure the IP address, and other settings
+so that it knows how to load the Linux kernel + root filesystem (RFS).
+Suppose we use the Kernel+RFS U-bootable ramdisk image file
+(\verb!mip405t_kernel-rfs.img!). 
+
+\textcolor{red}{First, configure the host machine (laptop):}
+\begin{enumerate}
+  \item copy \verb!mip405t_kernel-rfs.img! to \verb!/tftpboot! directory
+
+\begin{verbatim}
+# either copy uImage
+host$ cp <path to uImage file> /tftpboot
+
+# or copy
+host$ cp <path to ramdisk file> /tftpboot
+\end{verbatim}  
+  \item 
+\end{enumerate}
+
+\begin{mdframed}
+U-Boot implements \verb!tftp! command to download the kernel and filesystem (in
+case of ramdisk) images to SDRAM.
+\end{mdframed}
+
+\textcolor{red}{Now, you configure the embedded system}: (for list of commands
+check Sect.\ref{sec:Uboot-commands}) Example: from the U-boot command line of
+the target device, type the commands
+\begin{verbatim}
+ # tell the embedded system know where the IP of the host machine
+setenv serverip <IP-server-containing-kernel-image>
+
+ # choose option 1: DHCP
+ setenv autoload no
+ dhcp 
+ # option 2: static IP for embedded system
+ setenv ipaddr <ip-of-this-MIP405T-device>
+ setenv netmask xxx.xxx.xxx.xxx
+ saveenv
+  
+ # (optional) set MAC address
+#setenv ethaddr C0:B1:3D:88:88:89 
+\end{verbatim}
+
+You can choose to load the ramdisk image from the host (laptop) via Ethernet, 
+using \verb!tfpboot! command (which alreadys implement a downlaod capability
+over Ethernet using TFTP protocol)
+
+\textcolor{red}{OPTION 1:} Load from the host machine
+\begin{verbatim}
+set serverip 10.0.0.20
+set path2rfs /srv/nfs/test_fileystem
+set console ttyS0,115200n8
+setenv bootargs console=${console} root=/dev/nfs rootfstype=nfs
+ip=dhcp nfsroot=${serverip}:${path2rfs} # The root=/dev/nfs directive tells Linux to instantiate with the virtual
+ # device, /dev/nfs, as the root filesystem
+ # The rootfstype=nfs directive tells Linux that the root filesystem is of the
+ # NFS variety
+
+set uImage mip405/cdsstack_select
+set loadaddr 400000
+ 
+  # Now we can load the ramdisk image
+  # This line tells U-Boot to load the kernel from the TFTP server, whose IP
+  #address was set earlier with the set serverip 10.0.0.20 command.
+  #  it stores it in the memory location of the embedded system 
+  #  pointed to by  loadaddr 
+tftp ${loadaddr} uImage
+
+
+ # synax:
+ #     bootp [loadAddress] [[hostIPaddr:]bootfilename]
+ # NOTE: If you do not specify a load address, then the value will be taken from
+ # the loadaddr environment variable
+ # 0x40000 is the address for the PowerPC architecture
+ # here we download over the network
+ # the name can be 'bootp' or 'tfpboot'
+ #   bootp = boot image viaa network using BOOTP/TFTP protocol
+ #   tfpboot = boot image viaa network using TFTP protocol
+ 
+ # Once the transmission using tftpboot finishes, the file will be in memory at
+ # the specified load address
+ # the two commands are equivalent, as by default it wills look into
+ #                ${serverip}/tftpboot/
+tfpboot 40000 mip405t_kernel-rfs.img
+  # or
+tfpboot 40000 ${serverip}/tftpboot/mip405t_kernel-rfs.img
+  # The loadaddr environment variable will automatically be set to the address
+  # the tftpboot command used. The filesize environment variable will
+  # automatically be set to the number of bytes transferred during the load
+  # operation.
+  
+  
+   # configure U-boot variables
+ # e.g. 'bootargs'
+ # to configure the network interface automatically at boot-time
+ # replace 'ip=off' by 'ip=dhcp'
+setenv bootargs root=/dev/ram0  console=ttyS0,9600 ip=off rw
+
+// (check nfsroot.txt file in the kernel documentation
+
+\end{verbatim}
+
+\textcolor{red}{The BusyBox version of init can run quite happily without an
+/etc/inittab, but again this may not work if the shell is running on
+/dev/console.}
+
+
+\textcolor{red}{Make sure you save the changes}
+\begin{verbatim}
+saveenv
+\end{verbatim}
+
+Now you are free to do whatever you like with the loaded image
+\begin{verbatim}
+# Finally we tell U-boot to boot from RAM with the address given above
+# this also pass the command lines defined in 'bootargs' to the kernel
+bootm ${loadaddr}
+ 
+// now we can boot the downloaded kernel
+bootm 400000  800000
+
+ ## Booting image at 00400000 ...
+Image Name: kernel for MIP405
+ ## Loading RAMDisk Image at 00800000 ...
+Image Name: initrd for MIP405
+Created: 2002-04-16 13:17:42 UTC
+\end{verbatim}
+and finally a login prompt appears
+\begin{verbatim}
+(none) login:
+\end{verbatim}
+The default login is 'root' username and 'MIP405' password.
+\url{http://www.mpi.ch/files/File/MPL/MIP405_Mini_Linux_RAMdisk.pdf}
+
+Settings depending on the types of memory on embedded system (RAM, NAND Flash,
+\ldots)
+\url{http://processors.wiki.ti.com/index.php/Booting_Linux_kernel_using_U-Boot}
+
+\textcolor{red}{OPTION 2:} Save the ramdisk image file permanently to the
+embedded system
+\begin{verbatim}
+  # erase the flash
+erase FFC00000   FFF7FFFF
+#.....
+# (erased 56 sectors)
+
+  # now copy the image
+cp.b 400000  FFC00000  37FFF0
+
+  # now check the bootargs one-more-time
+printenv bootargs
+  # bootargs=console=ttyS0,9600 root=/dev/hda5
+  # make sure change 'root=' to /dev/ram0
+  #bootargs=console=ttyS0,9600 root=/dev/ram0
+setenv bootargs console=ttyS0,9600 root=/dev/ram0
+
+saveenv  
+\end{verbatim}
+
+Now, we can boot
+\begin{verbatim}
+bootm 400000
+\end{verbatim}
+\url{http://www.mpi.ch/files/File/MPL/MIP405_Mini_Linux_RAMdisk.pdf}
+
+\subsection{Testing}
+
+
+\url{http://wiki.emacinc.com/wiki/Booting_with_an_NFS_Root_Filesystem}
+\url{http://raspberrypi.stackexchange.com/questions/628/how-do-i-configure-the-raspberry-pi-to-boot-with-an-nfs-root}
+
+\url{https://www.redhat.com/archives/rhl-list/2005-March/msg04089.html}
+
+\url{http://unix.stackexchange.com/questions/136278/what-are-the-minimum-root-filesystem-applications-that-are-required-to-fully-boo}
+
+\section{Compile Linux kernel for MIP405/MIP405T}
+%\subsection{Linux kernel for PowerPC}
+\label{sec:Linux_kernel_PowerPC}
+
+The general guide to build a Linux kernel is given in
+Sect.\ref{sec:build_Linux-kernel}.
+In this section, we focus on the Linux kernel target to MIP405 and MIP405T
+embedded system.
+
+\subsection{MIP405 + Linux kernel 2.4.x}
+
+Requirements
+\begin{itemize}
+  \item PowerPC (cross)-compiler: recommended version 2.95.3
+  
+  Disable floating-point instruction (as they are not used in MIP405/MIP405T and is not used in the kernel).
+  \verb!glibc! (Sect.\ref{sec:GLIBC}) is not used in the kernel too.
+  
+  \item Choose the appropriate Linux kernel version:  Sect.\ref{sec:Linux_kernel_PowerPC}
+  
+\end{itemize}
+
+
+\subsection{MIP405T + Linux kernel 2.6.x}
+\label{sec:MIP405T_Linux2.6.x}
+
+MPL AG maintains a patch against the official Linux 2.6.12 kernel that contains
+all MIP405T specific changes and drivers.
+
+\begin{verbatim}
+CONFIG_IBM_EMAC=y   # Ethernet 0
+CONFIG_SERIAL_8250=y           # Both for Serial 0
+CONFIG_SERIAL_8250_CONSOLE=y   
+\end{verbatim}
+\url{https://linuxlink.timesys.com/products/amcc_powerpc_405gp}
+
+The following steps just copy what show in the earlier of
+Sect.\ref{sec:Linux_kernel_PowerPC}, with a specific version information
+\begin{itemize}
+  \item Download the Linux kernel 2.6.x source: 
+
+Fix the folder missing issue 
+\begin{verbatim}
+cd <linux-kernel-2.6-source-folder>
+
+// then do one of this
+// RECOMMENDED
+cp -rf <full-path-linux-kernel>/include/asm-ppc \ 
+       <full-pathlinux-kernel>/include/asm
+
+// may not work
+ln -s <full-path-linux-kernel>/include/asm-ppc \
+      <full-path-linux-kernel>/include/asm
+\end{verbatim}   
+\url{http://forums.bodhilinux.com/index.php?/topic/3723-solved-kernel-header-files-missing/}
+
+  \item PowerPC (cross)-compiler: the distributor website recommended version
+  3.2 (Sect.\ref{sec:cross_compiler}),
+  but you still can use a different version, e.g. crosstool-ng 1.9.3
+  (Sect.\ref{sec:crosstool-ng}).
+  
+Suppose we use the cross-compiler compiled by crosstool-ng, which is built and
+saved into \verb!~/x-tools/! (by default).
+You need to configure
+\begin{verbatim}
+cd <linux-kernel-2.6-source-folder>
+export PATH=$PATH:~/x-tools/
+export CROSS_COMPILE=powerpc-405-linux-gnu-
+make uImage modules 
+make modules_install
+\end{verbatim}
+
+Finally, you get the kernel image in 
+\verb!./arch/ppc/boot/images/! folder.
+    
+\end{itemize}
+
+Check the link for howto:
+\url{http://getglitched.com/?page_id=253}
+
+
+\textcolor{red}{\bf EXAMPLE}:
+Once you have the installed crosstool-NG with the right versions of 
+\begin{itemize}
+  \item linux kernel
+  \item binutils
+  \item gcc
+\end{itemize}
+jump to the Linux kernel source directory, apply the patches if needed
+and then copy the \verb!mip405t_config! file to 
+\verb!.config! file in the root of the Linux kernel source folder.
+If you do not have this file, you can run
+\begin{verbatim}
+//  either (if use text-based color menu, radiologist and dialogs
+make menuconfig
+
+// or (if use X11-based GUI tool)
+make xconfig
+\end{verbatim}
+and adjust the appropriate parameters before kernel build.
+
+and then setup the environment
+\begin{verbatim}
+cd ~/Tuan/linux-2.6.12_crosstool_1.9.3_kernel_2.6.12
+export PATH=$PATH:~/x-tools_1.9.3_kernel_2.6.12/powerpc-405-linux-gnu/bin/
+export ARCH=ppc
+export CROSS_COMPILE=powerpc-405-linux-gnu-
+\end{verbatim}
+
+
+\begin{verbatim}
+make uImage modules
+
+// make -j4 2>&1 | tee m.txt
+\end{verbatim}
+Output
+\begin{verbatim}
+$> make uImage modules
+  ....
+  UIMAGE  arch/ppc/boot/images/uImage
+Image Name:   Linux-2.6.12-mip405t
+Created:      Fri Mar  6 16:12:16 2015
+Image Type:   PowerPC Linux Kernel Image (gzip compressed)
+Data Size:    1336057 Bytes = 1304.74 kB = 1.27 MB
+Load Address: 00000000
+Entry Point:  00000000
+  Image: arch/ppc/boot/images/uImage is ready
+  Building modules, stage 2.
+  MODPOST
+\end{verbatim}
+
+
+\section{SDK image}
+
+SDK image is a collection of tools that help you to do development.
+
+\section{ISA interrupts}
+
+MIP405/MIP405T supports more than 16 interrupt sources, i.e. the ISA interrupts are
+remapped to a non PC-like position 
+\begin{verbatim}
+Interrupt         Usage
+0-24          used by PPC405 internal device
+25            interrupt from PIIX4 (Master PIC)
+26            interrupt from DUART for MIP405
+              unused in MIP405T
+27            external IRQ2
+28-31         PCI INTA, INTB, INTC, INTD
+32-47         standard PC ISA interrupts
+\end{verbatim}
+
+So, ISA IRQ5 is mappped to interrupt (32+5) or 37 in your driver.
+
+\url{http://www.mpl.ch/t2721.html}
+
+\section{I/O board}
+
+\url{http://www.comedi.org/hardware.html}
+
+
+\section{Communicate with the board: minicom (Linux) and TELIX (Windows/DOS)}
+\label{sec:minicom}
+\label{sec:TELEX}
+
+You connect the embedded Linux/BSD device with the PC (laptop) via a null modem cable using a serial connection;
+then boot the device and run
+\begin{verbatim}
+minicom
+\end{verbatim}
+It will connect to the device and show what is going in the headless device.
+
+First you need to install, 
+\begin{verbatim}
+sudo apt-get install minicom
+\end{verbatim}
+and setup minicom, run
+\begin{verbatim}
+minicom -s
+
+  # with color on
+minicom -s -c on
+\end{verbatim}
+Then, configure \verb!MINICOM! environment (put to \verb!~/.bashrc! file)
+\begin{verbatim}
+ export MINICOM="-m -c on"
+\end{verbatim}
+which ensure your terminal has a Meta or key and that color is supported.
+
+\url{http://www.cyberciti.biz/tips/connect-soekris-single-board-computer-using-minicom.html}
+
+
+\section{Testing with QEMU}
+
+Command-line options for QEMU: Sect.\ref{sec:QEMU}; and the information on how
+to emulate a PowerPC machine is given in Sect.\ref{sec:QEMU-emulate-PowerPC}.
+
+
+% Currently, PowerPC 405 does not work with QEMU
+% \url{https://lists.gnu.org/archive/html/qemu-devel/2007-08/msg00421.html}
+
+PowerPC 405 CPU known to work (ie booting at least Linux 2.4):
+\url{https://github.com/hackndev/qemu/blob/master/target-ppc/STATUS}
+
+Try to use this instead: 
+\url{https://code.google.com/p/cellos/wiki/HowToRunCellOS}
+
+\textcolor{red}{OPTION 1}: You need to have (1) the kernel image, (2) initramfs
+(Sect.\ref{sec:initramfs}) (Linux 2.6+) or initrd image (Linux 2.5-)
+\begin{verbatim}
+qemu-system-ppc -m 128M -kernel uImage -initrd initramfs.cpio 
+             #-cpu 405GPd
+             -cpu 0x401100c4 
+                -M ref405ep -bios /location/to/ppc405_rom.bin 
+                -append="console=ttyS0 root=/dev/sda1"
+\end{verbatim}
+
+You will see
+\begin{verbatim}
+>> =============================================================
+>> OpenBIOS 1.1 [Mar 12 2015 08:09]
+>> Configuration device id QEMU version 1 machine id 2
+>> CPUs: 1
+>> Memory: 128M
+>> UUID: 00000000-0000-0000-0000-000000000000
+>> CPU type PowerPC,750
+milliseconds isn't unique.
+Welcome to OpenBIOS v1.1 built on Mar 12 2015 08:09
+>> [ppc] Kernel already loaded (0x01000000 + 0x00146339) (initrd 0x01247000 + 0x01068e00)
+>> [ppc] Kernel command line: 
+
+\end{verbatim}
+
+
+%Once you build the kernel, you copy the image file \verb!uImage!, 
+\textcolor{red}{OPTION 2}: You need to create a U-boot Flash image file
+(boot.bin) - Sect.\ref{sec:Create-Flash-image} and you can run
+\begin{verbatim}
+qemu-system-ppc -m 128M -kernel flash.bin -nographic
+\end{verbatim}
+
+\begin{verbatim}
+
+\end{verbatim}
+\url{https://balau82.wordpress.com/2010/04/12/booting-linux-with-u-boot-on-qemu-arm/}
+
+QEMU can load a Linux kernel using the -kernel and -initrd options; at a low
+level, these options have the effect of loading two binary files into the
+emulated memory: 
+\begin{itemize}
+  \item the kernel binary at address 0x10000 (64KiB) and 
+  
+  \item the ramdisk binary at address 0x800000 (8MiB). 
+\end{itemize}
+
+Then QEMU prepares the kernel arguments and jumps at 0x10000 (64KiB) to execute
+Linux. I wanted to recreate this same situation using U-Boot, and to keep the
+situation similar to a real one I wanted to create a single binary image
+containing the whole system, just like having a Flash on board. The -kernel
+option in QEMU will be used to load the Flash binary into the emulated memory,
+and this means the starting address of the binary image will be 0x10000 (64KiB).
+
+\subsection{Fix bugs}
+
+Use \verb!ppc_booke_timers_init!
+\url{https://lists.gnu.org/archive/html/qemu-ppc/2012-03/msg00082.html}

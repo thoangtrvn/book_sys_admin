@@ -1,0 +1,221 @@
+\chapter{Autotools}
+
+\url{https://www.lrde.epita.fr/~adl/dl/autotools.pdf}
+
+
+Autotools comprises:
+\begin{enumerate}
+  \item GNU Autoconf
+  
+  \item GNU Automake
+
+automatic build both shared and static libraries. 
+  
+  \item GNU Libtool
+
+uninstall targets, e.g. uninstall the program you install
+  
+  \item GNU Gettext: ideal to work with tasks that require lots of translation
+  and translated source code.  
+\end{enumerate}
+The GNU Autotools framework is comprised of three main packages, each of which
+provides and relies on several smaller components (Autoconf, Automake and
+Libtool). Additionally, the tools in the Autotools packages can depend on or use
+utilities and functionality from the gettext, m4, sed, make and perl packages,
+as well as others. 
+
+Nowadays, we have other options, e.g. CMake, SCons, bjam (Boost build, C++)
+
+
+The Autotools are NOT supposed to make projects simpler for the maintainer.
+Instead, it aims to
+\begin{enumerate}
+  \item  make life easer for your users, and second, 
+  
+  \item to make your project more  portable
+\end{enumerate}
+
+Autotools were designed by GNU people to manage GNU projects.
+So, it is ideal to be used in projects written in C, C++, Objective C, Fortran,
+Fortran 77 and Erlang.
+By "native support", I mean that Autoconf will compile, link and run
+source-level feature checks in these languages.
+Efforts to support Java using  both GNU (gcj) and non-GNU
+Java compilers and VM's.
+
+
+\section{History}
+
+ The original author was David MacKenzie, who started the Autoconf project in
+1991. While configuration scripts were becoming longer and more complex, there
+were really only a few variables that needed to be specified by the user.  
+
+Most of these were simply choices to be made regarding components, features and
+options: Where do I find libraries and header files? Where do I want to install
+my finished product? Which optional components do I want to build into my products? 
+
+With Autoconf, instead of modifying, debugging and losing sleep over literally
+thousands of lines of supposedly portable shell script, developers can write a
+short meta-script file, using a concise macro-based language, and let Autoconf
+generate a perfect configuration script.  
+
+
+
+\section{configure.ac file (./configure): autoreconfig}
+\label{sec:configure.ac}
+\label{sec:autoreconf-tool}
+
+If you have issue, call (to create m4/pkg.m4 from /usr/share/local/pkg.m4 file)
+\begin{verbatim}
+aclocal --install
+\end{verbatim}
+before calling \verb!autoreconf!.
+
+To generate configure script:
+\begin{verbatim}
+autoreconfig -i
+\end{verbatim}
+
+\verb!autoreconf -ivf! calls \verb!aclocal --force!, which checks the
+\verb!AC_CONFIG_MACRO_DIR! (which is obsoleted -
+Sect.\ref{sec:AC_CONFIG_MACRO_DIR}).
+\begin{verbatim}
+// the -v option shows the calling sequence/order
+
+autoreconf-2.69  : 
+    enter directory '.'
+
+aclocal-1.14
+    run:   aclocal --force '-I m4'
+
+autoreconf-2.69: 
+   configure.ac 
+       
+libtoolize:
+    run: libtoolize --copy --force
+    (to put *.m4 files into ./m4/ folder)
+    
+    run: /usr/bin/autoconf-2.69 --force
+    run: /usr/bin/autoheader-2.69 --force
+    run: automake --add-missing --copy --force-missing
+
+add    
+    ./compile
+    ./missing
+    ./decomp
+\end{verbatim}
+
+
+
+\section{aclocal.m4 file (aclocal utility)}
+\label{sec:aclocal.m4}
+
+Autoconf was designed and written first, and then a few years later, the idea
+for Automake was conceived as an add-on for Autoconf. But Autoconf was really
+not designed to be extensible on the scale required by Automake.
+
+Automake adds an extensive set of macros to those provided by Autoconf. The
+originally documented method for adding user-defined macros to an Autoconf
+project was to create a file called \verb!aclocal.m4! in the same directory as
+\verb!configure.ac! (Sect.\ref{sec:configure.ac}).
+
+The aclocal utility is actually documented by the GNU manuals as a temporary
+work-around for a certain lack of flexibility in Autoconf. 
+\verb!aclocal! utility was designed to create a project's aclocal.m4 file,
+containing all the required Automake macros. 
+
+Any user-provided extension macros were to be placed in \verb!aclocal.m4! file,
+and Autoconf would automatically read it while processing configure.ac
+
+\textcolor{red}{OLD}: Automake was also designed to read a new user-provided
+macro file called acinclude.m4. Automake's manual originally suggested that you should rename
+aclocal.m4 to acinclude.m4 when adding Automake to an existing Autoconf project.
+This method is still followed rigorously in new projects. 
+
+\textcolor{red}{CURRENT}: However, the latest documentation from both sets of
+tools suggests that the entire aclocal/acinclude paradigm is now obsolete, in
+favor of a newer method of specifying a directory containing m4 macro files.
+The current recommendation is that you create a directory in your project
+directory called simply  \verb!m4! (though \verb!acinlucde! has a better name
+to reflect the purpose being used by aclocal utility). 
+All files in this directory will be gathered into aclocal.m4 before Autoconf
+processes your configure.ac file.
+
+
+\begin{verbatim}
+4 inputs (files/folders):
+     configure.ac   (ac-m4/shell)
+     acinclude.m4   (ac-m4)
+     m4/*.m4        (ac-m4)
+     acsite.m4      (ac-m4)
+\end{verbatim}
+will be read-in by \verb!aclocal! utility (perl script), which then use those
+information to generate \verb!aclocal.m4! file.
+All files in \verb!./m4/! directory will be gathered into aclocal.m4 before
+Autoconf processes your configure.ac file
+
+
+
+
+\section{m4 folder (*.m4 file): libtoolize}
+\label{sec:libtoolize}
+\label{sec:AC_CONFIG_MACRO_DIR}
+
+The libtoolize program provides a standard way to add libtool support to your
+package.
+\url{https://www.gnu.org/software/libtool/manual/html_node/Invoking-libtoolize.html}
+
+In \verb!configure.ac! file, we can specify where the \verb!*m4! files should
+reside using \verb!AC_CONFIG_MACRO_DIRS!
+\begin{verbatim}
+  # it's a list, so we can specify more than one location
+AC_CONFIG_MACRO_DIRS([m4])
+
+AC_CONFIG_HEADERS([src/include/config.h])
+\end{verbatim}
+The purpose of \verb!AC_CONFIG_MACRO_DIR! (which is obsoleted by
+\verb!AC_CONFIG_MACRO_DIRS! in new autotools) has purpose of telling to
+'aclocal' where to look for user defined  *.m4 files.
+\verb!AC_CONFIG_MACRO_DIRS! won't work until autoconf 2.70 is released upstream
+(I'm still working on that part).  But \verb!AC_CONFIG_MACRO_DIR! will continue
+to work, and is NOT obsolete.
+\url{https://bugzilla.redhat.com/show_bug.cgi?id=901333}
+
+So that when you run
+\begin{verbatim}
+libtoolize
+\end{verbatim}
+it will put macro files
+\begin{verbatim}
+m4/libtool.m4
+m4/ltoptions.m4
+m4/ltsugar.m4
+m4/ltversion.m4
+m4/lt~obsolete.m4
+\end{verbatim}
+
+If libtoolize doesn't see \verb!AC_CONFIG_MACRO_DIRS!, it too will honour the
+first '-I' argument in \verb!ACLOCAL_AMFLAGS! (defined in
+Sect.\ref{sec:Makefile.am}) when choosing a directory to store libtool
+configuration macros in. It is perfectly sensible to use both
+\verb!AC_CONFIG_MACRO_DIRS! and \verb!ACLOCAL_AMFLAGS!, as long as they are kept
+in synchronisation. These libtool's suggestions are bad as both macros should be
+legacy now.  For now, I'd prefer to ignore this.
+Reading \url{http://www.flameeyes.eu/autotools-mythbuster/autoconf/macros.html}
+it suggests that \verb!ACLOCAL_AMFLAGS! will be ignored in the future too, so
+libtool's suggestion is even more confusing.
+
+
+\section{Makefile.am}
+\label{sec:Makefile.am}
+
+\begin{verbatim}
+Consider adding '-I m4' to ACLOCAL_AMFLAGS in Makefile.am
+\end{verbatim}
+
+In the future other Autotools will automatically check the contents of
+\verb!AC_CONFIG_MACRO_DIRS! (Sect.\ref{sec:libtoolize}), but at the moment it is
+more portable to add the macro directory to \verb!ACLOCAL_AMFLAGS! in
+Makefile.am, which is where the tools currently look. 
+
+

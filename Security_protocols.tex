@@ -1,0 +1,240 @@
+\chapter{Security Protocols}
+
+\section{PAM service}
+\label{sec:PAM}
+
+In early versions of Unix O/S, many programs need to read \verb!/etc/passwd!
+file to authenticate users. However, if the format of this file changed, many
+programs that read the file need to be updated, and recompiled. When single
+(remote) user database, using technology like NIS, became popular (in large
+organizations), then many NIS commands (yp*) need to be updated too. 
+
+To avoid any future change that can affect existing programs, a standard library
+was developed, which can be configured to use different database and/or new
+algorithms just by adding new shared library in Linux (DLL in Windows). This
+system became known as {\bf PAM} (Pluggable Authentication Modules). A text
+configuration file can be updated to use the new authentication shared library. 
+
+\begin{mdframed}
+Other than PAM, there are other approaches: GSAPI, SSSD. But PAM is the most
+widely used.
+\end{mdframed}
+
+A program then need to be recompiled only one time to use PAM, check 
+\begin{verbatim}
+ldd <program> | grep libpam.so
+\end{verbatim} 
+\url{http://wpollock.com/AUnix2/PAM-Help.htm}
+
+There is not a single PAM modules, but many, each supporting a different
+authentication method. It allows different programs, on the same system, to use
+different authentication method. \textcolor{red}{Other than for authentication,
+PAM modules can also be used for session setup and tear-down, logging, \ldots}.
+Each program must have its own configuration file, so that the using of a PAM
+module can be changed easily.
+
+The exact set of modules is controlled by the set of {\it policy} files in
+\verb!/etc/pam.d! directory (older versions of PAM, just put in a single file
+\verb!/etc/pam.conf!). It is common, but not required, to use the application
+name as the name of the configuration file. This is the example for
+\verb!hwbrowser! application that use PAM, and the policy file is
+\verb!/etc/pam.d/hwbrowser!
+\begin{verbatim}
+/etc/pam.d# cat hwbrowser
+#%PAM-1.0
+auth       sufficient   pam_rootok.so
+auth       sufficient   pam_timestamp.so
+auth       required     pam_stack.so service=system-auth
+session    required     pam_permit.so
+session    optional     pam_xauth.so
+account    required     pam_permit.so
+\end{verbatim}
+If an application can file the policy file for itself, it uses \verb!other!
+filename (which deny all access for security by default). The format of the file
+above, for non-comment line (a comment line starts with \verb!#!)
+\begin{itemize}
+  \item module context (or type): authorization (\verb!auth! - who the user is,
+  \verb!account! - check if the validated user is allowed to access),
+  initializing the environment (\verb!session!), approving new password (\verb!password!)
+  
+  \item control flag: \verb!sufficient! (if one PAM module passed, then there is
+  no need to check others), \verb!required!, \verb!optional!
+  
+  \item module: just the library name (if it's in \verb!/lib/security!), or the
+  full pathname (if it's elsewhere)
+
+By default, all PAM modules are usually stored in \verb!/lib/security! folder.
+If we put in a different locations, then we need to list the full pathname of
+the module in the policy file for the program that use PAM module. 
+  
+  \item module options (if any): tells how to react to the module's result
+  (pass or fail)
+\end{itemize}
+The order is \verb!auth! run first to validate user, then \verb!account! to
+check if the validated user is allowed to access, then \verb!session! run next,
+if a password changed is request, then \verb!password! module is run. 
+
+These are some PAM modules (shared library)
+\begin{enumerate}
+  \item \verb!pam_limits.so! : Sect.\ref{sec:pam_limit}
+  \item \verb!pam_rootok.so! : check if the user is root, then can run the
+  program
+  \item \verb!pam_timestamp.so! : it caches successful authentication attempts,
+  and you can use it as the basis for authentication
+\end{enumerate}
+
+To check library version
+\begin{verbatim}
+ nm --dynamic --defined-only pam_module.so
+\end{verbatim}
+
+\subsection{User limits}
+\label{sec:pam_limit}
+
+The command \verb!limit! display current limit setting, e.g. the number of
+openfiles is 1024.
+\begin{verbatim}
+% limit
+cputime         unlimited
+filesize        unlimited
+datasize        unlimited
+stacksize       8192 kbytes
+coredumpsize    0 kbytes
+memoryuse       unlimited
+descriptors     1024 
+memorylocked    unlimited
+maxproc         8146 
+openfiles       1024 
+\end{verbatim}
+\url{https://cs.uwaterloo.ca/~brecht/servers/openfiles.html}
+
+\verb!pam_limits.so! set parameters (limit) on the system per user or per group
+basis. We can virtually limit everything. First, specify the users (groups)
+limits you want to use in the file \verb!/etc/security/limits.conf! which can
+configure many other things which are applied as part of the login process
+(\verb!maxlogins!, \verb!maxsyslogins! and \verb!chroot!).
+
+\begin{verbatim}
+*               soft    core            0
+root            hard    core            100000
+@student        hard    nproc           20
+@faculty        soft    nproc           20
+@faculty        hard    nproc           50
+ftp             hard    nproc           0
+ftp             -       chroot          /ftp
+@student        -       maxlogins       4
+*                soft    nofile          65535
+*                hard    nofile          65535
+\end{verbatim}
+Here \verb!nofile! refers to the maximum number of concurrently open file.
+
+Then,  enable the module for the software you want to be affected. In this
+case, we want it affect at each shell login. There are three scenarios,
+depending on the systems
+\begin{enumerate}
+  \item \verb!/etc/pam.d/login! (Sun OS)
+  
+\url{http://docs.oracle.com/cd/E19450-01/820-6168/file-descriptor-requirements.html}
+
+  \item \verb!/etc/pam.d/ssh! (Debian)
+  \item \verb!/etc/pam.d/sshd! (RedHat)
+
+\verb!sshd! program, then modify the associated policy file (configuration file)
+\verb!/etc/pam.d/sshd! to enable the module
+\begin{verbatim}
+session required pam_limits.so
+\end{verbatim}
+\url{http://www.serverwatch.com/server-tutorials/set-user-limits-with-pamlimits-and-limits.conf.html}
+\end{enumerate}
+The login shell is the parent process of all running program launched from the
+shell.
+
+
+
+\section{NTLM (NT Lan Manager)}
+
+
+\section{Kerberos}
+\label{sec:Kerberos}
+
+Kerberos V5 is an authentication system developed at MIT.
+Kerberos dominates the enterprise universe. This security protocol first
+appeared in 2000, when Windows 2000 Server and its Active Directory (AD)
+security component were released, and as AD and AD-enabled applications grew in
+market share, so did the use of Kerberos. It's been the primary security
+protocol for the Microsoft-centric world ever since; it handles authentication
+and passes authorization data to domain resources.
+
+
+Under Kerberos, 
+\begin{itemize}
+  \item a client (generally either a user or a service) sends a request
+for a ticket to the Key Distribution Center (KDC)
+
+  \item  The KDC creates a ticket-granting ticket (TGT) for the client, encrypts
+  it using the client's password as the key, and sends the encrypted TGT back to the client
+  
+  \item  The client then attempts to decrypt the TGT, using its password. If the
+  client successfully decrypts the TGT (i.e., if the client gave the correct
+  password), it keeps the decrypted TGT, which indicates proof of the client's
+  identity.
+  
+\end{itemize}
+The TGT, which expires at a specified time, permits the client to obtain
+additional tickets, which give permission for specific service.
+\url{http://web.mit.edu/kerberos/krb5-1.5/krb5-1.5.4/doc/krb5-user/Introduction.html#Introduction}
+
+
+\section{SAML [Security Assertion Markup Language]}
+\label{sec:SAML}
+
+SAML was the most broadly adopted authentication standard in the web services
+world. However, using SAML was slowed and almost every one switched to using
+other standards such as OAuth 2.0, OpenID Connect, and SCIM.
+
+
+\url{http://windowsitpro.com/identity-management/kerberos-might-not-be-dead-its-not-feeling-well}
+
+
+\section{Fixes}
+
+\subsection{POODLE}
+
+POODLE refers to the bug in SSLv3 protocol, not the implementation.
+
+\begin{enumerate}
+  \item Firefox 34+ fix this
+  
+  \item Chrome in Linux, we need to open
+\begin{verbatim}
+/usr/share/applications/google-chrome.desktop
+\end{verbatim}
+and update all lines \verb!Exec=! to add
+\begin{verbatim}
+--ssl-version-min=tls1
+
+E.g:
+Exec=/usr/bin/google-chrome-stable --ssl-version-min=tls1 %U
+\end{verbatim}
+then make
+sure to fully close the browser (Chrome apps may be keeping your browser active
+in the background!).
+
+\end{enumerate}
+
+
+\subsection{SSH: Cipher Block Chaining (CBC) Mode Ciphers }
+\label{sec:SSH-patches}
+
+Check Sect.\ref{sec:SSH}.
+
+Disable Cipher Block Chaining (CBC) Mode Ciphers and Weak MAC Algorithms in SSH
+by modifying \verb!/etc/sh/sshd_config! file
+
+\begin{verbatim}
+Ciphers aes128-ctr,aes192-ctr,aes256-ctr,arcfour256,arcfour128
+MACs hmac-sha1,umac-64@openssh.com,hmac-ripemd160        
+\end{verbatim}
+
+\url{https://developer.ibm.com/answers/questions/187318/faq-how-do-i-disable-cipher-block-chaining-cbc-mod.html}
+

@@ -1,0 +1,50 @@
+\chapter{RedHat}
+\label{chap:RedHat}
+
+\section{RedHat 6 vs. RedHat 7}
+
+\begin{verbatim}
+                  6.x                 7.x
+
+Kernel:       2.6.x-x Kernel        3.10.x-x kernel
+FS:              EXT4                XFS
+1st 
+process:        init                systemd  
+(process ID 1)
+
+hostname:     /etc/sysconfig/network 
+                                  /etc/hostname
+                             
+run level:    /etc/inittab
+                                /etc/systemd/system/default.target
+new-uer's UID
+start from:   500                 1000
+                            
+Max
+file-size:    16TB                500TB
+(and
+filesystem-size)
+
+Filesystem
+check tool:   e2fsck              xfs_repair
+
+Bootloader:   GRUB 0.97           GRUB 2
+
+DB:           MySQL               MariaDB
+
+Load-balancing:
+              Piranha             Keepalived and HAProxy
+              
+Network
+time-sync:    ntpd                Chrony suite 
+                            (faster time sync compared with
+                             ntpd)
+\end{verbatim}
+
+\begin{enumerate}
+  \item file system (FS): 
+  \item 1st process: Sect.\ref{sec:init} vs. Sect.\ref{sec:systemd}
+  
+  \item run level: Sect.\ref{sec:RedHat-run-level}
+  
+\end{enumerate}

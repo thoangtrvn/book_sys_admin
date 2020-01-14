@@ -1,0 +1,1212 @@
+\chapter{Virtual Machines}
+\label{chap:virtual-machine}
+
+A virtual machine instance is the realization of an O/S running ontop of another
+O/S using a hypervisor (Sect.\ref{sec:hypervisor}) running on a VPS
+(Sect.\ref{sec:VPS}).
+
+\section{VPS (Virtual Private Server) or a virtual dedicated server (VDS)}
+\label{sec:VPS}
+\label{sec:VDS}
+
+A virtual private server (VPS) or a virtual dedicated server (VDS) is a {\it
+virtual machine} that appears to user as a dedicated server, though the server
+is shared by more than one user. A single physical computer can have several
+VPSs, each one with its own operating system (OS) that runs the hosting software
+for a particular user. This is different from Cloud, which is also a virtual
+environment, yet a cloud environment allows you to more easily add more
+resources to your server, such as RAM, processors or even cloned copies of your
+server for data back-up (Sect.\ref{sec:Cloud-hosting}).
+
+A singler customer has full control to a VPS, i.e. with superuser-level access
+to that operating system instance, so they can install almost any software that
+runs on that OS. VPS is {\bf sold as a service} by an Internet hosting service
+(Sect.\ref{sec:VPS-web-hosting}). 
+
+So, as a user, you don't need a dedicated physical server, but you can share
+that with other users; while it gives the user a full control of a separate
+machine. Because of that, performance may be lower, depending on the workload of
+any other executing virtual machines.
+
+Partitioning a single server to appear as multiple servers has been increasingly
+common on microcomputers since the launch of VMware ESX Server in 2001. 
+This physical server needs to run a {\bf hypervisor}
+(Sect.\ref{sec:hypervisor}).
+
+VPSs are usually based on server virtualization, which should be able to keep
+VPSs adequately isolated from one another. Even so, those with significant
+security requirements commonly avoid multi-tenant environments as a best
+practice.  
+
+\subsection{VPS hosting}
+\label{sec:VPS-web-hosting}
+
+VPS hosting puts your website on a server (Sect.\ref{sec:VPS}) that also has
+other sites running on it, except that there are fewer sites per server.
+You can expect to pay between \$20 per month and \$100 per month, depending on
+the configuration. This is different from
+\begin{enumerate}
+  \item dedicated web hosting
+  Dedicated web hosting will typically set you back \$100 per month or more.
+  
+  \item shared web hosting:
+  Shared web hosting, on the other hand, is incredibly cheap hosting; you can
+  often set up shop for less than \$10 per month.
+  
+  
+\end{enumerate}
+
+The sites share the cost of running on the server, which results in a monthly or
+yearly charge that's less than the relatively high price tag of dedicated hosting.
+
+Most VPS hosts only offer servers running Linux-based operating systems.
+Popular companies: GoDaddy, Liquid Web and HostGator.
+
+A solid web host should offer at least 4GB of RAM, 100GB of storage, and an
+ample volume of monthly data transfers.
+\url{https://www.pcmag.com/article2/0,2817,2455706,00.asp}
+
+
+
+
+\subsection{Cloud hosting}
+\label{sec:Cloud-hosting}
+
+
+In a Cloud hosting, we rent a small portion of a Big network of machines
+connected together. A giant setup of machines that offer resources are connected
+together and then they are further rented to clients.
+You can always scale up your resources as per your requirements and it will be
+done in a few minutes of clicks.
+
+In a Cloud environment, you are totally separated from others, i.e. you get
+exclusively access to a hardware; unlike in VPS.
+You will be getting dedicated resources of what you have been told. But In a
+VPS, you get a virtual environment with portioned disk space \& certain
+bandwidth, however the CPU \& the memory of the parent machine is equally
+distributed among all VPS slices.
+\url{https://www.quora.com/What-is-the-difference-between-cloud-hosting-and-VPS-hosting}
+
+
+In Cloud hosting, the downtime, if happens, is minimal. 
+In a Cloud, things are pretty fast. Every server slot is available and is always
+ready to be served in seconds. But in a VPS, it takes time to virtualized a
+dedicated server and then allot VPS slices to the client. 
+
+
+
+\section{Virtual Hard Drive}
+
+
+\begin{itemize}
+  \item VDI (VirtualBox Disk Image): native format of VirtualBox
+  
+  \item VMDK (Virtual Machine Disk): developed by VMWare, but Sun xVM, QEMU
+  (Sect.\ref{sec:QEMU}), VirtualBox (Sect.\ref{sec:VirtualBox}), SUSE Studio and
+  .NET DiscUtils support.
+  
+  \item VHD (Virtual Hard Disk): native format of Microsoft Virtual PC (popular
+  in Windows)
+  
+  \item HDD (Parallels Hard Disk 2): initially designed for Mac O/S
+  \item QED (QEMU enhanced disk)
+  \item QCOW (QEMU copy-on-write)
+\end{itemize}
+
+Features
+\begin{itemize}
+  \item dynamically allocated sizing: VDI, VMDK, VHD
+  
+  VMDK has an additional capability of splitting the storage file into files
+  less than 2GB each, i.e. useful if your system has a small file size limit.
+  
+  \item have snapshots: VDI, VMDK, VHD, HDD
+  
+  \item able to move the virtual machine to another O/S, with minimal effort:
+\end{itemize}
+  
+\section{Windows host}
+
+\url{http://en.wikipedia.org/wiki/Comparison_of_platform_virtualization_software}
+\begin{itemize}
+  \item AlphaVM
+  \item Bochs
+  \item CHARON
+  \item DOSBox
+  \item Hercules
+  \item Hyper-V (2008): Windows Server 2008 with Hyper-V role, Microsoft Hyper-V
+  server
+  \item Hyper-V (2012): Windows 8/8.1, Windows Server 2012 \ldots
+  
+  Hyper-V products support hardware-assisted virtualization (Intel VT-x or
+  AMD-V) that runs virtual O/S faster
+
+  \item QEMU: Sect.\ref{sec:QEMU}
+    
+  \item SIMH
+  \item Simics
+  \item VirtualBox: Sect.\ref{sec:VirtualBox_howto}
+  
+  VirtualBox also support hardware-assisted virtualization (Intel VT-x
+  and AMD-V)
+  
+  \item Virtual PC 2007: Windows Vista, XP Pro, XP Tablet PC Edition
+  
+  \item Windows Virtual PC: Windows 7
+  \item Virtual Server 2005 R2: Windows Server 2003, 2008
+  
+  \item Synopsys (CoWare) Virtual Platform:
+  
+  \item VMWare server
+  \item VMWare workstation 10.0.2
+  \item VMWare Player 6.0.2
+\end{itemize}
+
+\section{Linux host}
+
+\url{http://en.wikipedia.org/wiki/Comparison_of_platform_virtualization_software}
+
+\section{Mac OS host}
+
+\url{http://en.wikipedia.org/wiki/Comparison_of_platform_virtualization_software}
+
+\section{Virtual Networking Hardware}
+\label{sec:virtual_networking}
+
+To enable network access from the guest O/S, we need to enable
+\begin{verbatim}
+Enable Network Adapters
+\end{verbatim}
+in the Settings/Networks section of the guest O/S instance.
+
+VirtualBox (Sect.\ref{sec:VirtualBox_howto}) supports 6 virtual network
+card type
+\begin{enumerate}
+  \item AMD PCNet PCI II (Am79C970A);
+
+  \item AMD PCNet FAST III (Am79C973, the default): work with many O/S and GNU
+  GRUB boot manager.
+
+  \item Intel PRO/1000 MT Desktop (82540EM): works with Windows Vista and later
+  versions
+
+  \item Intel PRO/1000 T Server (82543GC): recognized by Windows XP without
+  additional driver installation.
+
+  \item Intel PRO/1000 MT Server (82545EM): facilitates OVF imports from other
+  platforms
+
+  \item Paravirtualized network adapter (virtio-net): available for Linux kernel
+  2.6.25+. In other guest O/S (Windows 2000, XP and Vista), we need to download
+  virtio driver from KVM project.
+  
+  Starting with version 3.1, VirtualBox provides support for the
+  industry-standard "virtio" networking drivers, which are part of the
+  open-source KVM project. 
+\end{enumerate}
+which can be attached to one of the seven networking modes
+\begin{enumerate}
+  \item Not attached: VB reports to the guest O/S that a network card
+  (selected above) is present, but not connected
+  
+  
+  \item NAT (Network Address Translation): this mode is good enough for Web
+  browsing, download files and view e-mail inside guest O/S
+  
+  LIMITATIONS:
+  \begin{itemize}
+    \item some tools that rely on ICMP protocol may not working in guest O/S
+    \item not reliable to receive UDP broadcast message
+    \item tools that rely on GRE protocols or VPN products (e.g. PPTP) are not
+    supported
+    \item port forwarding to host port < 1024 is not possible for applications
+    that are not run by \verb!root!.
+  \end{itemize}
+  \url{https://www.virtualbox.org/manual/ch06.html#nat-limitations}
+  
+  \item NAT network:  the experimental version of NAT
+  
+  \item \textcolor{red}{Bridge Networking}: more advanced networkings to be used
+  in network simulation and running servers in a guest.
+  
+  Bridging to a wireless interface is done differently from bridging to a wired
+  interface, because most wireless adapters do not support promiscuous mode.
+  
+  \item Internal Network: create a software-based network which is visible to
+  selected virtual machines, but not to applications running on the host or to
+  the outside world
+  
+  \item Host-only Adapter: create a network containing the host and a set of 
+  virtual machines, without using the host's physical network interface.
+  
+  Here, a virtual network interface (similar to loopback interface) is created
+  on the host, providing connectivity among virtual machines and the host.
+  
+  \item Generic driver: rarely used mode
+\end{enumerate}
+
+\section{VMWare Player}
+\label{sec:VMwarePlayer}
+
+If you get error when mounting a shared folder
+\begin{verbatim}
+sudo apt-get install build-essential linux-headers-$(uname -r)
+sudo apt-get install build-essential linux-headers-$(uname -r)
+
+// reinstall the VMWare tool
+sudo ./vmware-install.real.pl
+\end{verbatim}
+
+To resize the partition, you need
+\begin{itemize}
+  \item resize from the VMWare Player: to make the image file bigger.
+  This can be done either (1) command-line, or (2) from VMWare Player in the later version
+
+\begin{verbatim}
+vmware-vdiskmanager -x 100Gb vm.vmdk
+\end{verbatim}  
+NOTE: Use \verb!Kb! or \verb!Mb! or \verb!Gb!.
+\url{http://kb.vmware.com/selfservice/microsites/search.do?language=en_US&cmd=displayKC&externalId=1004047}
+  
+  
+  \item resize the partition in the guest O/S: this can be done using
+  GParted LiveCD \url{http://gparted.org/download.php}
+  
+  NOTE: You may need to run GParted from the guest O/S first to move some partitions to
+  make enough space for the primary one, then boot from the GParted LiveCD
+  to resize the primary partition.
+  
+  NOTE: Once you reboot the guest O/S, press F2 to change the boot order to CD ROM
+  before Physical Disk, and then quickly connect the CD ISO File
+  from the Menu option of VMWare Player.
+  \url{http://xmodulo.com/how-to-change-the-boot-order-of-guest-vm-on-vmware-player.html}
+\end{itemize}
+
+\section{VirtualBox} 
+\label{sec:VirtualBox_howto}
+
+VirtualBox's 64-bit guest support (added with version 2.0) and 
+multiprocessing (SMP, added with version 3.0) both require hardware 
+virtualization to be enabled. (This is not much of a limitation since the 
+vast majority of today's 64-bit and multicore CPUs ship with hardware 
+virtualization anyway; the exceptions to this rule are e.g. older Intel 
+Celeron and AMD Opteron CPUs.)".
+
+VT is required to install 64-bit guest O/S. To enable VT, we need to restart and
+adjust BIOS (UEFI) setting. Check if VT (Virtualization Technology) is enabled ?
+\url{http://yoyoclouds.wordpress.com/2012/04/25/how-to-check-whether-your-pc-has-virtualization-enabled-or-not/}
+
+
+Once the guest O/S is installed, we need to install {\bf Guest Additions}
+(mount the VBoxGuestAdditions.iso file) which is important  as it consist of
+device drivers and system applications that optimize the guest operating system for better performance and usability
+\url{https://www.virtualbox.org/manual/ch04.html\#idp48295392}
+\begin{itemize}
+  \item share folder with host O/S
+  
+  \item mouse pointer integration: move out of or into the guest O/S
+  transparently
+  
+  \item better video support: 
+  
+  NOTE: We do not need to install Nvidia proprietary driver, once Guest
+  Additions is installed, it should install the correct video driver from
+  there.
+  
+\end{itemize}
+
+\url{http://trivialproof.blogspot.com/2011/01/resizing-virtualbox-virtual-hard-disk.html}
+
+\subsection{OpenGL and graphics}
+
+Run the command
+\begin{verbatim}
+cd /media/VBOXADDITIONS*
+sudo sh ./VBoxLinuxAdditions.run
+\end{verbatim}
+
+Run the command and restart the machine
+\begin{verbatim}
+sudo apt-get install virtualbox-guest-dkms \
+           virtualbox-guest-utils virtualbox-guest-x11
+\end{verbatim}
+\url{http://askubuntu.com/questions/451805/screen-resolution-problem-with-ubuntu-14-04-and-virtualbox}
+
+The /etc/xorg.conf file
+{\tiny
+\begin{verbatim}
+#VirtualBox Linux Guest xorg.conf
+
+Section "Device"
+   Identifier   "Configured Video Device"
+   Driver      "vboxvideo"
+EndSection
+
+Section "Monitor"
+   Identifier   "Configured Monitor"
+EndSection
+
+Section "Screen"
+   Identifier   "Default Screen"
+   Monitor      "Configured Monitor"
+   Device      "Configured Video Device"
+EndSection
+
+Section "InputDevice"
+        Identifier  "vboxmouse"
+        Driver          "vboxmouse"
+        Option          "CorePointer"
+        Option          "Device"        "/dev/input/mice"
+EndSection
+
+Section "ServerLayout"
+        Identifier      "Default Layout"
+        Screen          "Default Screen"        0 0
+        InputDevice     "vboxmouse"
+EndSection
+\end{verbatim}
+}
+
+To add VMGL (3D Acceleration support), we add another part
+\begin{verbatim}
+#VirtualBox Linux Guest xorg.conf with 3D Acceleration Support
+
+Section "Module"
+    Load "vmglext"
+EndSection
+\end{verbatim}
+
+\url{http://forum.notebookreview.com/threads/190-42-nvidia-driver-ubuntu-virtualbox.436427/}
+
+
+\url{https://www.virtualbox.org/manual/ch04.html\#guestadd-3d}
+
+
+\subsection{VirtualBox Python}
+
+\url{http://stackoverflow.com/questions/2652146/what-is-the-advantage-of-using-python-virtualbox-api}
+
+\subsection{Resize harddisk}
+
+Currently, resize VDI is supported.
+
+Virtualbox has a command line \verb!VBoxManage.exe!
+\begin{itemize}
+  \item Configure the path to PowerShell script 
+\begin{verbatim}
+C:\Program Files\Oracle\VirtualBox
+\end{verbatim}
+  \item Suppose the image file is in 
+\begin{verbatim}
+C:\Users\thoangtr\VirtualBox VMs\UDesktop
+\end{verbatim}
+
+  \item Open Powershell, jump to that location, and type
+\begin{verbatim}
+VBoxManage clonehd "source.vmdk" "cloned.vdi" --format vdi
+VBoxManage modifyhd "cloned.vdi" --resize 51200
+VBoxManage clonehd "cloned.vdi" "resized.vmdk" --format vmdk
+\end{verbatim}
+
+  \item Remount the disk
+  
+If you get UUID already registered error, then you need to delete the VM
+instance, restart and recreate a new Ubuntu guest O/S instance, but use an
+existing VM file instead of creating a new file.
+
+  \item Next-step is to resize the partition, which can be done using either (1)
+  gparted booted form the ISO, (2) when the guest O/S is running
+  
+  \url{http://askubuntu.com/questions/24027/how-can-i-resize-an-ext-root-partition-at-runtime}
+\end{itemize}
+\url{http://stackoverflow.com/questions/11659005/how-to-resize-a-virtualbox-vmdk-file}
+
+\url{http://derekmolloy.ie/resize-a-virtualbox-disk/}
+
+
+\subsection{Mount shared folder with host O/S}
+
+\url{https://www.virtualbox.org/manual/ch04.html\#sharedfolders}
+
+When VM is running, click on VirtualBox menu 
+\begin{verbatim}
+Devices
+  Shared Folder settings...
+\end{verbatim}
+
+The shared folder is mounted in
+\begin{verbatim}
+/media/sf_<name>
+\end{verbatim}
+We need to reboot the machine for the shared folder to be seen.
+
+However, the owner is \verb!root:vboxsf! and thus it cannot be accessible by the
+current owner. The solution is to add the current user to the \verb!vboxsf!
+group
+\begin{verbatim}
+sudo gpasswd -a <username> vboxsf
+\end{verbatim}
+and reboot the system or re-login. 
+
+\subsection{Troubleshoot}
+
+\begin{verbatim}
+kernel panic - not syncing fatal exception
+\end{verbatim}
+Solution:
+\begin{verbatim}
+Go to your virtual machine -> Settings -> System
+Then change Chipset from PIIX3 to ICH9 and enable "Enable IO APIC"
+\end{verbatim}
+\url{https://forums.virtualbox.org/viewtopic.php?f=6&t=54926}
+
+Before VirtualBox 4.0, PIIX3 is the only supported chipset. For newer guest O/S,
+it is recommended to use ICH9 chipset, which supports PCI express, three PCI
+buses, PCI-to-PCI bridges and Message Signaled Interrupts (MSI)
+
+
+\section{CUDA-support}
+
+\url{http://www.acceleware.com/blog/state-gpu-virtualization-cuda-applications-2014}
+
+
+\section{QEMU}
+\label{sec:QEMU}
+
+Unlike other virtualization programs (e.g. VirtualBox),
+QEMU does not provide a GUI. You need to run from the command-line, and specify
+with O/S image file, what configuration you need (e.g. enable NIC, CD-ROM,
+\ldots or not) at command-line each time you run, unless you have created a
+custom script to start your virtual machine(s). 
+
+\begin{itemize} 
+  \item    QEMU w/ kqemu module: is open-source and uses hardware virtualization
+  (not as powerful as hardware-assisted virtualization) that emulates CPUs
+  through dynamic binary translation.
+  
+  \item KQEMU was a Linux kernel module to speed up x86 or x86-64 guest on
+  platforms of the same CPU architecture.
+  
+  \item QVM86 was a GNU GPLv2 licensed drop-in replacement for the then
+  closed-source KQEMU. The developers of QVM86 ceased development in January, 2007.
+  
+\end{itemize}
+
+Purchasing ARM development hardware can be an expensive proposition. Thankfully,
+the QEMU developers have added the functionality of emulating the ARM processor
+to QEMU. You can use QEMU for two purposes in this arena - to run an ARM
+program, and to boot and run the ARM kernel.
+
+QEMU runs on x86 systems running Linux, Microsoft Windows, and some UNIX
+platforms, and can host target systems from a range of different
+microprocessors, i.e.  QEMU can run OSes and programs made for one machine (e.g.
+an ARM board) on a different machine (e.g. your own PC). By using dynamic
+translation, it achieves very good performance.
+
+\subsection{Build QEMU on host machine to run on a different machine}
+
+\url{http://www.linux-kvm.org/page/PowerPC_Host_Userspace#Building_Qemu_for_PowerPC_KVM}
+
+
+\subsection{Build QEMU on host machine to run there}
+
+
+\begin{enumerate}
+  \item Download QEMU:
+    
+  \item Build QEMU as a virtual machine for a target machine:
+
+\begin{verbatim}
+./configure --target-list=ppc-softmmu --prefix=/home/devel/bin \
+         --disable-vnc   --enable-sdl
+\end{verbatim}
+
+
+NOTE: To build in on MacOS, add option
+\begin{verbatim}
+./configure --target-list=ppc-softmmu --prefix=/home/devel/bin \
+         --disable-vnc   --enable-cocoa 
+\end{verbatim}
+In Mac OS, to install a package run \verb!port! command
+\begin{verbatim}
+sudo port install glib-2.12
+sudo port selfupdate
+sudo port upgrade outdated
+\end{verbatim}
+\url{https://theintobooks.wordpress.com/2012/10/30/installing-qemu/}
+\end{enumerate}
+
+
+
+Eventually, you have three types of binary files
+\begin{itemize}
+  \item \verb!qemu-! (qemu-arm): to execute the binary file on target machine
+  
+  \item \verb!qemu-system-! (qemu-system-arm): to boot the target O/S
+
+\verb!qemu-system-*! are used to run the virtualized guest
+NOTE: \verb!qemu-kvm! is qemu built to take advantage of hardware virtualization
+features. \verb!qemu-system-x86_64! is just the emulator without hardware
+virtualization features.
+
+\end{itemize}
+
+{\bf EXPLAIN}: If you run \verb!./configure!, is shows all supported target CPU
+{\footnotesize
+\begin{verbatim}
+target list        aarch64-softmmu alpha-softmmu arm-softmmu cris-softmmu i386-softmmu 
+                lm32-softmmu m68k-softmmu microblaze-softmmu
+               microblazeel-softmmu mips-softmmu mips64-softmmu mips64el-softmmu 
+               mipsel-softmmu moxie-softmmu or32-softmmu 
+               ppc-softmmu ppc64-softmmu ppcemb-softmmu 
+               ppc-linux-user ppc64-linux-user ppc64abi32-linux-user
+               ppc64le-linux-user
+               s390x-softmmu sh4-softmmu sh4eb-softmmu 
+               sparc-softmmu sparc64-softmmu tricore-softmmu unicore32-softmmu 
+               x86_64-softmmu xtensa-softmmu xtensaeb-softmmu 
+               aarch64-linux-user alpha-linux-user arm-linux-user armeb-linux-user cris-linux-user 
+               i386-linux-user m68k-linux-user microblaze-linux-user microblazeel-linux-user 
+               mips-linux-user mips64-linux-user mips64el-linux-user mipsel-linux-user 
+               mipsn32-linux-user mipsn32el-linux-user or32-linux-user  
+               s390x-linux-user sh4-linux-user sh4eb-linux-user 
+               sparc-linux-user sparc32plus-linux-user 
+               sparc64-linux-user unicore32-linux-user x86_64-linux-user
+\end{verbatim}
+}
+  
+E.g.: MIP405T is the target machine (which uses PowerPC cpu)
+\begin{verbatim}
+./configure --target-list=ppc-softmmu
+
+ # PowerPC 64-bit
+./configure --target-list=ppc64-softmmu
+\end{verbatim}
+which build a binary at \verb!./ppc64-softmmu/qemu-system-ppc64.!
+
+\begin{verbatim}
+ # x86 CPU
+./configure --target-list=i386-softmmu
+
+ # ARM CPU
+./configure --target-list=arm-softmmu
+\end{verbatim}
+
+Example: you can build for a few targets
+\begin{verbatim}
+./configure --target-list="arm-softmmu arm-linux-user"
+\end{verbatim}
+  
+{\bf IMPORTANT}: When you compile, make sure you have support for \verb!sdl!
+   or \verb!gtk!
+\begin{verbatim}
+./configure --disable-vnc --enable-sdl
+\end{verbatim}
+You may want to install first, run
+\begin{verbatim}
+sudo aptitude
+\end{verbatim}
+and (in Ubuntu Hardy 8.x) select \verb!Libsdl1.2-dev!,
+\verb!libsdl-image1.2-dev!; or in newer version of Ubuntu
+%and nothing happens, then you need to install \verb!sdl-devel!
+\begin{verbatim}
+sudo apt-get install libsdl-console
+sudo apt-get install libsdl-console-dev
+\end{verbatim}
+
+
+%   \item 
+%    \verb!qemu-arm! and \verb!qemu-system-arm!, in the source code directory. The
+%    first is used to execute ARM binary files, and the second to boot the ARM OS.
+  
+
+\subsection{QEMU command-line}
+\label{sec:QEMU-command-line-options}
+
+Use \verb!qemu-system-*! for booting the O/S kernel
+\begin{verbatim}
+Linux/Multiboot boot specific:
+-kernel bzImage use 'bzImage' as kernel image
+-append cmdline use 'cmdline' as kernel command line
+-initrd file    use 'file' as initial ram disk
+-dtb    file    use 'file' as device tree image
+-cpu <cpu name>
+-M <board>       
+-bios <output/ppc405_rom.bin>  the location of the BIOS .bin file
+                               (choose the right one depending on the target
+                               machine)
+\end{verbatim}
+\begin{itemize}
+  \item To find out the list of board supported, type
+  either 
+\begin{verbatim}
+qemu-system-ppc -M ?
+qemu-system-ppc -M help
+\end{verbatim}
+
+and you use the first column to run
+\begin{verbatim}
+qemu-system-ppc -M prep
+\end{verbatim}
+
+  \item To find out the list of CPU supported, type either 
+\begin{verbatim}
+qemu-system-ppc  -cpu ?
+qemu-system-ppc  -cpu help
+\end{verbatim}
+
+ OUTPUT:
+\begin{verbatim}
+$ qemu-system-ppc -cpu ? | grep 405
+PowerPC 405D2            PVR 20010000
+PowerPC 405GPa           PVR 40110000
+PowerPC 405GPb           PVR 40110040
+PowerPC 405CRa           PVR 40110041
+PowerPC 405GPc           PVR 40110082
+PowerPC 405GPd           PVR 401100c4
+PowerPC 405GP            (alias for 405GPd)
+PowerPC 405CRb           PVR 401100c5
+PowerPC 405CRc           PVR 40110145
+PowerPC 405CR            (alias for 405CRc)
+PowerPC 405GPe           (alias for 405CRc)
+PowerPC Npe405H          PVR 414100c0
+PowerPC Npe405H2         PVR 41410140
+PowerPC 405EZ            PVR 41511460
+PowerPC Npe405L          PVR 416100c0
+PowerPC 405D4            PVR 41810000
+PowerPC 405              (alias for 405D4)
+PowerPC 405LP            PVR 41f10000
+PowerPC 405GPR           PVR 50910951
+PowerPC 405EP            PVR 51210950
+\end{verbatim}  
+and you use the second column to run
+\begin{verbatim}
+qemu-system-ppc -cpu 405GPd
+\end{verbatim}
+\end{itemize}
+
+
+Use \verb!qemu-*! for running a program as emulated on the target machine 
+\begin{verbatim}
+$ qemu -cpu ?
+x86           [n270]
+x86         [athlon]
+x86       [pentium3]
+x86       [pentium2]
+x86        [pentium]
+x86            [486]
+x86        [coreduo]
+x86          [kvm32]
+x86         [qemu32]
+x86          [kvm64]
+x86       [core2duo]
+x86         [phenom]
+x86         [qemu64]
+x86           [host]
+\end{verbatim}  
+and we use the second column to specify the CPU type
+\begin{verbatim}
+qemu -cpu coreduo 
+\end{verbatim}
+
+\url{http://wiki.qemu.org/download/qemu-doc.html}
+
+\subsection{Run an embedded program}
+
+Develop the program that runs on that target machine:
+\begin{itemize}
+   \item Write the code
+\begin{verbatim}
+#include<stdio.h>
+int main(){
+    printf("Welcome to Open World\n");
+}
+\end{verbatim}
+   
+   \item Compile the code: Configure the proper cross-compiler toolchain:
+
+If you want the code to run directly (without the target O/S) with
+\verb!qemu-arm!, then you should compile with \verb!-static!
+\begin{verbatim}
+arm-none-linux-gnueabi-gcc test.c -o test -static
+\end{verbatim}  
+
+  E.g. if you want to build qemu to target PowerPC machine, use the
+  cross-compiler that support
+   
+   \item Run the code
+ 
+ E.g.: on ARM machine  
+ \begin{verbatim}
+ #qemu-arm -L /your-path/arm-2010.09/arm-none-linux-gnueabi/libc ./test 
+ \end{verbatim}
+\end{itemize}
+
+\subsection{Create a new virtualized system}
+\label{sec:qemu-create-OS-image}
+
+To run QEMU you will need a hard disk image, unless you are booting a live
+system from CD-ROM or the network
+\url{http://www.aurel32.net/info/debian_arm_qemu.php}
+\url{http://opensourceforu.efytimes.com/2011/05/quick-quide-to-qemu-setup/}
+\url{http://opensourceforu.efytimes.com/2011/06/qemu-for-embedded-systems-development-part-1/}
+\url{http://opensourceforu.efytimes.com/2011/07/qemu-for-embedded-systems-development-part-2/}
+\url{http://opensourceforu.efytimes.com/2011/08/qemu-for-embedded-systems-development-part-3/}
+
+
+\subsubsection{Create a hard-disk image file to host the guest O/S to
+use with QEMU}
+
+  QEMU supports several image types
+  \begin{itemize}
+    \item raw:  
+    least I/O overhead, but can waste a lot of space, as not-used space on the
+    guest cannot be used on the host.
+    
+    
+    \item cloop
+    
+    \item cow: copy-on-write format, support for historical reason only
+    
+    \item qcow: old QEMU copy-on-write, replaced by qcow2
+    
+    \item qcow2: 
+    
+    \item vmdk: VMWare 3,4 or 6 image file format
+    
+    \item vdi: VirtualBox 1.1. compatible file format
+  \end{itemize}
+
+
+You can use the prebuilt for QEMU:
+  Aurelien Jarno of Debian has prepared a number of pre-packaged Debian qemu
+  images for several architectures, including ARM, Sparc, PowerPC, x86-64, and
+  i386: \url{http://people.debian.org/~aurel32/qemu/}
+  
+
+If you have an image file, you can test it
+\begin{verbatim}
+qemu -m 512M -cdrom <isoname>.iso
+\end{verbatim}
+
+You can build your own
+\begin{enumerate}
+  \item First, create a blanc disc image (default: \verb!raw! format)
+
+Create 3GB blanc image with \verb!qcow2! format
+\begin{verbatim}
+qemu-img create -f qcow2 winxp.img 3G
+\end{verbatim}  
+It just means that your new system is limited up to 5GB - if the new sytem
+takes only 1,2 GB also the image will only be at 1,2GB.
+
+  
+  \item Second, we can install the O/S to that blanc image from either (1)
+  image file, (2) real CD-ROM
+
+(1) install from ISO file, and use 256MB RAM (\verb!-m 256!)  
+\begin{verbatim}
+qemu -m 256 -hda winxp.img -cdrom winxpsp2.iso -boot d
+\end{verbatim}
+NOTE: Default RAM i 128MB, here we use \verb!-m 256! (256MB).
+You use \verb!-boot d! to means that you want to boot from the second device
+(CD-ROM).
+
+(2) install from a real CD-ROM/DVD (\verb!-cdrom! option and the location)
+\begin{verbatim}
+qemu -m 256 -hda winxp.img -cdrom /dev/cdrom -boot d 
+     -net nic -net user -localtime
+\end{verbatim}
+\verb!"-user -net"! is important to have internet access within your new system.
+
+
+The install may take some time. After the install, qemu will try to boot the new
+OS itself. If the boot was failed, it's okay. If
+that happens: just close the qemu window and type the following command into
+your konsole to launch your new OS:
+\begin{verbatim}
+qemu -m 256 -hda winxp.img -boot c 
+     -net nic -net user -localtime
+\end{verbatim}
+Now, you don't need the CD-ROM.
+You use \verb!-boot c! to means that you want to boot from the first device
+(\verb!-hda!).
+
+
+\end{enumerate}
+
+NOTE: \verb!kqemu! improves the speed of guest O/S
+\begin{verbatim}
+# 32-bit
+qemu -m 256 -hda winxp.img -cdrom winxpsp2.iso -kernel-kqemu
+
+# 64-bit
+qemu-system-x86_64 -m 256 -hda winxp.img -cdrom winxpsp2.iso -kernel-kqemu
+\end{verbatim}
+
+You can run upto 4 image files, with one for the O/S, the other ones for the
+storage
+\begin{verbatim}
+qemu -m 256 -hda winxp.img -hdb pagefile.img -hdc testdata.img 
+     -hdd tempfiles.img -kernel-kqemu
+\end{verbatim}
+This gives additional space to a QEMU guest without reconfiguring the primary
+image.
+
+\url{https://en.wikibooks.org/wiki/QEMU/Images}
+
+\subsection{Load O/S from image file}
+\label{sec:qemu-load-OS}
+
+You can either (1) build the kernel for the target machine
+(Sect.\ref{sec:build_Linux-kernel}), or (2) create an image and install the O/S
+on it (Sect.\ref{sec:qemu-create-OS-image}).
+
+You must make sure that the kernel is able to mount the root filesystem. It must
+have drivers for the filesystem type and for all the layers involved in the
+block device (disk controller (SCSI/SATA/IDE/USB/... adapter), partition type,
+etc.).
+
+\begin{itemize}  
+  \item Use the final \verb!uImage! file
+\begin{verbatim}
+# file arch/arm/boot /uImage 
+uImage: u-boot legacy uImage, Linux-2.6.37, Linux/ARM, OS Kernel Image (Not compressed), 1575492 bytes, Thu May  5 17:11:30 2011, Load Address: 0x00008000, Entry Point: 0x00008000, Header CRC: 0xFC6898D9, Data CRC: 0x5D0E1B70
+\end{verbatim}
+
+  \item Create a  little hard-disk 
+\begin{verbatim}
+qemu-img create disk.img 512M
+mkfs.ext2 -F disk.img
+\end{verbatim}
+
+  \item Now we can load the kernel: 3 supported types (uImage, ELF, and raw
+  binary blob)
+
+Using \verb!-initrd! is optional which specify the initramfs
+(Sect.\ref{sec:initramfs}) or initrd (Sect.\ref{sec:initrd}). If you integrate
+the initramfs into the kernel, then you don't need to pass this information.
+\begin{verbatim}
+qemu-system-i386 -hda disk.img -kernel ../linux-3.3/arch/x86/boot/bzImage
+              -initrd my-initramfs.cpio
+
+qemu-system-ppc -m 258M -kernel uImage -nographic 
+            -append "console=ttyS0 -serial file:/tmp/qemu-output.log"
+
+\end{verbatim}
+
+NOTE: You can get initrd image 
+\url{http://www.aurel32.net/info/debian_arm_qemu.php}
+
+
+NOTE: We use \verb!"-serial file:/tmp/qemu-output.log"! to get the kernel
+dumped to a file outside the virtual system.
+This output is particularly helpful if you are having trouble booting the
+system, in which case you may also wish to remove "rhgb" and "quiet" from the kernel boot parameters.
+
+% Use QEMU to load the kernel built for target machine, e.g. running ReactOS
+% inside QEMU on Linux
+% \begin{verbatim}
+% $>qemu -hda c.img -m 256
+% \end{verbatim}
+% Replace linux-0.2.img with the name of your guest OS image file.
+
+
+ Example:
+\begin{verbatim}
+ qemu-system-arm -M versatilepb -m 128M -kernel
+    /home/manoj/Downloads/linux-2.6.37/arch/arm/boot/uImage
+\end{verbatim}
+
+If you get 
+\begin{verbatim}
+VNC Server running
+\end{verbatim}
+then make sure you build QEMU with SDL support, and then rerun with options
+either
+\begin{verbatim}
+-gtk
+-sdl
+-curses	
+\end{verbatim}
+NOTE:  if system that you're starting has menus in it, so that cant be displayed
+in ncurses mode and you need to use SDL.
+
+
+The kernel will crash at the point where it searches for a root filesystem
+(RFS), which you didn't specify in the above command. Potential error messages
+\begin{verbatim}
+ "No NFS Server available giving up"
+ "Root Floppy"
+  fix the root option
+\end{verbatim}
+
+   \item Create a RFS: Sect.\ref{sec:create-RFS-BusyBox}
+
+When the kernel boots, it mounts rootfs as its filesystem, and starts the hello
+   program as init for ARM Versatile Platform Baseboard (versatilepb)
+\begin{verbatim}
+# qemu-system-arm -M versatilepb -m 128M 
+       -kernel /home/manoj/Downloads/linux-2.6.37/arch/arm/boot/uImage 
+       -initrd  rootfs -append "root=/dev/ram rdinit=/hello"
+\end{verbatim}   
+Here, we use \verb!-append! to add addition kernel
+command line options, e.g. \verb!"root=/dev/ram"!.
+
+   \url{http://opensourceforu.efytimes.com/2011/06/qemu-for-embedded-systems-development-part-1/}
+   
+   
+   
+\end{itemize}
+
+\subsection{Load O/S with GUI}
+
+Once you load an O/S (Sect.\ref{sec:qemu-load-OS}), if it has a GUI and you want
+to use your mouse with it, double-click on the window and QEMU will grab your
+mouse. To make QEMU release your mouse again, hold down the Control and Alt keys
+simultaneously, then let go.
+
+
+\subsection{emulate ARM}
+
+There are two popular platforms: Integrator or a Versatile platform
+\begin{itemize}
+  \item Versatile: has a hard disk SCSI controller, an Ethernet card and a
+  graphical display.
+  
+\end{itemize}
+
+
+\subsection{emulate PowerPC}
+\label{sec:QEMU-emulate-PowerPC}
+
+The default machine when not passing \verb!-M! for \verb!qemu-system-ppc! is
+g3beige (PowerMac G3) and default cpu is PowerPC 750. To see the list of
+supported machine
+\begin{verbatim}
+qemu-system-ppc -M ?
+\end{verbatim}
+Output is
+\begin{verbatim}
+Supported machines are:
+bamboo               bamboo
+g3beige              Heathrow based PowerMAC (default)
+mac99                Mac99 based PowerMAC
+mpc8544ds            mpc8544ds
+none                 empty machine
+ppce500              generic paravirt e500 platform
+prep                 PowerPC PREP platform
+ref405ep             ref405ep
+taihu                taihu
+virtex-ml507         Xilinx Virtex ML507 reference design
+\end{verbatim}
+
+
+The default machine when not passing \verb!-M! for \verb!qemu-system-ppc64! is
+\begin{itemize}
+  \item mac99 (PowerMac G3 ): which is not being actively maintained, and represents a
+bizarre hybrid of components that never actually existed as a real system.
+ 
+  \item pseries: which is actively maintained and works well with most modern
+  ppc64 Linux distributions as a guest
+  
+  \url{https://lists.gnu.org/archive/html/qemu-ppc/2013-06/msg00560.html}
+
+{\footnotesize  
+\begin{verbatim}
+---
+ hw/ppc/mac_newworld.c | 3 ---
+ hw/ppc/spapr.c        | 1 +
+ 2 files changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/hw/ppc/mac_newworld.c b/hw/ppc/mac_newworld.c
+index 61c25a4..d8e4db3 100644
+--- a/hw/ppc/mac_newworld.c
++++ b/hw/ppc/mac_newworld.c
+@@ -458,9 +458,6 @@ static QEMUMachine core99_machine = {
+     .desc = "Mac99 based PowerMAC",
+     .init = ppc_core99_init,
+     .max_cpus = MAX_CPUS,
+-#ifdef TARGET_PPC64
+-    .is_default = 1,
+-#endif
+     DEFAULT_MACHINE_OPTIONS,
+ };
+ 
+diff --git a/hw/ppc/spapr.c b/hw/ppc/spapr.c
+index 218ea23..5363c3f 100644
+--- a/hw/ppc/spapr.c
++++ b/hw/ppc/spapr.c
+@@ -971,6 +971,7 @@ static void ppc_spapr_init(QEMUMachineInitArgs *args)
+ static QEMUMachine spapr_machine = {
+     .name = "pseries",
+     .desc = "pSeries Logical Partition (PAPR compliant)",
++    .is_default = 1,
+     .init = ppc_spapr_init,
+     .reset = ppc_spapr_reset,
+     .block_default_type = IF_SCSI,
+-- 
+1.8.1.4
+\end{verbatim}
+}
+\end{itemize}
+
+
+\url{http://ports.ubuntu.com/ubuntu-ports/dists/precise/main/installer-powerpc/current/images/powerpc/netboot/}
+download: mini.iso, initrd.gz, vmlinux
+
+and run
+\begin{verbatim}
+qemu-system-ppc -m 1024 -kernel vmlinux -cdrom mini.iso -boot d
+\end{verbatim}
+We need to use \verb!-kernel! option (with the kernel image file), and 
+\verb!-initrd! 
+
+
+Emulate netbsd/P2020 platform
+\begin{verbatim}
+qemu-system-ppc -cpu e500v2 -m mpc8544ds -cdrom <my_bootable.iso) -boot d,
+\end{verbatim}
+mpc8544ds is the board, \verb!e500v2! is the Book E FreeScale MPC85xx (e500
+core) CPU on board.
+
+\textcolor{red}{PPC64}:
+Start the blank image to install the guest O/S
+\begin{verbatim}
+qemu-system-ppc64 -nographic -hda debian-sid-ppc64.qcow2 -kernel vmlinux -initrd
+initrd.gz -append "console=ttyPZ0 libata.dma=0 debian-installer/allow_unauthenticated=true"
+\end{verbatim}
+\begin{itemize}
+  \item \verb!console=ttyPZ0!: needed to get the console working when using
+  \verb!-nographic!
+  
+  \item \verb!libdata.dma=0!: disable DMA on ATA controller (making the
+  controller more stables)
+  
+  \item \verb!debian-installer/allow_unauthenticated=true!: disable security
+\end{itemize}
+
+Start the image with installed guest O/S
+\begin{verbatim}
+qemu-system-ppc64 -nographic -hda debian-sid-ppc64.qcow2 -kernel
+vmlinux-3.2.0-4-powerpc64 -initrd initrd.img-3.2.0-4-powerpc64 -append "console=ttyPZ0 libata.dma=0 root=/dev/sda3"
+\end{verbatim}
+\url{http://www.themccallums.org/nathaniel/2013/03/30/qemu-with-powerpc64-guests/}
+
+\url{http://jk.ozlabs.org/blog/post/157/powerpc-testing-without-powerpc-hardware/}
+
+\subsection{Networking}
+
+\url{http://www.nuke24.net/docs/2012/QEMUNetworking.txt}
+
+\begin{verbatim}
+qemu-system-ppc
+-netdev socket,id=mynetdev123,udp=localhost:6666,localaddr=localhost:6667 \
+	  -device e1000,netdev=mynetdev123 \
+	  debian_squeeze_i386_standard.bin
+\end{verbatim}
+
+\subsection{Troubleshooting}
+\label{sec:QEMU-troubleshooting}
+
+\begin{verbatim}
+Disabling PIE due to missing toolchain support
+\end{verbatim}
+When you try to compile QEMU. 
+
+
+
+\begin{verbatim}
+Unable to find PowerPC CPU definition
+\end{verbatim}
+SOLUTION: make sure you use the name from the second column of the list of
+supported CPU (the list can be displayed using \verb!-cpu ?! option)
+
+
+\begin{verbatim}
+qemu: hardware error: Bus model not supported on OldWorld Mac machine
+\end{verbatim}
+The default mache model for qemu-system-ppc is g3beige.
+
+\begin{verbatim}
+qemu: hardware error: Only 6xx bus is supported on PREP machine
+\end{verbatim}
+\url{http://git.greensocs.com/fkonrad/mttcg/commit/dd37a5e4d7ebc4e698f4c69ad2a5ee922824703f}
+
+
+\begin{verbatim}
+qemu-system-ppc: Could not load PowerPC BIOS 'ppc405_rom.bin'
+\end{verbatim}
+SOLUTION: Download the file
+\url{https://code.google.com/p/cellos/source/browse/trunk/output/?r=2}
+and save to \verb!<qemu-source>/pc-bios/ppc405_rom.bin!, modify \verb!Makefile!
+file (add \verb!ppc405_rom.bin! to BLOBS macro) and recompile QEMU.
+
+EXPLAIN: If you go to the source of QEMU and type
+\begin{verbatim}
+find . -iname "*.bin"
+\end{verbatim}
+the file \verb!ppc405_rom.bin! is not available there
+\begin{verbatim}
+./roms/openbios/forth/device/romfont.bin
+./pc-bios/vgabios-vmware.bin
+./pc-bios/vgabios-cirrus.bin
+./pc-bios/sgabios.bin
+./pc-bios/vgabios-stdvga.bin
+./pc-bios/linuxboot.bin
+./pc-bios/ppc_rom.bin
+./pc-bios/vgabios.bin
+./pc-bios/bios.bin
+./pc-bios/slof.bin
+./pc-bios/multiboot.bin
+./pc-bios/vgabios-qxl.bin
+./pc-bios/optionrom/linuxboot.bin
+./pc-bios/optionrom/multiboot.bin
+./pc-bios/optionrom/kvmvapic.bin
+./pc-bios/QEMU,cgthree.bin
+./pc-bios/QEMU,tcx.bin
+./pc-bios/spapr-rtas.bin
+./pc-bios/kvmvapic.bin
+./pc-bios/bios-256k.bin
+./dtc/tests/incbin.bin
+\end{verbatim}
+
+
+\begin{verbatim}
+qemu: hardware error: PowerPC 601 / 620 / 970 need a 1MB BIOS
+\end{verbatim}
+
+
+\section{PearPC (host: x86, target: PowerPC)}
+\label{sec:PearPC}
+
+PearPC is another new emulator that can use JIT dynamic translation, but only on
+an x86 host with a PowerPC target.
+
+\url{http://www.ibm.com/developerworks/library/pa-emulation/}
+
+\section{Migrate a virtual machine to a physical machine}
+
+We need a Ubuntu LiveCD, sticky-back-plastic, and an external USB disk (if you
+don't have more than one internal disks).
+
+\begin{enumerate}
+  \item Convert the disk formats used by these VM-tools (VMWare, VirtualBox)
+  to a standard imaging format
+\begin{verbatim}
+cd /media/wherever-the-image-is/
+
+# for VMWare
+sudo apt-get install qemu-kvm
+qemu-img convert your-vmware-disk.vmdk -O raw disk.img
+
+# For VirtualBox
+VBoxManage internalcommands converttoraw your-virtualbox-disk.vdi /dev/sdX
+\end{verbatim}
+
+  \item Move the new image file to a new location, i.e. write the image to
+  overwrite the disk on which will be used as the boot disk.
+\end{enumerate}
+
+
+\url{http://askubuntu.com/questions/32499/migrate-from-a-virtual-machine-vm-to-a-physical-system}
+

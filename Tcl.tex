@@ -1,0 +1,180 @@
+\chapter{Tcl scripting language (Tool Command Language)}
+\label{chap:Tcl}
+
+\begin{verbatim}
+cd tcl8.6.6
+export SRCDIR=`pwd`
+cd unix
+./configure --prefix=/modules/tcl/8.6.6 --enable-64bit
+\end{verbatim}
+
+\url{http://www.linuxfromscratch.org/blfs/view/svn/general/tcl.html}
+
+\section{Introduction}
+\label{sec:Tcl}
+
+
+Tcl stands for {\bf Tool Command Language}. It is the most popular embedded
+language. A script file is a series of commands, each on its own line. The first
+word is the command name, and nexts are its arguments.
+
+Similar to DOS, or bash scripting language, we can easily extend the list of
+commands.
+
+\section{Commands}
+\label{sec:Tcl-commands}
+
+\textcolor{red}{In Tcl, every value is a string}. As white spaces are used to
+separate words, if we want to say multiple-word string as a single value, we
+need to use backslash, braces, or quotes
+
+
+IMPORTANT: When using braces, each has to be at the beginning or end of the word
+to combine words into single string value; otherwise, it is a regular character
+as part of the word.
+
+\subsection{File/folder}
+\label{sec:tcl-file-folder}
+
+\begin{verbatim}
+//  ~ dir/ls
+glob /path/to/folder/*
+
+\end{verbatim}
+
+\subsection{I/O strings}
+\label{sec:tcl-IO}
+
+Tcl accepts no quotes because all words, including names of commands, are just
+strings.
+
+\begin{verbatim}
+//  ~ echo   (puts = put string)
+puts Hello
+
+puts "Hello World"
+puts {Hello World}
+
+\end{verbatim}
+
+\subsection{Variable: assignment}
+\label{sec:tcl-assignment}
+
+We use \verb!set! command with 2 arguments
+
+\begin{verbatim}
+
+set foo good\ afternoon
+set foo {good afternoon}
+set foo "good afternoon"
+\end{verbatim}
+
+IMPORTANT: When \verb!set! command has only 1 argument; it returns the
+argument's value (if present; otherwise return an error). 
+
+\subsection{Get variable's value or command's return value}
+
+We use \verb!$! sign before variable's name for variable substitution
+(replaced by its value). We can also use {\bf command substitution} using square
+bracket (replaced by its return value).
+
+\begin{verbatim}
+puts $foo
+
+puts [set $foo]
+\end{verbatim}
+
+IMPORTANT: When \verb!set! command has only 1 argument; it returns the
+argument's value (if present; otherwise return an error). 
+
+
+\section{Define new commands}
+\label{sec:tcl-define-new-commands}
+
+Similar to \verb!function! keyword in Bash, in Tcl, we ue \verb!proc! keyword
+
+\begin{verbatim}
+//no argument
+proc greet{}
+{
+  puts Hello!
+}
+
+// with single argument
+proc greet name
+{
+  puts "Hello, $name!"
+}
+
+
+// with multiple arguments
+proc greet {name, salute}
+{
+  puts "$salute, $name!"
+}
+
+
+// with variable number of arguments
+// the last one must name 'args
+// to traverse the list, use 'foreach' loop
+proc greet {greeting args} {
+    foreach name $args {
+        puts "$greeting, $name!"
+    }
+}
+
+// with returned value
+// NOTE The last command is returnd as the value of a procedure (IMPLICIT)
+// use 'return' statement  (EXPLICIT)
+proc commbine {part1 part2}
+{
+  set result {$part1$part2} 
+}
+proc commbine {part1 part2}
+{
+  return {$part1$part2} 
+}
+\end{verbatim}
+
+\section{loops: foreach}
+\label{sec:tcl-foreach}
+\label{sec:tcl-loop-foreach}
+
+\begin{verbatim}
+proc greet {greeting args} {
+    foreach name $args {
+        puts "$greeting, $name!"
+    }
+}
+\end{verbatim}
+
+
+
+\section{Helps}
+
+
+\url{http://wiki.tcl.tk/15009}
+
+
+\section{tclx}
+\label{sec:tclx}
+
+\begin{framed}
+TclX provides new operating system interface commands, extended file control,
+scanning and status commands and many others. Considered by many to be a
+must-have for large Tcl apps. 
+
+TclX 8.4 is installed into /usr/lib/tclx8.4.
+\end{framed}
+
+\begin{verbatim}
+/usr/lib/tclx8.4/tcllib.tcl
+\end{verbatim}
+
+\section{tcllib}
+\label{sec:tcllib}
+
+\begin{verbatim}
+http://wiki.tcl.tk/12098
+\end{verbatim}
+

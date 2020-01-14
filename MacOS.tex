@@ -1,0 +1,290 @@
+\chapter{MacOS}
+\label{chap:MacOS}
+
+\section{Mach kernel}
+\label{sec:Mach-kernel}
+
+Mach kernel was developed at CMU (from 1985 to 1994) to support O/S research,
+primarily distributed and parallel computing.
+
+Mach kernel is one of the earliest example of a {\bf microkernel}. However, not
+all versions of Mach are microkernels. 
+
+Mach 3.0 kernel is the last version, which is a true microkernel. 
+
+\subsection{Mach 2.5 kernel}
+\label{sec:Mach-2.5-kernel}
+
+\subsection{Mach 3.0 kernel}
+\label{sec:Mach-3.0-kernel}
+
+\subsection{OSF/1 Operating System}
+\label{sec:OSF/1}
+
+
+Open Source Foundation (OSF) is not-for-profit organization founded in 1988.
+NOTE: In February 1996 Open Software Foundation merged with X/Open to become The
+Open Group.
+
+OSF's UNIX reference implementation was known as "OSF/1" and was first released
+in December 1991. NOTE: Initially, the plan was to use AIX O/S from IBM;
+however, later OSF decided to implement a new UNIX-based O/S called OSF/1.
+
+OSF/1 was created within a year, and incorporated technology from
+\begin{enumerate}
+  \item Mach 2.5 micro kernel from CMU (Sect.\ref{sec:Mach-kernel})
+  
+  \item the journaled file system as well as commands and libraries from IBM
+  
+  \item secure core components from SecureWare
+  
+  \item the networking stack from BSD
+  
+  \item a new virtual memory management system invented at OSF
+\end{enumerate}
+
+Development of OSF/1 was stopped in 1996. The only major UNIX system vendor that
+use OSF/1 was Digital (or later rebranded as Digital UNIX, then Tru64 UNIX
+(after Compaq acquired Digital)).
+
+Parts from OSF/1 are used by different UNIX vendors.
+\begin{enumerate}
+
+  \item Motif 
+  
+  
+  \item Distributed Computing Environment (DCE)
+  
+  \item DME, the Distributed Management Environment 
+  
+  \item ANDF: Architecturally Neutral Distribution Format
+  
+  \item ODE: Open Development Environment which is
+   a flexible development, build and source control environment
+   
+   \item TET: Test Environment Toolkit - an open framework for building and
+   executing automated test cases;
+   
+    ODE and TET were made available as open source.
+    
+   \item the operating system OSF/1 MK, i.e. OSFMK, based on the Mach3.0 microkernel.
+
+OSF created OSFMK kernel which was a commercial version of the
+Mach kernel for use in OSF/1.   
+   
+\end{enumerate}
+The main technologies developed by OSF is ODE, TET and OSFMK. 
+
+\subsection{OSFMK kernel}
+\label{sec:OSFMK}
+
+OSFMK kernel has 
+\begin{enumerate}
+  
+  \item applicable code from the University Of Utah Mach 4 kernel (such as the
+"Shuttles" modification used to speed up message passing.) and 
+
+  \item applicable code from the many Mach 3.0 variants that sprouted off from
+  the original Carnegie Mellon University Mach 3.0 kernel, 
+  
+  \item   consists of improvements made by the OSF such as built in collocation
+  capability, realtime improvements, and rewriting of the IPC RPC component for
+  better speed use among other things.
+
+\end{enumerate}
+
+OSFMK 7.3 includes applicable code from the University of Utah Mach 4 kernel and
+applicable code from the many Mach 3.0 variants that sprouted off from the
+original Carnegie Mellon University Mach 3.0 microkernel.
+
+
+\section{XNU kernel}
+\label{sec:XNU-MacOS}
+
+XNU (XNU is an abbreviation of X is Not Unix) was originally developped by NeXT
+for the NeXTSTEP operating system, XNU was a hybrid kernel of both monolithic
+kernels and microkernels
+\begin{enumerate}
+
+  \item OSFMK 7.3 kernel: combining version 2.5 of the Mach kernel developed at Carnegie Mellon
+  University with 
+
+The basis of the XNU kernel is a heavily modified (hybrid) OSFMK 7.3 kernel
+(Sect.\ref{sec:OSFMK}) which has I/O kit and drivers. 
+
+
+As an OSFMK 7.3 kernel, XNU kernel could run several
+operating systems  in parallel, as the core of the O/S is just a separated
+process above the Mach
+  core.
+  This often reduces performance because of time consuming kernel/user mode
+  context switches and overhead stemming from mapping or copying messages
+  between the address spaces of the kernel and that of the service daemons.
+   
+  \item components from 4.3BSD: FileSystem, Networking, NKE
+  
+\end{enumerate}
+and an Objective-C API for writing drivers called Driver Kit.
+
+
+
+After Apple purchased NeXT in 1997, XNU become the  kernel for macOS O/S developed at Apple Inc.
+
+
+\section{Darwin Operating System}
+\label{sec:Darwin-OS}
+
+
+
+\section{Versions}
+
+
+
+
+\section{TrackPad}
+
+\subsection{Apple's TrackPad}
+
+\begin{itemize}
+  \item {\bf Click-n-Drag}: 
+  
+  Press the physical button, then drag. While the button is depressed, you can
+  reposition your "dragging" finger without letting go of what you're dragging.
+  
+  \item {\bf One-finger Tap-n-Drag}:
+  
+   With Dragging enabled, tap the trackpad twice and start dragging on the
+   second tap (instead of lifting your finger from the trackpad).
+   When you lift the finger after dragging, there is a delay for the drag
+   actually ends (i.e. until the button is completely depressed).
+   To end a drag immediately (without the delay) you can tap the trackpad again.
+   
+   \item {\bf Three-finger Drag}:
+   
+   Tap the trackpad with three fingers and drag all three fingers. This has the
+   same delay as the one-finger drag, so you can reposition your fingers and
+   continue dragging. Again, a single tap will end the drag without the delay.
+   
+   \item {\bf Drag Lock}:
+   In Snow Leopard, the Dragging and Drag Lock settings are in 
+   \verb!System Preferences > Trackpad!, but in Lion they were moved to 
+   \verb!System Preferences > Universal Access > Mouse & Trackpad > Trackpad!
+   \verb!Options!.
+   
+   
+   When enabled, the drag does not end after lifting your finger(s) from the
+   trackpad. Rather you have to tap/click the trackpad to end the drag.
+   
+   \item {\bf Three-Finger Drag with Inertia}
+   
+   This is like the three-finger drag, but instead of moving all three fingers,
+   you only move one finger, keeping the other two in place on the trackpad.
+   When you do this, you can use a flick gesture with the finger that's moving
+   and whatever you're dragging will continue to move after you lift that
+   finger, gradually slowing down. It works very much like scrolling with
+   inertia.
+   If you wanted to, you could actually keep one finger in place on the trackpad
+   and use two fingers for dragging, but that's a bit awkward.
+   
+   As long as you keep your other two fingers in place on the trackpad, you can
+   lift your third finger without letting go of what you're dragging.
+   
+\end{itemize}
+\url{http://apple.stackexchange.com/questions/42429/how-to-properly-use-drag-and-drop-with-macbook-pro-on-os-x-10-7}
+
+
+
+\section{Hot Corner (Shortcut using Mouse)}
+\label{sec:Hot_Corner}
+
+There is no need to use Keyboard shortcut in Apple's Mac OS X.
+You can use the Mouse, by moving the cursor to a designated position at one of
+the four corners.
+This lets you determine what actions will trigger when you move your cursor into
+a particular corner of your Mac's display. This is known as {\bf Hot Corner}.
+
+Hot Corners on the Mac have been around for-ever.
+Hot Corners are basically shortcuts for your mouse. When set up, moving the
+cursor to a corner of the screen can trigger any number of actions:
+\begin{verbatim}
+Apple menu > System Preferences and then click Mission Control
+\end{verbatim}
+where you can define which action at each of the 4 corners. Example of actions
+\begin{itemize}
+  \item minimize all windows to show the desktop
+  \item start screensaver
+  \item run launchpad
+  \item put display to sleep
+  \item run mission control - Sect.\ref{sec:Mission_Control}
+\end{itemize}
+
+You can choose how to enable the Hot Corner
+\begin{itemize}
+  \item just move the cursor 
+  \item move the cursor + press some modifiers (Sect.\ref{sec:modifier_key})
+\end{itemize}
+
+\url{http://thesweetsetup.com/quick-tip-enable-hot-corners-os-x/}
+
+\url{http://www.macobserver.com/tmo/article/how-to-astutely-use-os-x-hot-corners-without-consternation}
+
+\section{Modifier Key (Control, Option, Command, or Shift)}
+\label{sec:modifier_key}
+
+
+\section{Mission Control (Expos\'{e})}
+\label{sec:Mission_Control}
+
+Mission Control is a feature of Mac OS X which allows a user to quickly
+rearrange all the open Windows on desktop to easily locate the one he is
+interested to work on. Thus, Mission Control allows you to quickly view which
+app is openning, as well as listing all the virtual screens (including apps
+running at fullscreen). From Mission Control, you can quickly switch to any app
+or virtual screen.
+
+To open Mission Control, choose either
+\begin{itemize}
+  \item slight up on the TrackPad using 3 fingers
+  \item define a shortcut using Hot Corner - Sect.\ref{sec:Hot_Corner}
+\end{itemize}
+
+
+Mission Control in Windows:
+\begin{itemize}
+  \item MC: \url{http://sourceforge.net/projects/mcsoft/}
+  
+  \item SmallWindow: \url{http://smallwindows.sourceforge.net/}
+  
+You can assign short-cut keys as well.  
+\end{itemize}
+\url{http://www.guidingtech.com/17495/get-mac-like-mission-control-windows/}
+
+NOTE: Mission Control uses an algorithm from
+Graph Drawing, or a similar family to derive it's window layout functions.
+Just have a look at the source code for the Graphviz project. It has algorithms
+for laying out graph nodes much the same way Expose would.
+
+\section{Mouseless with Mac OS X}
+
+\url{https://kozikow.wordpress.com/2013/10/31/going-mouseless-on-mac/}
+
+\section{ssh}
+\label{sec:sshfs-MacOS}
+
+sshfs - Sect.\ref{sec:sshfs}:
+
+\url{https://github.com/osxfuse/osxfuse}
+
+\begin{verbatim}
+James R. Kozloski: 
+4:12:29 PM: I found the solution: If you call sshfs from command line just add
+-o defer_permissions. If you use Macfusion put -o defer_permissions in "SSH
+Advanced > Extra Options".  
+
+4:12:40 PM: it works now 
+
+4:13:31 PM: here are the packages to make it work: https://osxfuse.github.io/ 
+
+4:13:39 PM: both must be installed 
+\end{verbatim}
+

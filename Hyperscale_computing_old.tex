@@ -1,0 +1,110 @@
+\chapter{Hyperscale computing}
+
+\section{Traditional data center}
+\label{sec:traditional-datacenter}
+
+A traditional data center has its root using huge computer rooms. With the
+advances of personal computer's computing and low-cost high-speed networking
+equipments, it's now possible to setup servers in every company. 
+
+There are 4 levels (tiers) of data centers, defined by  Telecommunications
+Industry Association (ANSI/TIA-942, first published in 2005, then amended in
+2008 and 2010)
+\begin{itemize}
+  \item Tier 1: simplest a server room
+  \item 
+  \item 
+  \item Tier 4: the most stringent, designed to host mission critical computer
+  systems, with fully redundant subsystems and compartmentalized security zones
+  controlled by biometric access controls methods.
+\end{itemize}
+
+These data centers employ purpose-built name-brand servers from tier-one vendors
+with storage area networks  running Windows or Linux. A data center can occupy
+one room of a building, one or more floors, or an entire building. Most of the
+equipment is often in the form of servers mounted in 19 inch rack cabinets. 
+Servers differ greatly in size from 1U servers to large freestanding storage
+silos which occupy many square feet of floor space. 
+
+\textcolor{red}{Communications in data centers today are most often based on
+networks running the IP protocol suite}. Data centers contain a set of routers
+and switches that transport traffic between the servers and to the outside
+world. Redundancy of the Internet connection is often provided by using two or
+more upstream service providers. Some of the servers at the data center are used
+for running the basic Internet and intranet services needed by internal users in
+the organization, e.g. mail server, proxy server, DNS server.
+
+Network security elements are also usually deployed: firewalls, VPN gateways,
+intrusion detection systems, etc. \url{http://en.wikipedia.org/wiki/Data_center}
+
+The key advantage of such an architecture is that it's well known and IT
+staffers have extensive experience with it. In terms of networking, traditional
+servers are connected via commodity network switches running 10 Gigabit Ethernet
+(GbE) or InfiniBand. Servers and switches use proprietary management software
+but can be easily upgraded or swapped out for other vendors' gear. Each
+equipment rack has its own network switch, and these switches are connected to
+an overall backbone core switch.  
+
+
+\section{Hyperscale data centers}
+
+% As mentioned above (Sect.\ref{sec:traditional-datacenter}), a traditional data
+% centers has racks, data centers had separate racks, staffs and management tools
+% for servers, storage, routers and other networking infrastructure? 
+
+A hyperscale server is a new kind of servers that are customized for particular
+data center needs.
+The idea behind building a hyperscale architectures is to start small in order
+to keep upfront investments as low as possible. Then as demand grows, the
+infrastructure should be able to expand simply by adding nodes to the cluster.  
+
+They are also assembled from common components that can be
+easily swapped out when failures occur. This is the architecture of choice in
+100\% cloud-based businesses such as Facebook, Amazon and Google, and also for
+building a new breed of supercomputers.
+
+\begin{itemize}
+  \item automated load balancing: When nodes are added, the hyperscale software, in most cases, will then
+re-position or auto-balance workloads to the newly added nodes. 
+  
+  \item hyperscale storage: choosing between using SATA, SSD, PCIe SSD or
+  combined to balance the cost, speed, and effectiveness.
+  
+  \url{http://www.storage-switzerland.com/Articles/Entries/2013/5/20_What_Is_A_Hyperscale_Data_Center.html}
+\end{itemize}
+
+A single Hyperscale server node will be formed from at most three pieces:
+\begin{itemize}
+  \item SoC (server-on-chip): CPU, GPU, I/O, fabric interconnect, management
+  controller
+   
+  \item RAM: 
+  
+  \item Storage:  individual flash will combine with virtualized
+  fabric-distributed I/O
+  \url{http://hyperscalecomputing.org/2012/06/30/introducing-hyperscale-computing/}
+\end{itemize}
+Typically, these servers run some form of Linux and are now sold by both
+traditional server vendors such as Hewlett-Packard, with its ProLiant DL2000
+Multi Node Server, along with components available from several suppliers. 
+
+Open Compute Project,  which was founded by Facebook to promote standardized
+hardware for web-scale data centers, has led to rapid innovation in the server
+market and has also developed a storage offering. 
+The goal is to help  software-defined networking continue to evolve and
+flourish. The advantage of these new server and network designs is that you can
+reduce power losses with direct current (DC)-powered drives and save time on
+troubleshooting failed components, since every server is uniform. You can also
+scale up capacity in smaller increments.  
+
+
+\url{http://searchdatacenter.techtarget.com/feature/Hyperscale-data-center-means-different-hardware-needs-roles-for-IT}
+
+
+\section{Metal as a Service (MAAS)}
+
+As we move from "tens" to "hundreds" to "thousands" of nodes in a typical data
+centre we need new tools and practices.  AAS - Metal as a Service - is bringing
+that agility back to the physical world for hyperscale deployments.
+
+Ubuntu 14.04 has beta version of MAAS 1.7

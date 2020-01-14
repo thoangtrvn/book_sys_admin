@@ -1,0 +1,99 @@
+\chapter{LLVM}
+\label{chap:LLVM}
+
+\url{http://gnuu.org/2009/09/18/writing-your-own-toy-compiler/}
+
+When writing a compiler, you need to know:
+BNF grammars, AST data structures and the basic compiler pipeline.
+
+\section{BNF grammar}
+\label{sec:BNF_grammar}
+
+\section{AST data}
+\label{sec:AST-data-structure}
+
+Abstract syntax trees (AST) are data structures widely used in compilers, due to
+their property of representing the structure of program code. 
+
+\section{basic compiler pipeline}
+
+
+Assembly language produces more abstraction than machine code on the same
+architecture. However, as assembly code are also machine-dependent, 
+it has to be modified or rewritten if the program is to be executed on different
+computer hardware architecture.
+
+The first machine-independent high-level programming language is FORTRAN.
+A {\bf compiler} is thus needed to translate the high-level source programs
+into target programs in machine languages for the specific hardware. 
+
+A compiler needs to do a lot of things:
+\begin{enumerate}
+  \item verify code syntax
+  
+  \item generate efficient object code (*.obj, *.o), depending on optimization
+  level (-O0, -O1, -O2, \ldots)
+  
+  \item performs run-time organization
+  
+  \item format the output according to assembler and linker conventions.
+\end{enumerate}
+The compiler is thus divided into 3 parts:
+\begin{itemize}
+  \item {\bf front-end}: lexical analysis (break the code into sequence of
+  tokens, i.e. meaningful character of strings), syntax analysis (the sequence of
+  tokens is then matched with the language grammar - in BNF
+  (Sect.\ref{sec:BNF_grammar}) - this is done by the parser), and semantic
+  analysis (check for correct usage of elements in the programs and the language).
+  
+  lexical analysis is done by a {\bf lexical analyzer} (scanner, lexer,
+  tokenizer) with the outputs are sequence of tokens. A {\bf parser} is then use
+  the result of lexical analysis to verifies syntax (type checking) and
+  semantics (Generates errors and warning, if any, in a useful way), the output is usually in AST data structure
+  (Sect.\ref{sec:AST-data-structure}).
+  
+%   , Performs type
+%   checking by collecting type information (for static-typed languages). 
+%   AST data is used intensively during semantic analysis
+  
+  Output: AST is used to generate intermediate representation (IR) for
+  processing by the middle-end.
+  
+  
+  
+  \item {\bf middle-end}
+  
+  \item {\bf back-end}: IR analysis (at basic block (function level) or whole
+  program (interprocedural level), optimization (IR is transformed into functionally
+  equivalent but faster (or smaller) form), and code generation.
+  
+  The two steps IR analysis and IR optimization are often skipped by some
+  compilers by default. This leads to the confusing that back-end only does
+  machine-dependent code generation.
+  
+  The open-source GCC was critized a long time for lacking the first two phases,
+  yet this is changing. Another powerful open-source with full analysis and
+  optimization infrastructure is {\bf Open64}; however it was discontinued since
+  2011. \url{http://en.wikipedia.org/wiki/Open64}
+  
+  Commercial-compilers do a better job in interprocedural analysis and
+  optimization such as HP, IBM, SGI, Intel, Microsoft and Sun compilers.
+  
+  Code generation: Generates the assembly code, performing register allocation
+  in process; Optimizes target code utilization of the hardware by figuring out
+  how to keep parallel execution units busy, filling delay slots
+  
+  NOTE: Most algorithms for optimization are in NP, heuristic techniques are
+  widely used to improve the optimization.
+\end{itemize}
+
+
+\section{LLVM}
+\label{sec:LLVM}
+
+The Low Level Virtual Machine (LLVM) is a compiler infrastructure, written in
+C++, which is designed for compile-time, link-time, run-time, and "idle-time"
+optimization of programs written in arbitrary programming languages.
+
+Originally implemented for C/C++, the language-independent design (and the
+success) of LLVM has since spawned a wide variety of front-ends, including Objective C, Fortran, Ada, Haskell, Java bytecode, Python, Ruby, ActionScript, GLSL, and others.

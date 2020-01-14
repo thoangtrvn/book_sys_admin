@@ -1,0 +1,39 @@
+\chapter{Red Hat - CentOS}
+
+
+To install the required packages for software development
+\begin{verbatim}
+yum groupinstall "Development tools"
+\end{verbatim}
+
+\url{https://support.eapps.com/index.php?/Knowledgebase/Article/View/438/55/installing-the-centos-development-tools-gcc-flex-etc}
+
+\section{Packaging tool}
+
+\subsection{yum}
+\label{sec:yum}
+
+\subsection{dnf (Fedora 22+)}
+\label{sec:dnf}
+
+DNF (Dandified Yum)/Yum4 the new default packaging tool in F22. 
+DNF was forked from yum (Sect.\ref{sec:yum}) in Jan-2012.
+It is a CLI package manager that is based upon Python, run faster and less
+memory-intensive operation.
+\url{https://fedoraproject.org/wiki/Changes/ReplaceYumWithDNF}
+
+\section{Restart x-server}
+
+
+\begin{verbatim}
+# Ubuntu
+
+sudo service lightdm restart
+
+sudo service lightdm stop
+# or
+sudo stop lightdm
+
+# run init level 3
+sudo init 3
+\end{verbatim}

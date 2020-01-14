@@ -1,0 +1,71 @@
+\chapter{IRC networks}
+
+
+{\bf Internet Relay Chat} (IRC) is an application layer protocol that
+facilitates the transfer of messages in the form of text.
+
+There are thousands of different IRC networks, covering all kinds of topics,
+both private and public, that with an IRC client application, you can joint.
+Each IRC network has thousands of channels, each channel covers one topic.
+
+Current stats:
+\begin{itemize}
+  \item 400,000 in 2014, dropped 60\% from 1.million in 2003.
+  
+  \item 250,000 channels, dropped 50\% from 0.5million channels in 2003.
+\end{itemize}
+\url{http://royal.pingdom.com/2012/04/24/irc-is-dead-long-live-irc/}
+  
+Users access IRC networks by connecting a client (Sect.\ref{sec:IRC-clients}) to
+a server (Sect.\ref{sec:IRC-servers}).
+
+\section{IRC clients}
+\label{sec:IRC-clients}
+
+
+There are many client implementations, such as mIRC, HexChat and irssi.
+
+Most IRC servers do not require users to register an account but a nick is
+required before being connected. A user need to establish an IRC session to a
+channel.
+ 
+Clients send single-line messages to the server, receive replies to those
+messages  and receive copies of some messages sent by other clients.
+
+A user can enter a command by prefixing them with a '/'. 
+\begin{itemize}
+  \item LIST command: list all available channels that do not have  
+  modes +s or +p set on that IRC network
+  
+  A user or a channel can have a mode,
+  represented by a single case-sensitive character, and can be set using MODE
+  command
+  
+  \item MODE command: 
+  
+  \item JOIN command: to join a channel
+\begin{verbatim}
+/join #channelname
+\end{verbatim}  
+Channels that are available across an entire IRC network are prefixed with a
+\verb!'#'!, while those local to a server use \verb!'&'!. Other types of
+channels: \verb!'+'! (modeless channel without an operator), \verb!'!'! channel
+(timestamped channel on a normally non-timestamped IRC network)
+  
+\end{itemize}
+
+\section{IRC servers}
+\label{sec:IRC-servers}
+
+Server implementations:
+ IRCd.
+ 
+\section{Future of IRC}
+
+\subsection{KVIrc}
+
+KVIrc, which brought video chat to traditional IRC, 
+
+\subsection{Konversation}
+
+Konversation, with which several IRC users can share a virtual whiteboard.

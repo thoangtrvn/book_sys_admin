@@ -1,0 +1,361 @@
+\chapter{Ubuntu bugs}
+
+
+\section{Backports}
+
+For a given release of Ubuntu, it freezes all other packages, i.e. these
+packages only get bug fixes and minor updates; but not major updates.
+
+Backports is a repository with a collection of such packages with up-to-date
+versions that can be used to installed on these older Ubuntu version.
+
+\subsection{Trusty (14.04) and Xenial (16.04)}	
+
+\begin{verbatim}
+sudo add-apt-repository  ppa:jonathanf/backports
+
+sudo apt-get update
+\end{verbatim}
+
+
+
+
+\section{stopping early crypto disks}
+
+Ubuntu 14.04 Desktop, Ubuntu 12.04
+
+After installation on a virtual machine (Hyper V), It says to restart. IT will stop at:
+
+\begin{verbatim}
+stopping early crypto disks ok
+\end{verbatim}
+Then it will stop here and it seems I have to shutdown the virtual machine to restart Ubuntu.
+
+\url{http://askubuntu.com/questions/474346/installation-14-04-machine-does-not-restart-stopping-early-crypto-disks-ok}
+
+\url{https://bugs.launchpad.net/ubuntu/+source/casper/+bug/966480}
+
+\url{http://askubuntu.com/questions/501722/what-is-ubuntu-14-04-doing-while-showing-stopping-early-crypto-disks}
+
+
+\section{Failed to fetch }
+
+\begin{verbatim}
+W: Failed to fetch http://us.archive.ubuntu.com/ubuntu/dists/trusty-updates/universe/i18n/Translation-en  Hash Sum mismatch
+
+E: Some index files failed to download. They have been ignored, or old ones used instead.
+
+Failed to fetch http://dl.google.com/linux/chrome/deb/dists/stable/Release  
+Unable to find expected entry 'main/binary-i386/Packages' in Release file (Wrong sources.list entry or malformed file)
+\end{verbatim}
+
+SOLUTION:
+\begin{verbatim}
+sudo rm /var/lib/apt/lists/* -vf
+
+sudo apt-get update 
+\end{verbatim}
+\url{http://askubuntu.com/questions/553765/failed-to-fetch-update-on-ubuntu-14-04-lts-trusty-tahr}
+
+
+
+CHROME: edit 2 files, search for 'deb' and add after that [arch=amd64]
+\begin{verbatim}
+sudo gedit /etc/apt/sources.list.d/google-chrome.list
+sudo gedit  /opt/google/chrome/cron/google-chrome
+
+deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main
+
+\end{verbatim}
+\url{http://askubuntu.com/questions/743814/unable-to-find-expected-entry-main-binary-i386-packages-chrome}
+
+\section{NO\_PUBKEY}
+
+\begin{verbatim}
+Reading package lists... Done  
+ W: GPG error: http://ppa.launchpad.net precise 
+ Release: The following signatures couldn't be verified because the public key is not available: 
+ NO_PUBKEY 2EA8F35793D8809A
+\end{verbatim}
+
+
+SOLUTION: put the key and ask Ubuntu to update
+\begin{verbatim}
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 2EA8F35793D8809A
+\end{verbatim}
+\url{http://askubuntu.com/questions/127326/how-to-fix-missing-gpg-keys}
+
+
+
+\section{etc/apt/sources.list}
+\label{sec:sources.list}
+
+The file \verb!/etc/apt/sources.list! 
+\begin{enumerate}
+  \item column 1 (deb, deb-src): indicate the type of the archives
+  
+  NOTE: deb = link contains pre-compiled binary packages, deb-src = contain
+  sources
+  
+  \item column 2 = URL to the link
+  
+  \item column 3: can be either release code name (e.g. xenial,
+  xenial-updates,), or release class (e.g. unstable, oldstable, stable, testing)
+  
+  \item column 4, 5, 6 : a component can be either \verb!main! (i.e. refers to
+  officially supported software) or \verb!contrib! or \verb!non-free!,
+  \verb!restricted! (supported software that is not available under a completely
+  free license), \verb!universe! (community maintained software, i.e. not
+  officially supported software.), \verb!multiverse! (software that is not
+  free.)
+  
+
+\end{enumerate}
+\begin{verbatim}
+deb http://site.example.com/debian distribution component1 component2 component3
+deb-src http://site.example.com/debian distribution component1 component2 component3
+\end{verbatim}
+
+and in any file with the suffix .list under the directory
+
+/etc/apt/sources.list.d/
+
+\url{https://help.ubuntu.com/community/Repositories/CommandLine}
+
+\subsection{Create local repository}
+
+You may get
+\begin{verbatim}
+: The repository 'http://10.1.1.21/install/ubuntu16.04.1/ppc64el xenial-updates
+Release' does not have a Release file.
+\end{verbatim}
+
+\begin{enumerate}
+  \item (on the xcat machine for example) Create a directory where you will keep
+  your packages. For this example, we'll use /usr/local/mydebs.
+
+\verb!$repository_dir! is
+\begin{verbatim}
+sudo mkdir -p /usr/local/mydebs
+\end{verbatim}  
+or create the repository in the /var/www
+
+  \item createa symbolic link  (if the folder is outside /var/www)
+  
+\begin{verbatim}
+sudo ln -s ~/repository_dir /var/www/install/ubuntu16.04.1
+\end{verbatim}
+
+  \item move your packages (*.deb files) into the directory you've just created.
+
+\begin{verbatim}
+sudo mkdir -p repository_dir/dists/stable/main/binary
+
+sudo mv location_of_package/package_name.deb
+\end{verbatim}  
+
+
+  \item (on any computer that want to access the local/shared repository) add to
+  \verb!/etc/apt/sources.list! file
+  
+(local machine only)  
+\begin{verbatim}
+deb file:/usr/local/mydebs ./
+\end{verbatim}
+
+or if you use web server
+\begin{verbatim}
+deb http://10.1.1.21/install/ubuntu16.04.1/ppc64el xenial main restricted
+deb http://10.1.1.21/install/ubuntu16.04.1/ppc64el xenial-updates main restricted
+
+\end{verbatim}
+
+
+  \item authenticate Repository and Packages
+
+\begin{verbatim}
+gpg --gen-key
+
+//list keys
+gpg --list-keys
+
+// suppose your generated key is
+  gpg: key 041DA354 marked as ultimately trusted
+  public and secret key created and signed.
+  gpg: checking the trustdb
+  gpg: 3 marginal(s) needed, 1 complete(s) needed, PGP trust model
+  gpg: depth: 0  valid:   1  signed:   0  trust: 0-, 0q, 0n, 0m, 0f, 1u
+  pub   4096R/041DA354 2012-06-01
+        Key fingerprint = 2253 4C89 DE74 CF68 39D7  2A2E DB3E 384F 041D A354
+  uid                  Repository
+  
+  
+// export to a text file and store it in the root of the repository:
+sudo gpg --output keyFile --armor --export 041DA354
+
+
+\end{verbatim}
+\end{enumerate}
+
+\section{Update Ubuntu}
+
+
+\subsection{14.04 to higher}
+
+When you upgrade, it has a default behavior, to upgrade to an LTS version only, or to any newer version,
+check the file (with possible values: \verb!lts!, \verb!normal!, \verb!never!)
+\begin{verbatim}
+/etc/update-manager/release-upgrades
+
+
+[DEFAULT]
+Prompt=lts
+\end{verbatim}
+
+TO: Ubuntu 16.04.3 LTS (Xenial Xerus)
+\url{https://wiki.ubuntu.com/XenialXerus/ReleaseNotes}
+
+\begin{verbatim}
+// change to 'lts' (if current Ubuntu is 14.04)
+sudo vi /etc/update-manager/release-upgrades
+
+$ sudo apt update 
+$ sudo apt upgrade
+$ sudo apt dist-upgrade
+
+// above mnimize the difference
+
+// then remove no-longer needed
+$  sudo apt autoremove
+
+
+sudo apt-get install update-manager-core && sudo do-release-upgrade
+
+sudo apt update && sudo apt -y dist-upgrade
+
+sudo reboot
+\end{verbatim}
+
+\url{https://linuxconfig.org/how-to-upgrade-to-ubuntu-18-04-lts-bionic-beaver}
+
+\section{decrypt disk}
+\label{sec:decrypt-LVM-disk}
+
+Boot into USB disk, choose Try Ubuntu
+
+Check which one is encrypted
+\begin{verbatim}
+sudo blkld | grep crypt
+
+/dev/sda5: UUID="....." TYPE="crypto_LUKS" PARTUUID="..."
+\end{verbatim}
+or
+\begin{verbatim}
+sudo  lvdisplay
+
+-- logical volume --
+LV path /dev/ubuntu-vg/root
+LV name          root
+LV Name          ubuntu-vg
+...
+\end{verbatim}
+
+
+To unlock the partition
+\begin{verbatim}
+
+udisksctl unlock -b /dev/sda5
+
+ // to mount (check the path from lvdisplay result)
+sudo mount /dev/ubuntu-vg/root  /mnt
+\end{verbatim}
+
+UNLOCK: 
+\begin{verbatim}
+sudo apt-get installcryptsetup
+//decrypt
+sudo cryptsetup luksOpen /dev/sda5
+\end{verbatim}
+
+MOUNT TO a device:
+\begin{verbatim}
+sudo mkdir /media/my_device
+sudo mount /dev/mapper/my_encrypted_volume /media/my_device
+\end{verbatim}
+
+LOCK again:
+to lock again
+\begin{verbatim}
+sudo umount /media/my_device
+sudo cryptsetup luksClose my_encrypted_volume
+\end{verbatim}
+
+\section{no ethernet working}
+
+
+One way to do is booting from USB, 
+
+if the root disk is encrypted, try to decrypt it
+(Sect.\ref{sec:decrypt-LVM-disk})
+
+Install boot-repair
+\begin{verbatim}
+sudo add-apt-repository ppa:yannubuntu/boot-repair
+
+sudo apt-get update
+
+sudo apt-get install -y boot-repair && boot-repair 
+
+\end{verbatim}
+
+Wait until the screen shows up with instructions
+\begin{verbatim}
+
+sudo chroot "/mnt/boot-sav/mapper/ubuntu-vg-root" dpkg --configure -a
+sudo chroot "/mnt/boot-sav/mapper/ubuntu-vg-root" apt-get install -fy
+
+// just in case you use RAID disks
+sudo chroot "/mnt/boot-sav/mapper/ubuntu-vg-root" apt-get install -y dmraid
+sudo chroot "/mnt/boot-sav/mapper/ubuntu-vg-root" dmraid -ay
+
+// just in case you use LVM disk
+sudo chroot "/mnt/boot-sav/mapper/ubuntu-vg-root" apt-get install -y lvm2
+
+// reinstall grub
+sudo chroot "/mnt/boot-sav/mapper/ubuntu-vg-root" apt-get purge -y grub*-common
+    grub-common:i386 shim-signed
+
+
+// update kernel 
+sudo chroot "/mnt/boot-sav/mapper/ubuntu-vg-root" sudo apt-get dist-upgrade
+
+
+// update intel-microcode
+sudo chroot "/mnt/boot-sav/mapper/ubuntu-vg-root"  sudo apt-get install intel-microcode
+\end{verbatim}
+
+
+
+\section{weird characters on Linux terminal}
+
+
+\begin{verbatim}
+reset
+\end{verbatim}
+
+
+
+\section{Chrome on VNC session and X11 session}
+
+
+A user-data-dir is used for a single display only, if you want to launch chrome
+on multiple display, uses a differetn user-data-dir
+
+\begin{verbatim}
+// the first chrome
+google-chrome
+
+// the second chrome
+cp ~/.config/chrome{,_local}
+google-chrome --user-data-dir=~/.config/chrome_local
+\end{verbatim}

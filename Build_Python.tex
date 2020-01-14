@@ -1,0 +1,168 @@
+\chapter{Build Python compiler}
+
+\section{Modules/Setup file}
+
+It is important to understand the file \verb!Modules/Setup! which is used by
+makesetup script to construct the files 
+\begin{verbatim}
+Makefile
+config.c
+\end{verbatim}
+from \verb!Makefile.pre! and \verb!config.c.in! files.
+
+The file Setup itself is initially copied from Setup.dist; once it exists it
+will not be overwritten, so you can edit.
+
+Note that Makefile.pre is created from Makefile.pre.in by the toplevel configure
+script.
+
+Lines have the following structure:
+\begin{verbatim}
+//either this
+<module> ... [<sourcefile> ...] [<cpparg> ...] [<library> ...]
+
+//or this
+<name> = <value>
+// which defines a Make variable definition inserted into Makefile.in
+
+
+//or this
+ if a line contains just the word "shared" (without the
+quotes but with the stars), then the following modules will not be
+built statically. 
+
+
+EXPLAIN first case:
+<module> is anything else but should be a valid Python
+  identifier (letters, digits, underscores, beginning with non-digit)
+<sourcefile> is anything ending in .c (.C, .cc, .c++ are C++ files)
+<cpparg> is anything starting with -I, -D, -U or -C
+<library> is anything ending in .a or beginning with -l or -L
+
+NOTE: (As the makesetup script changes, it may recognize some other
+arguments as well, e.g. .so and .sl as libraries. See the big
+case statement in the makesetup script.)
+\end{verbatim}
+
+
+How it works
+\begin{verbatim}
+1. Build all modules that are declared as static in Modules/Setup,
+combine them into libpythonxy.a, combine that into python.
+
+2. Build all modules that are listed as shared in Modules/Setup.
+
+
+3. Invoke setup.py. That builds all modules that
+a) are not builtin, and
+b) are not listed in Modules/Setup, and
+c) can be build on the target 
+\end{verbatim}
+
+\url{https://sourceforge.net/p/pyhvl/discussion/511468/thread/08d68516/}
+
+\section{static linked to gcc}
+
+
+
+
+To avoid an error likes
+\begin{verbatim}
+[tmhoangt@dccxl008 nts]$ python --version
+python: /lib64/libc.so.6: version `GLIBC_2.14' not found (required by /opt/share/Python-2.7.11/x86_64/lib/libpython2.7.so.1.0)
+\end{verbatim}
+You may want to static link libgcc into the Python interpreter when you build
+it.
+
+
+\begin{verbatim}
+./configure --disable-shared LDFLAGS="-static -static-libgcc" CPPFLAGS="-static" \ 
+        --prefix=$HOME/.apps/Python-2.7.10
+
+
+make -j10
+\end{verbatim}
+\subsection{Error 1}
+
+In (make -j10), if you get the error such as
+\begin{verbatim}
+/usr/bin/ld: dynamic STT_GNU_IFUNC symbol `strcmp' with pointer equality in
+`/usr/lib/x86_64-linux-gnu/gcc/x86_64-linux-gnu/4.5.2/../../../libc.a(strcmp.o)'
+can not be used when making an executable;
+recompile with -fPIE and relink with -pie
+\end{verbatim}
+
+
+NEXT step solution: remove -Xlinker --export-dynamic from the command
+\begin{verbatim}
+gcc -pthread -static -static-libgcc  -o python Modules/python.o libpython3.2m.a
+-lpthread -ldl  -lutil   -lm
+
+\end{verbatim}
+
+\subsection{Error 2}
+
+In (make install), if you get the error such as
+\begin{verbatim}
+
+\end{verbatim}
+
+This means that you have not configured Modules/Setup correctly and need to:
+\begin{itemize}
+  \item add a single line (near the top): \verb!*static*! 
+  
+NOTE:  asterisk/star the word "static" and asterisk with no spaces
+  
+  \item uncomment all modules that you want to be available statically (such as
+  math, array, etc...)
+  
+NOTE: Search for \verb!_struct! and 
+
+
+NOTE: You may also need to add specific linker flags (as mentioned in the
+following link). My experience so far has been that the libraries are working
+without modification.
+\url{bytes.com/groups/python/23235-build-static-python-executable-linux}
+
+
+\end{itemize}
+
+
+\subsection{Error 3}
+
+\begin{verbatim}
+./Modules/_testcapimodule.c: In function 'test_datetime_capi':
+./Modules/_testcapimodule.c:1281: error: 'PyDateTimeAPI' undeclared (first use in this function)
+./Modules/_testcapimodule.c:1281: error: (Each undeclared identifier is reported only once
+./Modules/_testcapimodule.c:1281: error: for each function it appears in.)
+./Modules/_testcapimodule.c:1293: error: 'PyDateTime_IMPORT' undeclared (first use in this function)
+make: ***  Error 1
+\end{verbatim}
+
+
+Fix in \verb!Modules/_testcapimodule.c!
+
+\begin{verbatim}
+#ifdef Py_BUILD_CORE
+#undef Py_BUILD_CORE
+#include "datetime.h"
+#define Py_BUILD_CORE
+#else
+#include "datetime.h"
+#endif
+\end{verbatim}
+\url{http://bugs.python.org/issue19348}
+
+
+\subsection{Error 4}
+
+
+\begin{verbatim}
+datetime.c not found
+\end{verbatim}
+
+For this kind of error, comment out the module that uses \verb!datetime.c! in
+Modules/Setup file
+\begin{verbatim}
+#PyDateTime datetime.c
+\end{verbatim}

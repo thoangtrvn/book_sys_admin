@@ -1,0 +1,53 @@
+\chapter{Android ROM}
+
+
+This chapter we explains the difference between different ROMs for Android
+phone, how to build it, and how to load onto the phone.
+
+Unlocking your bootloader (Sect.\ref{sec:Unlock_Hboot}) doesn't root your phone
+directly, but it does allow you to root (Sect.\ref{sec:Rooting}), then flash
+custom ROMs (Sect.\ref{sec:flash-custom-ROM}) if you so desire.
+
+There are three important things to know
+\begin{itemize}
+  \item Bootloader: On an Android phone this is the so called HBoot
+  
+  From here you can go to the recovery, system or data partitionn.  By pressing
+  the power button on your phone, HBoot will load the OS into RAM. By pressing
+  the power and volume down buttons, you'll bring up the HBoot menu.
+
+  \item Android ROM: specific for each device
+  
+  \item Radio image: very critical, and recommended not to touch it
+\end{itemize}
+
+
+The kernel for the Android ROM is a {\bf hybrid kernel}, it is based on the
+Linux kernel. Devices can differ in RAM memory, ROM memory, hardware parts and so on.
+So it's really important you have a kernel for your type of device, an HTC
+Wildfire kernel won't work on a Nexus One for example.
+
+It is possible to overclock the kernel. When you overclock the kernel, the CPU
+will be instructed to do more calculations per second; so, it will increase
+performance.
+However, keep in mind that this will degenerate your CPU much faster than if it
+was at stock. To overclock an Android phone you must root it and install SetCPU
+or another overclocking app from the Play Store. Then you will have to flash a
+kernel that supports overclocking. I prefer the OC Kernel of HCDR.Jacob, at
+XDA-forums (see links right). If you have done these 3 things you're ready to
+OC!
+
+Some modded recovery software (e.g. ClockworkMod) allows you to flash a new
+kernel, radio image, custom ROM, Nandroid backup, install apps.
+
+Radio is the lowest part of software layer: this is the very first thing that
+runs, just before the bootloader. This handles the GPS antenna, GSM antenna and
+fires up the CPU; everything that HBoot needs to load the OS.
+This can also be upgraded by flashing a new radio image through your recovery.
+However, this is not recommended: flashing a new ROM can't brick your phone
+(make it unusable), but if anything goes wrong when you flash a ROM with a new
+radio image, this can brick your phone. So unless you experience bad reception
+or battery drainage, don't touch the radio!
+
+
+

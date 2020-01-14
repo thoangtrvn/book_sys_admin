@@ -1,0 +1,1215 @@
+\chapter{Windows Administration}
+
+\section{Domain, workgroup, homegroup}
+
+
+They are used to describe different ways of organizing computers in networks. 
+\begin{itemize}
+  \item homegroup: machines on home networks
+  \item workgroup: machines on home networks (each machine has a set of local
+  user accounts, to be able to login that machine, you must have access to the
+  local account).  IMPORTANTLY: (1)   all machines are peer, i.e. no computer
+  has control over another one; (2) the total machines is typically no more than
+  12; (3) all machines in the same workgrup must be on the same subnet; (4) no
+  password protected.
+  
+  \item domain: machines on workplace networks. IMPORTANT: (1) one or more
+  computers function as a server (run by network administrator), (2) the user
+  account is controlled on a server thus can be used to login in any machine in
+  the domain without needing a local account on that machine, (3) thousands of
+  machines in a domain, (4) the computers can be on different local networks.
+\end{itemize}
+NOTE: homegroup are not available in Windows Server 2008 R2.
+
+\section{Wireless}
+
+\subsection{WPA Enterprise}
+
+\begin{enumerate}
+  \item Control Panel, Network and Internet, Manage Wireless Network
+  \item Add: type in the wireless network SSID (case-sensitive)
+  \item Security: WPA2 Entperise
+  \item Encryption: AES or TKIP (most likely AES)
+  \item Check: Start this connection automatically
+  \item Change Connection Setting
+  \begin{itemize}
+    \item Click Security tab
+    \item Network authentication method: Microsoft Protected EAP (PEAP)
+    \item Setting: uncheck Validate Server certificate
+    \item Select authentication method: Secure Password (EAP-MSCHAP
+    v2), click Configure \ldots (uncheck Automatically use my Windows logon name
+    and password)
+    \item Check/Uncheck my credentials for this connection each time I'm logged
+    on
+    \item 
+  \end{itemize}
+\end{enumerate}
+
+
+\section{VC2008}	
+
+
+A default CRT/MFC applications compiled with Windows Visual C/C++ 2008
+(MSVC2008) on one machine may not be able to run on other machines. The error
+can be
+\begin{verbatim}
+"This application has failed to start because the application configuration is
+incorrect".
+\end{verbatim}
+
+The reason is that, by default, CRT/MFC applications use DLL files which are not
+pre-installed by Windows. There are three solutions
+\begin{enumerate}
+  \item Statistically links to CRT/MFC
+  \item Use vcredits.exe or \verb!vcredist_x64.exe! to install the DLL files
+  \item Deploy these DLL with your applications (in the same directory with the
+  subfolder \verb!Microsoft.VC90.CRT!)
+\end{enumerate}
+\url{http://blog.kalmbach-software.de/2009/05/27/deployment-of-vc2008-apps-without-installing-anything/}
+
+%Microsoft.VC90.CRT 9.0.21022.8
+%Microsoft.VC90.CRT 9.0.30729.17
+%Microsoft.VC90.CRT 9.0.30729.6161
+%Microsoft.VC90.CRT 9.0.21022.218
+%Microsoft.VC90.CRT 9.0.30729.6161
+
+
+\section{Editors}
+
+\url{http://stackoverflow.com/questions/159521/text-editor-to-open-big-giant-huge-large-text-files}
+
+\begin{enumerate}
+  \item gVIM
+  \item 010Editor: read binary
+\end{enumerate}
+
+\section[DEP]{DEP (Data Execution Protection)}
+\label{sec:DEP}
+
+
+DEP was added to Windows since Windows XP SP2. DEP can be software-based and
+hardware-based. DEP was developed to prevent {\bf buffer-overflow} attacks.	
+
+\begin{framed}
+Buffer-overflow attacks happen when a program write N bytes to a buffer of size
+n bytes ($N>n$). This violates memory safety, i.e. it corrupts data in the
+adjacent memory addresses due to insufficient bounds checking. Languages like
+C/C++ doesn't have this built-in protection. 
+\end{framed}
+
+
+\section{ASLR}
+\label{sec:ASLR}
+
+ASLR (address space layout randomization) was developed for 64-bit OS to
+implement memory space protection. For 32-bit systems, ASLR is not effective as
+there are only 16 bits available for randomization, which can be defeated by
+brute-force in a few minutes.
+
+
+\section{Remote Desktop Connection (Client) or Remote Desktop Services (Server)}
+\label{sec:remote-dekstop-connection}
+
+From RDP 6.0, Network Level Authentication was introduced (initially Windows
+Vista). 
+
+
+\subsection{Windows 7 to Ubuntu 12.04}
+\label{sec:RDP-Windows-to-Ubuntu}
+
+It was almost impossible in earlier version of Windows and Ubuntu. Since Ubuntu
+12.04, it was made possible with \verb!xRDP! implementation of RDP protocol.
+
+Thanks to xRDP server, we can use Microsoft RDB to connect to Ubuntu without any
+configuration. 
+
+\begin{enumerate}
+  \item On the Ubuntu machine, install xrdp package
+  \begin{verbatim}
+  sudo apt-get install xrdp
+  \end{verbatim}
+  \item Create a new user only for RDP connectivity
+  \item Restart Ubuntu
+  \item Run Remote Desktop Connect from Windows, connect to Ubuntu with the IP
+  or hostname
+\end{enumerate}
+
+Troubleshooting:
+\begin{itemize}
+  \item To disable remote connection to Ubuntu machine, on Ubuntu run
+  \begin{verbatim}
+  sudo service xrdp stop
+  \end{verbatim}
+  
+  \item Login to the user for RDP connectivity, run this and restart Ubuntu
+  \begin{verbatim}
+  echo "gnome-session --session=ubuntu-2d" > ~/.xsession
+  \end{verbatim}
+  or run
+  \begin{verbatim}
+  echo "gnome-session --session=gnome-fallback" > ~/.xsession
+  \end{verbatim}
+  
+  \item Or install and restart Ubuntu
+  \begin{verbatim}
+  sudo apt-get install gnome-session-fallback 
+  \end{verbatim}
+\end{itemize}
+
+\subsection{Ubuntu to Windows}
+\label{sec:RDP-Ubuntu-to-Windows}
+
+On Windows, we need to disable firewall rule about RDP
+\begin{enumerate}
+  \item open Windows Firewalls with Advanced Security
+  
+  \item On both Inbound Rules and Outbound Rules, enable these
+\begin{verbatim}
+Remote Desktop (TCP-in)
+Remote Desktop (UDP-in)
+Remote Desktop - RemoteFX (TCP-in)
+Remote Desktop - RemoteFX  (UDP-in) 
+\end{verbatim}
+\end{enumerate}
+
+\section{Softwares}
+
+\begin{enumerate}
+  \item Update graphics driver
+  \item Install CUDA toolkit (different versions) + Nsight
+  \item Install Visual Studio (different versions)
+  \item Install TexWorks
+  \item Install Eclipse
+  \item Install Cygwin (Sect.\ref{sec:Cygwin})
+  \item Install Kdiff3 (file content comparisons)
+  \item Install Unlocker (to detect process using the file/folder):
+  \url{http://www.uniblue.com/cm/emptyloop/registrybooster/website/download/?aff=10080}
+  \item Install Explorer++ \url{https://explorerplusplus.com/}
+  \item Install ProcMon:
+  \url{http://technet.microsoft.com/en-us/sysinternals/bb896645}
+  
+  
+ \item Install Dependency Walker: to
+ detect errors relating to loading library
+ \url{http://www.dependencywalker.com/}
+ 
+ \item Install Windows Powershell (if you don't use Cygwin)
+ \url{http://support.microsoft.com/kb/968930/en-us},
+ \url{http://www.microsoft.com/en-us/download/details.aspx?id=42554}
+ 
+ \item Install NetDrive (map Google Drive, FTP link, \ldots) as a local drive
+ \url{http://www.netdrive.net/}
+
+\item Install 7zip 
+ \item Install Find and Run Robot
+ \item Install DeltaCopy : (rsync backup in Windows) - Sect.\ref{sec:DeltaCopy}
+ \item Install WinHTTrack: website copy/download
+  
+ \item Merge multiple photos as a single one: Picture Merger Genius software
+ \item Install NetDrive (map Google Drive, FTP link, \ldots) as a local drive
+ \url{http://www.netdrive.net/}
+\end{enumerate}
+
+\subsection{DeltaCopy}
+\label{sec:DeltaCopy}
+
+There are two components: server component running on the machine where data will be copied, client component running on 
+the machine where data need to be backed up.
+
+On DeltaCopy Server: You configure the virtual alias name that maps to the physical folder.
+
+On DeltaCopy Client: Configure the IP + port of the DeltaCopy Server, select the name of alias folder, and select one or more files/folders to be copied to this alias name.
+\begin{itemize}
+  \item if both on the same machine, use \verb!localhost! as IP.
+\end{itemize}
+
+You may get the errors
+\begin{verbatim}
+rsync: failed: File name too long
+\end{verbatim} 
+The solution is to upgrade the Cygwin libraries that are used by DeltaCopy. Cygwin 1.7.7 solves this problem.
+So
+\begin{enumerate}
+  \item turn off DeltaCopy server
+  
+  \item install cygwin 32 bit with the right version, install Net/openssh, and Net/rsync
+  
+  \item jump to the folder installing cygwin (./bin): and copy the following files to DeltaCopy
+\begin{verbatim}
+chmod.exe
+cygcrypto-0.9.8.dll
+cyggcc_s-1.dll
+cygiconv-2.dll
+cygintl-8.dll
+cygpopt-0.dll
+cygwin1.dll
+cygz.dll
+rsync.exe
+ssh.exe
+\end{verbatim}
+cygminires.dll (no longer required- (obsolete support package for openssh))
+
+  \item edit \verb!C:\DeltaCopy\deltacd.conf!, and add two lines at the beginning of the file
+\begin{verbatim}
+uid = 0
+gid = 0
+\end{verbatim}
+  
+  \item restart DeltaCopy server
+  
+\end{enumerate}
+\url{http://benevolentmachine.blogspot.com/2010/10/eliminating-deltacopys-file-name-too.html}
+
+\subsection{Syncrify}
+\label{sec:Syncrify}
+
+NOTE: On Windows, DeltaCopy uses CYGWIN libraries to run rsync on Windows.
+Syncrify does not need Cygwin as it uses a custom implementation. 
+\url{http://web.synametrics.com/SyncrifyVsDeltaCopy.htm}
+
+
+\section{Cygwin}
+\label{sec:Cygwin}
+
+Cygwin aims to create a complete UNIX/POSIX environment for running a Linux
+application on Windows. To do this, Cygwin needs to use various DLLs which may
+impose limitations on forking these DLLs.
+
+\verb!clear! command is not available (which you can press Ctrl-L or Alt-F8 to
+skip page (clean the screen)) by default. You need to install \verb!ncurses!
+package - Sect.\ref{sec:ncurses}).
+Another option is adding \verb!~/.bashrc! file the line
+\begin{verbatim}
+alias clear='printf "\033c"'
+\end{verbatim}
+\url{http://stackoverflow.com/questions/11249070/how-do-i-get-the-clear-command-in-cygwin}
+
+To run with X-server, i.e. enable running remote GUI applications, we run either
+\begin{verbatim}
+xinit
+startx
+startxwin
+\end{verbatim}
+
+\subsection{List of to-installed packages}
+
+
+\begin{verbatim}
+xinit
+vim
+ncurses
+screen
+tmux
+g++
+gdb      (Devel)
+cgdb
+automake  (Devel)
+make   (Devel)
+patch   (Devel)
+git
+curl
+wget
+bzr   (Python-based distributed version-control system)
+\end{verbatim}
+
+See how to use \verb!screen! (Sect.\ref{sec:screen}), \verb!tmux!
+(Sect.\ref{sec:tmux}). 
+
+
+\subsection{byobu in Cygwin}
+
+Check the Open-Source book with Chapter on Cygwin.
+
+
+\section{MobaXterm}
+\label{sec:MobaXterm}
+
+
+IMPORTANT: the \verb!cmake! should be called in \verb!/usr/bin/cmake.exe!, so
+modify \verb!PATH! in Windows or use the path explicitly to avoid the below
+error
+
+\begin{verbatim}
+CMake Error: Could not find CMAKE_ROOT !!!
+CMake has most likely not been installed correctly.
+Modules directory not found in
+//share/cmake-3.6.2
+cmake version 3.6.2
+\end{verbatim}
+
+
+IMPORTANT: You need to instal \verb!make! 
+\begin{verbatim}
+CMake Error: CMake was unable to find a build program corresponding to "Unix Makefiles".  
+CMAKE_MAKE_PROGRAM is not set.  You probably need to select a different build tool.
+CMake Error: CMAKE_C_COMPILER not set, after EnableLanguage
+CMake Error: CMAKE_CXX_COMPILER not set, after EnableLanguage
+-- Configuring incomplete, errors occurred!
+\end{verbatim}
+
+To install \verb!make!
+\begin{verbatim}
+apt-get --legacy install libguile17 
+apt-get install make
+\end{verbatim}
+
+
+To install \verb!cmake!
+\begin{verbatim}
+apt-get install cmake 
+\end{verbatim}
+
+To install dev versions, e.g. use \verb!lib<libname>-devel!
+\begin{verbatim}
+apt-get install libcurl-devel
+\end{verbatim}
+
+To install \verb!xrandr!
+\begin{verbatim}
+apt-get install xrandr	
+\end{verbatim}
+
+XKBlib.h is 
+\begin{verbatim}
+/usr/include/X11/XKBlib.h
+\end{verbatim}
+
+X11
+\begin{verbatim}
+apt-get install libxkbfile1 libxkbfile-devel libxkbcommon0 libxkbcommon-devel
+\end{verbatim}
+
+autoconf, automake, libtool
+\begin{verbatim}
+apt-get install autoconf automake libtool
+\end{verbatim}
+\url{http://www.delorie.com/gnu/docs/autoconf/autoconf_13.html}
+
+RPC header files
+\begin{verbatim}
+apt-get install libtirpc-common libtirpc-devel libtirpc1
+apt-get install rpcgen onc-rpc-devel -y
+apt-get install rpcbind
+\end{verbatim}
+\url{https://cygwin.com/ml/cygwin/2014-08/msg00359.html}
+
+liblxi: offers a simple API for communicating with LXI compatible instruments, 
+e.g.  discover instruments on your network, send SCPI commands, and receive
+responses via VXI-11/TCP and RAW/TCP connections.
+NOTE: it needs rpc header files. 
+\label{sec:liblxi}
+\begin{verbatim}
+git clone https://github.com/lxi-tools/liblxi.git
+
+//configure PATH (in mobaxterm) so that /usr/bin is used first
+export PATH=/usr/bin:$PATH
+
+cd liblxi
+autoreconf -f -v -i
+# autoconf -f -v -i (use autoreconf)
+./configure
+make -j4
+make install
+\end{verbatim}
+
+
+\url{https://bugzilla.redhat.com/show_bug.cgi?id=901333}
+
+List of many plugins:
+\url{https://mobaxterm.mobatek.net/plugins.html}
+
+
+\section{MSYS2 (Minimal SYStem 2)}
+\label{sec:MSYS2}
+
+MSYS2 is a rewritten of MSYS (Sect.\ref{sec:MSYS}) using modern Cygwin (POSIS
+compatability layer) and MinGW-w64 to support better with native Windows
+software.
+
+MSYS2 makes Windows be less of a special case for C/C++ software development.
+You can use all your favorite build tools from Linux, and there is a large and
+growing library of software you can install with the package manager
+
+MSYS2 has: \url{www.msys2.org}
+
+\begin{itemize}
+  \item bash shell
+  
+  \item Autotools
+  
+  \item revision control systems
+  
+  \item Besides MinGW, it has MinGW-w64 tool chains (Sect.\ref{sec:MinGW-w64})
+  to build 64-bit Windows-compatible softwares
+
+\begin{verbatim}
+mingw
+mingw64
+\end{verbatim}  
+  
+  \item package management tools (name pacman - Sect.\ref{sec:pacman}): to
+  manage software installation and can resolve package dependency automatically.
+  
+\end{itemize}
+\url{https://github.com/Alexpux/MSYS2-packages}
+
+MSYS2 resyncs with the Cygwin project regularly. 
+
+COMPARE with Cygwin (Sect.\ref{sec:Cygwin}): MSYS2 doesn't have cygwin.dll but
+it does have msys-2.0.dll which does the same thing (and some more besides).
+
+HOW TO
+\begin{verbatim}
+// update package database + core system packages
+pacman -Syu
+
+// close/restart MSYS2
+package -Su
+
+// 
+pacman -S git
+
+pacman -S openssh
+pacman -S base-devel mingw-w64-x86_64-toolchain
+//pacman -S openmpi python-mpi4py python2-mpi4py
+\end{verbatim}
+
+NOTE: MSYS2 provides 2 tool chains
+\begin{enumerate}
+
+  \item The MSYS2 toolchain which lives in /usr makes programs that depend on
+  the msys-2.0.dll POSIX emulation layer.
+  
+  \item The MinGW toolchain which lives in /mingw32 or /mingw64 creates native
+  Windows programs that basically only have access to the features provided by
+  Microsoft's headers and lirbaries, and not much else. These programs are
+  easier to redistribute to other users and generally run faster. If you really
+  need a lot of features of POSIX, you'll probably not be able to use the MinGW
+  toolchain.
+\end{enumerate}
+\url{https://stackoverflow.com/questions/44504216/why-is-unistd-h-different-in-msys2-and-mingw-w64-x86-64-toolchain}
+
+
+To install MPI in Windows, follow the link
+\url{http://www.math.ucla.edu/~wotaoyin/windows_coding.html}
+
+use Microsoft MPI (MS-MPI) 
+\begin{itemize}
+  \item 
+v7  which include msmpisdk  and msmpisetup
+
+\url{https://www.microsoft.com/en-us/download/details.aspx?id=49926&751be11f-ede8-5a0c-058c-2ee190a24fa6=True}
+
+  \item v8.1
+  
+\url{https://www.microsoft.com/en-us/download/details.aspx?id=55494} 
+\end{itemize}
+
+\begin{verbatim}
+pacman -Syuu
+
+pacman -S --needed base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain \
+                   git subversion mercurial \
+                   mingw-w64-i686-cmake mingw-w64-x86_64-cmake
+                   
+Add C:\dev\msys64\mingw64\bin and C:\dev\msys64\mingw32\bin, in that order, to
+                   your PATH. Note that MSYS2 also puts a lot of other tools in
+                   this directory, most notably Python. So put these entries
+                   below any other tools you might have installed in your PATH.   
+\end{verbatim}
+\url{https://github.com/orlp/dev-on-windows/wiki/Installing-GCC--&-MSYS2}
+
+To make 32-bit binaries, use i686-w64-mingw32-g++
+ 
+\subsection{MSYS}
+\label{sec:MSYS}
+
+MinGW provides no Unix tools on Windows.
+To provide this, MSYS (Minimal SYSteem) is a collection of GNU utilities such as
+bash, make, gawk and grep to allow building of C/C++ applications and programs
+which depend on traditionally UNIX tools to be present. It is intended to
+supplement MinGW and the deficiencies of the cmd shell.
+
+MSYS was used as an ancilliary to MinGW. 
+
+MSYS forked from Cygwin version 1.3.3 and never re-synced, 
+
+
+\subsection{MinGW-w64}
+\label{sec:MinGW-w64}
+
+Unlike Cygwin (Sect.\ref{sec:Cygwin}), MinGW is a C/C++ compiler tool chain,
+based on GCC, to help building native Windows application using a minimal list
+of DLLs. It uses MSVC runtimes, which are part of any normal Microsoft Windows
+installation.
+
+MinGW-w64 is an advancement of the original mingw.org project;
+with the aim to support 64-bit and new APIs
+
+REMEMBER: MinGW is the project to create GCC compiler (a toolchain) on Windows,
+which helps to build native-Windows application using code with Makefile build
+scripts.
+
+
+\url{https://sourceforge.net/projects/mingw-w64/files/Toolchains targetting Win64/Personal Builds/}
+
+\subsection{TDM-GCC}
+
+TDM-GCC is a compiler suite for Windows.
+It uses the GCC toolset, a few patches for Windows-friendliness, and the free
+and open-source MinGW or MinGW-w64 runtime APIs to create an open-source
+alternative to Microsoft's compiler and platform SDK.
+
+
+\section{Windows Powershell}
+\label{sec:windows_powershell}
+
+When DOS runs, it uses \verb!autoexec.bat! or \verb!config.sys! to control the
+startup environment. 
+
+When Windows boot up, it uses \verb!boot.ini! and boot configuration data
+(BCD) stored in registry. To modify BCD, we can use \verb!BCDEdit! command-line
+tool
+\url{https://technet.microsoft.com/en-us/library/cc709667(v=ws.10).aspx}
+or visual BCD editor \url{http://www.boyans.net/}
+
+\subsection{version}
+\label{sec:version_PowerShell}
+
+\begin{verbatim}
+$PSVersionTable.PSVersion
+\end{verbatim}
+which output can be
+\begin{verbatim}
+
+Major  Minor  Build  Revision
+-----  -----  -----  --------
+2      0      -1     -1
+
+\end{verbatim}
+
+ To update to 
+ \begin{itemize}
+   \item  version 3, you must download the Windows Management Framework 3: 
+ \url{http://www.microsoft.com/en-us/download/details.aspx?id=34595}
+   \item version 4: \url{http://www.microsoft.com/en-us/download/details.aspx?id=40855}
+   
+   \item version 5 Preview: \url{http://www.microsoft.com/en-us/download/details.aspx?id=44987}
+ \end{itemize}
+then choose either the x86 or the x64 files depending on your system.
+
+A list of equivalent commands between Windows PowerShell and Unix shell is given in 
+\url{http://en.wikipedia.org/wiki/Windows_PowerShell}
+
+
+\subsection{user's Profile}
+\label{sec:profile_PowerShell}
+
+When Windows PowerShell runs, it reads the PowerShell profile which is a script
+file that runs at session startup. The scripting language is discussed in
+Sect.\ref{sec:scripting_language_PowerShell}.
+The name of the file is \verb!Microsoft.PowerShell_profile.ps1! configuration
+file.
+
+To check the location of this file, run the command
+\begin{verbatim}
+$Profile
+\end{verbatim}
+
+The existence of this file can be tested using
+\begin{verbatim}
+Test-Path $profile
+\end{verbatim}
+command. If 'False' is returned, you need to create a new profile.
+\begin{verbatim}
+New-Item -path $profile -type file -force
+\end{verbatim}
+then a file named 
+\begin{verbatim}
+
+
+    Directory: \\tieserver1\users$\thoangtr\My Documents\WindowsPowerShell
+
+
+Mode                LastWriteTime     Length Name
+----                -------------     ------ ----
+-a---         2/10/2015  11:25 AM          0 Microsoft.PowerShell_profile.ps1
+\end{verbatim}
+
+However, by default, running script is
+disabled due to the execution policy is \verb!Restricted! (Sect.\ref{sec:execution_policy_PowerShell})
+\begin{verbatim}
+File \\tieserver1\users$\thoangtr\My Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1 cannot be loaded beca
+use the execution of scripts is disabled on this system. Please see "get-help about_signing" for more details.
+\end{verbatim}
+
+\textcolor{red}{Example: simple Profile's content}
+\begin{verbatim}
+$env:Path = $env:Path + ";C:\Program Files (x86)\Vim\vim74" + ";C:\Python64bit_2_77\Scripts" + ";C:\Program Files\Oracle\VirtualBox"
+$env:WORKON_HOME = "C:\Users\thoangtr\my_virt_env"
+
+$pshost = get-host
+$pswindow = $pshost.ui.rawui
+
+$newsize = $pswindow.buffersize
+$newsize.height = 3000
+$newsize.width = 250
+$pswindow.buffersize = $newsize
+
+Set-Alias vi gvim
+New-Alias which get-command
+
+set-location D:\OpenSource\NASA
+\end{verbatim}
+
+
+\subsection{execution policy}
+\label{sec:execution_policy_PowerShell}
+
+To check different execution policies
+\begin{verbatim}
+Get-Help Set-ExecutionPolicy -full
+\end{verbatim}
+\begin{itemize}
+  \item \verb!Restricted!: no loading scripts/configuration file
+  \item \verb!AllSigned! : require all scripts/configuration file be signed by a
+  trusted publisher (including scripts write on the local computer)
+  
+  \item \verb!RemoteSigned!: require all scripts/configuration file downloaded
+  from the Internet be signed by a trusted publisher
+  
+  \item \verb!Unrestricted! : run alls, but for those downloaded from the
+  Internet, there is prompt for permission before it runs.
+  
+  \item \verb!Bypass!: nothing is blocked or prompted 
+  
+\end{itemize}
+
+To modify it, run the PowerShell as administrator, and type
+\begin{verbatim}
+Set-ExecutionPolicy RemoteSigned
+\end{verbatim}
+
+To enable a third-party program, to use PowerShell as the terminal, and can execute script, we need to enable the current user with this privilege
+as the third-party program evoke the Windows PowerShell as the current user.
+\begin{verbatim}
+Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+\end{verbatim}
+
+Now we discuss how to modify this file. We can use PowerShell ISE editor
+(Integrated Scripting Environment)
+\url{https://technet.microsoft.com/en-us/library/dd315244.aspx}
+
+To edit other file contents from the PowerShell, we can use
+\begin{itemize}
+  \item nano: \url{http://www.nano-editor.org/download.php}
+  
+  \item kinesics: (Sect.\ref{sec:kinesics})
+  
+  \item Vim (GVim) support: Sect.\ref{sec:gvim}
+  
+  \item from the PowerShell command line:
+  
+\begin{verbatim}
+"`nNew-Alias which get-command" | add-content $profile
+\end{verbatim}
+the character \verb!`n! is to ensure it starts as a new line
+\end{itemize} 
+
+\subsection{scripting language}
+\label{sec:scripting_language_PowerShell}
+
+Windows PowerShell consists of a command-line shell and a scripting language built on the .NET Framework.
+From the command-line shell, we can have full access to COM and WMI, enabling administrator to perform administrative
+tasks on both local and remote Windows
+
+\subsection{access remote-machine}
+
+PowerShell provides the capability to connect to a remote Windows machine via
+the command-line shell just like SSH on other O/S.
+As PowerShell Remoting is locked-down by default, you need to enable it first.
+This setup process is a bit more complex if you're using a workgroup - for example, on a home network - instead of a domain.
+\url{http://www.howtogeek.com/117192/how-to-run-powershell-commands-on-remote-computers/}
+Suppose there are two machine A (local) + B (remote).
+
+On the machine B that you want to be remotely connected, 
+\begin{enumerate}
+  \item right click on Windows Powershell, select run as Administrator
+  
+  \item Run
+\begin{verbatim}
+Enable-PSRemoting -Force
+\end{verbatim}
+which runs WinRM service, i.e. a WinRM listener on HTTP to accept WS-Man request to any WinRM firewall exception enabled.
+\end{enumerate}
+
+On the machine A that you want to use to connect
+\begin{itemize}
+  \item If machine A is configured in a workgroup (e.g on a home network):
+  
+  Launch PowerShell as administrator and run
+\begin{verbatim}
+Enable-PSRemoting -Force
+\end{verbatim}
+  On both machine A and machine B, configure the \verb!TrustedHosts! settings so the computers will trust each other.s
+  Example: (not recommended to use) trust all machine (*)
+\begin{verbatim}
+Set-Item wsman:\localhost\client\trustedhosts *
+\end{verbatim}
+or replace asterisk (*) with a comma-separated list of IP addresses or computer-names.
+  
+  On both machine A and machine B, restart WinRM service
+\begin{verbatim}
+Restart-Service WinRM
+\end{verbatim}
+
+  Test the connection, on machine A
+\begin{verbatim}
+Test-WsMan <REMOTE-COMPUTER-NAME>
+\end{verbatim}
+
+
+  \item If machine A is configured in a domain
+\end{itemize}
+
+Finally, on machine A, you can do
+\begin{enumerate}
+  \item Execute a remote command
+\begin{verbatim}
+Invoke-Command -ComputerName COMPUTER -ScriptBlock { COMMAND } -credential USERNAME
+\end{verbatim}
+with COMPUTER = machine B, COMMAND = command to run on machine B, USERNAME = user account on machine B.
+
+Example:
+\begin{verbatim}
+Invoke-Command -ComputerName Monolith -ScriptBlock { Get-ChildItem C:\ } -credential chris
+\end{verbatim}
+
+
+  \item Start a remote session, to run multiple commands
+\begin{verbatim}
+Enter-PSSession -ComputerName COMPUTER -Credential USER
+\end{verbatim}
+
+Example:s  
+\begin{verbatim}
+PS C:\> Enter-PSSession -ComputerName dc1
+[dc1]: PS C:\Users\Administrator\Documents> sl c:\
+[dc1]: PS C:\> gwmi win32_bios
+
+\end{verbatim}
+
+  \item To enable multiple connections to a remote system using the same account, run \verb!New-PSSession!
+
+\verb!New-PSSession! permits you to store the remote session in a variable, and it
+provides you with the ability to enter and leave the remote session as often as
+required, without the additional overhead of creating and destroying remote
+sessions.
+  
+Example:
+\begin{verbatim}
+PS C:\> $dc1 = New-PSSession -ComputerName dc1 -Credential iammred\administrator
+
+PS C:\> Enter-PSSession $dc1
+[dc1]: PS C:\Users\Administrator\Documents> hostname
+dc1
+[dc1]: PS C:\Users\Administrator\Documents> exit
+
+
+PS C:\> Enter-PSSession $dc1
+[dc1]: PS C:\Users\Administrator\Documents> gps | select -Last 1
+
+Handles  NPM(K)    PM(K)      WS(K) VM(M)   CPU(s)     Id ProcessName
+-------  ------    -----      ----- -----   ------     -- -----------
+    292       9    39536      50412   158     1.97   2332 wsmprovhost
+
+[dc1]: PS C:\Users\Administrator\Documents> exit
+PS C:\> Get-PSSession
+
+ Id Name            ComputerName    State         ConfigurationName     Availability
+ -- ----            ------------    -----         -----------------     ------------
+  8 Session8        dc1             Opened        Microsoft.PowerShell     Available
+
+PS C:\> Get-PSSession | Remove-PSSession
+PS C:\>
+\end{verbatim}  
+  
+  \item PowerShell has \verb!Start-Transcript!, the transcript tool captures output from the remote Windows PowerShell session and output from the local session.
+  
+\begin{verbatim}
+PS C:\> Start-Transcript
+Transcript started, output file is C:\Users\administrator.IAMMRED\Documents\PowerShe
+ll_transcript.20120701124414.txt
+PS C:\> Enter-PSSession -ComputerName dc1
+[dc1]: PS C:\Users\Administrator\Documents> gwmi win32_bios
+
+SMBIOSBIOSVersion : A01
+Manufacturer      : Dell Computer Corporation
+Name              : Default System BIOS
+SerialNumber      : 9HQ1S21
+Version           : DELL   - 6
+
+[dc1]: PS C:\Users\Administrator\Documents> exit
+PS C:\> Stop-Transcript
+Transcript stopped, output file is C:\Users\administrator.IAMMRED\Documents\PowerShe
+ll_transcript.20120701124414.txt
+\end{verbatim}
+  
+\end{enumerate}
+ 
+%Finally, on machine A, start the connection
+\url{http://blogs.technet.com/b/heyscriptingguy/archive/2013/12/11/use-powershell-to-create-remote-session.aspx}
+ 
+\subsection{setting startup locaion}
+
+The default location is \verb!<user-document-path>!
+\begin{verbatim}
+set-location c:
+\end{verbatim}
+
+
+\subsection{change PowerShell window's title}
+
+The default title is \verb!Windows PowerShell!
+\begin{verbatim}
+$Shell = $Host.UI.RawUI
+$Shell.WindowTitle="SysadminGeek"
+\end{verbatim}
+
+\subsection{change window size and scrollback}
+
+\begin{verbatim}
+$Shell = $Host.UI.RawUI
+$size = $Shell.WindowSize
+$size.width=70
+$size.height=25
+$Shell.WindowSize = $size
+$size = $Shell.BufferSize
+$size.width=70
+$size.height=5000
+$Shell.BufferSize = $size
+\end{verbatim}
+
+\url{http://blogs.technet.com/b/heyscriptingguy/archive/2006/12/04/how-can-i-expand-the-width-of-the-windows-powershell-console.aspx}
+
+
+\subsection{background and text color}
+
+The default background color is blue, and text color is white
+\begin{verbatim}
+$Shell = $Host.UI.RawUI
+$shell.BackgroundColor = "Gray"
+$shell.ForegroundColor = "Black"
+\end{verbatim}
+
+
+\subsection{create alias}
+
+To check the built-in aliases, we run
+\begin{verbatim}
+Get-Alias
+\end{verbatim}
+
+Set a single user-defined alias
+\begin{verbatim}
+Set-Alias gs Get-Service <enter>
+\end{verbatim}
+
+If you want to export the current aliases into a single file
+\begin{verbatim}
+Export-Alias -Path Aliases.txt <enter>
+\end{verbatim}
+
+If you have multiple aliases, and you save in the file, we can read-in
+user-defined alias, from file
+\begin{verbatim}
+Import-Alias -Path Alias.txt <enter>
+\end{verbatim}
+The structure of this file should be 4 columns
+\begin{verbatim}
+# this is comment
+"gs", "Get-Service", "", "None"
+\end{verbatim}
+
+
+Example: \verb!np! means running Notepad.exe
+\begin{verbatim}
+new-item alias:np -value C:WindowsSystem32notepad.exe
+\end{verbatim}
+
+\url{http://www.powershellpro.com/powershell-tutorial-introduction/tutorial-powershell-aliases/}
+
+\subsection{environment variable}
+
+\begin{verbatim}
+$env:Path = $env:Path + ";C:\Program Files\GnuWin32\bin"
+
+$env:Path += ";C:\Program Files\GnuWin32\bin"
+\end{verbatim}
+
+\url{http://stackoverflow.com/questions/714877/setting-windows-powershell-path-variable}
+
+
+\url{http://www.computerperformance.co.uk/powershell/powershell_env_path.htm}
+
+\subsection{Persistent history}
+
+You want the command-line to save the history in the previous sessions. First
+check PowerShell version (Sect.\ref{sec:version_PowerShell}). If \verb!Major<3!,
+then we need to update PowerShell.
+
+Then run
+\begin{verbatim}
+set-executionpolicy remotesigned
+
+  ## install PsGet
+(new-object Net.WebClient).DownloadString("http://psget.net/GetPsGet.ps1") | iex
+
+import-module PsGet
+install-module PsUrl
+install-module PSReadline
+\end{verbatim}
+NOTE: We use
+\begin{itemize}
+  \item PSReadLine: to map a key to a particular command, e.g. Up key to browse history
+\end{itemize}
+
+Modify profile file (Sect.\ref{sec:profile_PowerShell})
+
+\begin{verbatim}
+$MaximumHistoryCount = 200  
+$HistoryFilePath = Join-Path ([Environment]::GetFolderPath('UserProfile')) .ps_history
+
+Register-EngineEvent PowerShell.Exiting -Action { Get-History -Count $MaximumHistoryCount | Export-Clixml $HistoryFilePath } | out-null
+
+# Load previous history, if it exists
+if (Test-path $HistoryFilePath) { 
+   Import-Clixml $HistoryFilePath | ? {$count++;$true} | Add-History
+   
+   Write-Host -Fore Green "`nLoaded $count history item(s).`n" 
+}
+
+# if you don't already have this configured...
+Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward
+Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward
+
+New-Alias -Name i -Value Invoke-History -Description "Invoke history alias"
+##backup previous 'h' command meaning to 'original_h'
+Rename-Item Alias:\h original_h -Force
+
+## use 'h' for history
+function h { Get-History -c  $MaximumHistoryCount }
+function hg($arg) { Get-History -c $MaximumHistoryCount | out-string -stream | select-string $arg }
+\end{verbatim}
+\url{https://software.intel.com/en-us/blogs/2014/06/17/giving-powershell-a-persistent-history-of-commands}
+\url{http://stackoverflow.com/questions/16474973/windows-powershell-persistent-history}
+
+
+Save and exit the editor. From now on, to check the history run
+\begin{verbatim}
+get-history
+   ## or simply
+h
+\end{verbatim}
+The last session's commands as well as the current session's commands are there
+
+\subsection{commands: clear-host, new-item, get-command}
+
+Clear the workspace
+\begin{verbatim}
+Clear-Host
+\end{verbatim}
+
+Create new file
+\begin{verbatim}
+new-item -type file NAME/__init__.py
+\end{verbatim}
+
+Check the location of a particular command
+\begin{verbatim}
+Get-command <command-to-search>
+
+gcm <command-to-search>
+
+Get-Command <your command> | Select-Object -ExpandProperty Definition
+\end{verbatim}
+with \verb!gcm! is the alias of \verb!Get-Command!. 
+
+\url{http://stackoverflow.com/questions/63805/equivalent-of-nix-which-command-in-powershell}
+
+\url{http://www.howtogeek.com/50236/customizing-your-powershell-profile/}
+
+\url{http://www.computerperformance.co.uk/powershell/powershell_profile_ps1.htm}
+
+%\subsection{Simple profile content}
+
+
+\section{Editors}
+
+\subsection{Kinesics editor}
+\label{sec:kinesics}
+
+The Kinesics Text Editor is a small, fast, efficient, portable text editor.
+
+\url{http://www.turtlewar.org/projects/editor/}
+
+Type \verb!k! to run the editor
+
+\begin{itemize}
+  \item F1 (or Contrl-]) : menu
+\end{itemize}
+
+\subsection{Vim Windows}
+\label{sec:gvim}
+
+\verb!gvim! includes GUI and console versions (32-bit and 64-bit).
+
+
+  \url{http://www.vim.org/download.php\#pc}
+  \url{https://github.com/PProvost/vim-ps1}
+  
+  \url{http://www.vim.org/scripts/script.php?script_id=1327}
+
+\subsection{MathPad}
+\label{sec:MathPad}
+
+\url{http://mathpad.software.informer.com/}
+
+\section{Windows 7: short-cut keys}
+
+\url{http://www.scoroncocolo.com/go-mouseless-use-a -pc-with-nothing-but-a-keyboard.html}
+{\bf Show the Desktop Shortcut}
+\begin{verbatim}
+Win-key + Spacebar      Peak at the Desktop without actually going there.
+Win-key + d      Toggle back and forth from your Desktop to your open windows.
+\end{verbatim}
+
+{\bf Windows Keyboard Shortcuts Using the Arrow Keys}
+\begin{verbatim}
+Win-key plus the down Arrow-key      Makes a window less than full-screen.
+Win-key pluse the up Arrow-key      Makes the window full-size again.
+Win+Shift+Right/Left arrow      If you have more than one monitor, moves the current window left or right.
+Win-key pluse the left Arrow-key      Docks a less than full-size window to the left side of the screen.
+Win-key pluse the right Arrow-key      Docks a less than full-size window to the right side of the screen.
+Win-key pluse t      Allows you to use your Arrow keys to scroll through the taskbar.
+Win-key pluse b      Allows you to use your Arrow keys to scroll through your Systems Trey.
+\end{verbatim}
+
+{\bf More Cool Windows Keyboard Shortcuts}
+\begin{verbatim}
+Win-key plus (1 through 9)      Opens the corresponding program on your taskbar.
+Alt plus Win-key plus (1 through 9)      Opens the Jump List of the corresponding program on your taskbar.
+Win-key plus Tab      Activates Flip 3d.
+Ctrl plus Win-key plus Tab      Freezes Flip 3d. Use Esc key or click a window to deactivate Flip 3d.
+
+\end{verbatim}
+
+
+\section{Windows special folders}
+
+\url{http://windows.microsoft.com/en-us/windows-8/what-appdata-folder}
+\subsection{Roaming: \%APPDATA\%}
+
+\verb!%APPDATA%!
+contains data that can move with your user profile from PC to PC.
+This is a typical place to put a user-specific application's data.
+Because this data has the ability to sync with a server. For example, if you
+sign in to a different PC on a domain, your web browser favorites or bookmarks
+will be available.
+
+
+\subsection{Local \%localappdata\%}
+
+\verb!%LOCALAPPDATA%!
+contains data that can't move with your user profile. This data is typically
+specific to a PC or too large to sync with a server.
+
+\subsection{LocalLow: \%appdata\%/../locallow}
+
+\verb!%APPDATA%/../locallow!
+contains data that can't move, but also has a lower level of access
+
+
+
+
+\section{Windows feature transition}
+
+
+\subsection{Windows XP to Windows Vista}
+
+\url{https://en.wikipedia.org/wiki/List_of_features_removed_in_Windows_Vista}
+A number of capabilities and certain programs
+parts of Windows XP are no longer available in Windows Vista.
+NOTE: \textcolor{red}{Some of which were later re-introduced in Windows 7.} 
+
+\subsection{Windows Vista to Windows 7}
+
+\url{https://en.wikipedia.org/wiki/List_of_features_removed_in_Windows_7}
+Windows 7 is an incremental update to Windows Vista.
+ 
+
+\subsection{Windows 7 to Windows 8}
+
+Windows 8 introduced major changes to the operating system's platform and user
+interface.
+\url{https://en.wikipedia.org/wiki/List_of_features_removed_in_Windows_8}
+
+New features and functionality in Windows 8 include a faster startup through
+UEFI integration and the new "Hybrid Boot" mode (which hibernates the Windows
+kernel on shutdown to speed up the subsequent boot,
+native support for USB 3.0 devices.
+Windows Explorer, which has been renamed File Explorer,
+uses a ribbon in place of the command bar.
+
+Task Manager has been redesigned, including a new processes tab with the option
+to display fewer or more details of running applications and background
+processes, \ldots
+
+Login: two new authentication methods tailored towards touchscreens (PINs and
+picture passwords), besides the traditional password.
+
+\url{https://en.wikipedia.org/wiki/Windows_8}
+
+\subsection{windows 8 to Windows 10}
+
+The goal of Windows 10 is to unify the operating systems of Microsoft's PC,
+Windows Phone, Windows Embedded and Xbox One product families, along with new
+products (Surface Hub, HoloLens) around a common internal core.
+
+A new default web browser, Microsoft Edge, will be available.
+
+Windows 10 adds a revision of the desktop start menu, similar to that of Windows
+7, and a virtual desktop system, and allows Windows Store apps to run within
+windows on the desktop as well as in full-screen mode.
+
+Login: new frameworks for biometric authentication.
+
+{\bf App-V} system (Sect.\ref{sec:App-V}): to pack web apps and desktop apps in
+Win32 or .NET framework to be able to run in Windows 10 via sandboxing.
+
+\section{Virtual screen}
+\label{sec:virtual-screen}
+
+\url{http://www.howtogeek.com/130650/the-best-free-programs-for-using-virtual-desktops-in-windows/}
+
+
+\subsection{Sysinternals Desktops v2.0 }
+
+\url{http://www.howtogeek.com/195962/unlock-virtual-desktops-on-windows-7-or-8-with-this-microsoft-tool/}
+\section{Synergy: share keyboard and mouse}
+\label{sec:synergy}
+
+Synergy combines your desktop devices together in to one cohesive experience.
+It's software for sharing your mouse and keyboard between multiple computers on
+your desk. 
+
+You can get 64-bit build for Windows, Linux from here:
+\url{https://sourceforge.net/projects/synergy-stable-builds/}
+
+
+Configure the machine with keyboard/mouse available as server, and you may not
+to enable firewall on that machine to open port 24800
+\begin{verbatim}
+sudo iptables -I INPUT 1 -p tcp --dport 24800 -j ACCEPT
+\end{verbatim}
+

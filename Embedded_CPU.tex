@@ -1,0 +1,838 @@
+\chapter{Embedded CPU architectures}
+
+
+\section{Motorola 68k series}
+
+The development of Motorola 68000 series was ceased in 1994, and switched to
+PowerPC architecture (Sect.\ref{sec:PowerPC}).
+
+Other chips compatible with the 68000 instruction set
+\begin{enumerate}
+  \item Freescale ColdFire
+  \item Freescale DragonBall
+\end{enumerate}
+\url{https://en.wikipedia.org/wiki/Motorola_68000_family}
+
+\section{PowerPC}
+\label{sec:PowerPC}
+
+PowerPC is the product from Motorola, IBM and Apple (i.e. AIM alliance).
+\begin{itemize}
+  \item Early generation of PowerPC-based chip lack a supported O/S
+  \begin{itemize}
+    \item PowerPC 601: first gen
+    \item PowerPC 603 (second gen, the first native PowerPC instruction set),
+    and its high-end PowerPC 604
+  \end{itemize}
+  
+  \item PowerPC 615: support Intel x86 instructio set directly by the CPU
+  
+  \item PowerPC 620: first 64-bit PowerPC
+  \item PowerPC 970: smaller 64-bit PowerPC using POWER3 design
+  
+  \item embedded PowerPC: 4xx lines (401, 403, 405, 440, 460), which was sold to
+  AMCC company in 2004.
+  
+  
+\end{itemize}
+\url{https://en.wikipedia.org/wiki/PowerPC}
+
+The core PowerPC Instruction Set has 107 instructions.
+\url{http://pds.twi.tudelft.nl/vakken/in101/labcourse/instruction-set/}
+
+PowerPC
+vs
+Intel:
+\url{http://www.quora.com/Why-was-the-PowerPC-architecture-unable-to-keep-up-with-Intel}
+
+\section{embedded Linux vs. Desktop Linux}
+
+
+\section{embedded Linux vs. real-time OS}
+
+In Real-time OS, events are handled within a time constraint, i.e. deterministic
+behavior. An RTOS provides scheduling guarantees to ensure deterministic
+behaviour and timely response events and interrupts.  In most cases this is
+through a priority based pre-emptive scheduling algorithm, where the highest
+priority task ready to run always runs - immediately - pre-empting any lower
+priority task without a specific yield or relinquishing of the CPU, or
+completion of a time-slice.
+
+Embedded Linux is not an RTOS as events/interrupts are typically handled by
+deferred procedures or 'bottom half' code which can not guarantee latency. Linux
+has a number of scheduling options, including a real-time scheduler, but this is
+at best "soft" real-time. If your application has no need of "hard" real-time,
+that's fine, but typical latencies in real-time Linux will be in the order of
+tens or hundreds of microseconds, whereas a typical RTOS real-time kernel can
+achieve from latencies from zero to a few microseconds.
+
+
+Linux is a general-purpose OS (GPOS); its application to embedded systems is
+usually motivated by the availability of device support, file-systems, network
+connectivity, and UI support.
+
+Linux is soft real time and vxWorks is hard real time.
+In soft real time you can expect a real time performance but not 100\%
+deterministic.
+Soft-real time is good enough for range of application (telecom/consumer device
+etc); However when you need a product like robotics, Medical equipment you can't
+go for an option which is not deterministic.
+Realtime performance is also an issue as mentioned. Measure whether
+you need uS or mS performance.
+
+Many RTOS are not full OS in the sense that Linux is, in that RTOS  comprise of
+a static link library providing only task scheduling, IPC, synchronisation timing
+and interrupt services and little more - essentially the scheduling kernel only.
+Such a library is linked with your application code to produce a single
+executable that your system boots directly (or via a bootloader).
+Most RTOS do not directly support the loading and unloading of code dynamically
+from a file system as you would with Linux - it is all there at start-up and runs until power down.
+
+Another issue with embedded Linux is that it needs significant CPU resources,
+perhaps >200MIPS, 32bit processor, ideally with an MMU, 4Mb of ROM and 16MB or
+RAM to just about boot (which may take several seconds). An RTOS on the other
+hand can be up in milliseconds, run in less than 10Kb, on microcontrollers from
+8-bit up. This can have a significant impact on system cost for volume
+production despite being ostensibly "free".
+
+
+There are larger RTOS products that exhibit some of the features of a GPOS such
+dynamic loading, filesystems, networking, GUI (for example as QNX), and many
+RTOS provide a {\bf POSIX API} (usually secondary to their native real-time API)
+for example VxWorks and agian QNX, so that a great deal of code developed for Linux
+and Unix can be ported relatively easily. These larger more comprehensive RTOS
+products remain scalable, so that functionality not required is not included.
+Linux in comparison has far more limited scalability.
+
+\url{http://stackoverflow.com/questions/25871579/what-is-the-difference-between-rtos-and-embedded-linux}
+
+\section{Real-time OS (RTOS)}
+
+You could also look at OSes like $\mu$C/OS-II, eCos, RTEMS, FreeRTOS and others
+...
+
+\subsection{vxWorks}
+\label{sec:vxWorks}
+
+VxWorks is a proprietary, real-time OS (RTOS). 
+Linux is royalty free; however with VxWorks you need to pay for
+production license for each device you sell running VxWorks.
+
+VxWorks support many CPUs which include those of the x86 family, MIPS, PowerPC,
+and the families of ARM, StrongARM, and xScale.
+\url{http://www.differencebetween.net/technology/difference-between-vxworks-and-linux/}
+
+
+VxWorks is a RTOS designed for use in embedded systems requiring real-time,
+deterministic performance and, in many cases, safety and security certification,
+for industries, such as aerospace and defense, medical devices, industrial
+equipment, robotics, energy, transportation, network infrastructure, automotive,
+and consumer electronics.
+\textcolor{red}{Some one measured ISR
+latencies of about 1us for a test ISR on vxWorks, while rtai linux
+latencies were as high as 30us}.
+\url{http://fixunix.com/vxworks/331795-linux-vs-vxworks.html}
+
+VxWorks supports
+\begin{itemize}
+  \item multitasking kernel: pre-emptive scheduling, round-robin scheduling,
+  fast interupt response
+  
+  \item  memory protection: isolate user application from kernel memory space
+  
+  \item SMP support
+  
+  \item error handling framework
+  
+  \item filesystem
+  
+  \item local + distributed message queues
+\end{itemize}
+
+The development of applications targeted for VxWorks is done on a host machine
+which runs Linux, Unix, or Windows. It cross compiles target software so that it
+is capable of running on various target CPU architectures.
+
+
+\textcolor{red}{VxWorks as a real time operating system handles threads somewhat
+different from what "normal" OSes do}, regarding their scheduling! This could
+lead to a scenario called "priority inversion" when using semaphores, see
+\url{http://en.wikipedia.org/wiki/Priority_inversion}
+
+\begin{verbatim}
+VxWorks is not a genuine POSIX-OS in itself, rather it is using a
+// kind of compatibility layer (sort of a wrapper) to emulate the
+// POSIX-functionality by using its own resources and functions.
+// At the time a task (thread) calls it's first POSIX-function during
+// runtime it is being transformed by the OS into a POSIX-thread.
+// This transformation does include a call to malloc() to allocate the
+// memory required for the housekeeping of POSIX-threads. In a high
+// priority RTP this malloc() call may be highly undesirable, as its
+// timing is more or less unpredictable (depending on what your actual
+// heap looks like). You can circumvent this problem by calling the
+// function thread_self() at a well defined point in the code of the
+// task, e.g. shortly after the task spawns up. Thereby you are able
+// to define the time when the task-transformation will take place and
+// you could shift it to an uncritical point where a malloc() call is
+// tolerable. So, if this could pose a problem for your code, remember
+// to call thread_self() from the affected task at an early stage.
+//
+\end{verbatim}
+\url{https://searchcode.com/codesearch/view/85130696/}
+
+
+\subsection{Embox}
+
+Embox is an open source real-time operating system designed for resource
+constrained hardware.
+
+\url{https://code.google.com/p/embox/}
+
+
+
+\section{cFE (core Flight Executive)}
+
+\subsection{Macro vxWorks-PPC750}
+
+Check \url{http://www.vxdev.com/docs/vx55man/vxworks/ppc/powerpc.html}
+
+Some are specific to \verb!ccppc! compiler: 
+\begin{enumerate}
+  \item \verb!_VXWORKS_OS_! : if defined, use the proper include file in 
+  
+ \begin{verbatim}
+ <project>/cfe/fsw/cfe-core/src/inc/network_includes.h
+ \end{verbatim}
+ \url{https://github.com/billvb/cfe/blob/master/cfe/fsw/cfe-core/src/inc/network_includes.h}
+ 
+ \textcolor{red}{Use a different macro for other O/S}
+ 
+ \verb!TARGET_DEFS! 
+ \begin{itemize}
+   \item RTEMS O/S : \verb!_RTEMS_OS_!
+   
+   \item MAC O/S: \verb!_MAC_OS_!
+   
+   \item Linux O/S: \verb!_LINUX_OS_!
+ \end{itemize}
+  
+  \item \verb!_PPC_!,  \verb!__PPC__!: if defined, it indicates the PowerPC
+  architecture (Sect.\ref{sec:macro-GNU-to-detect-CPU} in C/C++ Manual)
+  
+  However, no one use \verb!_PPC_!, it is better replaced by \verb!__ppc__!.
+  
+  \url{http://nadeausoftware.com/articles/2012/02/c_c_tip_how_detect_processor_type_using_compiler_predefined_macros}
+  
+  \item \verb!$(CFE_SB_NET)!: not being used anywhere
+  
+  \item \verb!$(OS)! : use on every configuration, the value is defined in
+  another place to indicate which target O/S is
+  
+  \item \verb!MCP750!: if defined, it means the board is MCP750
+  (Sect.\ref{sec:MCP750})
+  
+  if defined, it checks the files
+\begin{verbatim}
+psp/fsw/mip405t-vxworks6.4/src/mcpx750.h:#ifdef MCP750
+psp/fsw/mcp750-vxworks6.4/src/mcpx750.h:#ifdef MCP750
+psp/fsw/mip405t-linux/src/mcpx750.h:#ifdef MCP750
+\end{verbatim}
+The header is included in these files
+\begin{verbatim}
+psp/fsw/mcp750-vxworks6.4/src/cfe_psp_timer.c:#include "mcpx750.h"
+psp/fsw/mcp750-vxworks6.4/src/cfe_psp_watchdog.c:#include "mcpx750.h"
+psp/fsw/mcp750-vxworks6.4/src/cfe_psp_start.c:#include "mcpx750.h"
+\end{verbatim}
+  
+  
+  \item \verb!_EMBED_!
+  
+  \item \verb!TOOL_FAMILY=gnu!, \verb!TOOL=gnu! (can be \verb!gnu! or
+  \verb!diab! or \verb!gnuv8!)
+  
+Only used by \verb!vxWorks!: as it is used by some program to detect compiler information, and compiler option.
+\begin{verbatim}
+ifeq ($(TOOL_FAMILY),diab)
+CC := dcc
+LD := dld
+AR := dar
+VXWORKS_VER := vxworks62
+else
+CC := cc$(VX_TOOL_SUFFIX)
+LD := $(CC)
+AR := ar$(VX_TOOL_SUFFIX)
+endif
+
+ifeq ($(TOOL_FAMILY),diab)
+# compiler and linker flags using Diab compiler
+  CFLAGS += -w -Xdialect-ansi -Xno-common -D__vxworks -D_DIAB_TOOL -D__XSCALE__
+  LDFLAGS := -r -W:as:,-x,-X -Ws
+  MAKE_DEP_FLAG := -Xmake-dependency
+
+else
+# compiler and linker flags using GNU compiler
+  CFLAGS += -Wall -ansi -pedantic -fno-common -mno-sched-prolog -mcpu=xscale
+  LDFLAGS := -nostdlib -r -Wl,-X
+  MAKE_DEP_FLAG := -M
+endif
+\end{verbatim}
+\url{https://github.com/mirror/dd-wrt/blob/master/src/linux/sl2312/linux-2.6.23/drivers/ixp400/ixp_osal/os/vxworks/make/macros.mk}
+
+  
+  \item \verb!_WRS_KERNEL!: if defined, use Wind River System's Kernel
+  
+  This is only for vxWorks's OSs
+  \url{https://developer.windriver.com/thread/1171}
+  
+  \item \verb!CPU=PPC604! (other values: PPC403, PPC405, PPC440, PPC603,
+  PPC604, PPC860)
+  
+  Motorola PowerPC MPC74xx CPUs are treated as a variation of the PowerPC 604
+  CPU type.
+  
+\end{enumerate}
+
+\verb!ARCH_OPTS! 
+\begin{itemize}
+  \item \verb!-mcpu=750!: Set architecture type, register usage, and instruction
+  scheduling parameters for machine type for CPU \verb!750!. Other values
+\begin{verbatim}
+'401', '403', '405', '405fp', '440', '440fp', '464', '464fp', '476', '476fp',
+'505', '601', '602', '603', '603e', '604', '604e', '620', '630', '740', 
+'7400', '7450', '750', '801', '821', '823', '860', '970', '8540', 'a2', 
+'e300c2', 'e300c3', 'e500mc', 'e500mc64', 'e5500', 'e6500', 'ec603e', 
+'G3', 'G4', 'G5', 'titan', 'power3', 'power4', 'power5', 
+'power5+', 'power6', 'power6x', 'power7', 'power8', 'powerpc', 'powerpc64', 'powerpc64le', 'rs64'.
+\end{verbatim}
+  \url{https://gcc.gnu.org/onlinedocs/gcc/RS_002f6000-and-PowerPC-Options.html}
+  
+ We can use \verb!-march=! option
+ Example: ARM architecture
+\begin{verbatim}
+'armv2', 'armv2a', 'armv3', 'armv3m', 'armv4', 'armv4t', 'armv5', 'armv5t',
+'armv5e', 'armv5te', 'armv6', 'armv6j', 'armv6t2', 'armv6z', 'armv6zk', 'armv6-m', 
+'armv7', 'armv7-a', 'armv7-r', 'armv7-m', 'armv7e-m', 'armv7ve', 
+'armv8-a', 'armv8-a+crc', 'iwmmxt', 'iwmmxt2', 'ep9312'.
+\end{verbatim}
+ 
+ \url{https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html}
+ 
+ 
+ Example: Motorolla 68000 series or ColdFire V2
+\begin{verbatim}
+
+\end{verbatim}
+\url{https://gcc.gnu.org/onlinedocs/gcc/M680x0-Options.html}
+\end{itemize}
+
+\verb!VXINCDIR! only for vxWorks.
+
+
+\verb!X86PC! is not being used anywhere, so can be removed
+
+\verb!BUILD=$(BUILD)! where \verb!$(BUILD)! is not being defined anywhere, so
+can be removed.
+
+\verb!_REENTRANT! 
+\begin{itemize}
+  \item  (up to GCC 3.3.x) could be used on x86 CPU Linux to determine
+at compile time whether the compiler was called with \verb!-pthread! option.
+Some libraries, e.g. the Boost library, relie on this macro to decide if
+\verb!boost::smart_ptr! needs to be make thread-safe.
+
+  \item (from GCC 3.4.0) is automatically defined if C++ standard header file is
+  included (NOTE: other headers may cause the symbol to be defined too).
+  
+NOTE: \verb!_POSIX_THREADS! is defined only if certain headers are included.
+It does not matter at all if -pthread was on the compilers command line.
+
+ 
+\end{itemize}
+\url{https://gcc.gnu.org/bugzilla/show_bug.cgi?id=15415}
+
+\subsection{Macro Linux-PPC405}
+
+
+\begin{enumerate}
+  \item \verb!_LINUX_OS_!: if defined, use the proper include file in 
+  
+ \begin{verbatim}
+ <project>/cfe/fsw/cfe-core/src/inc/network_includes.h
+ \end{verbatim}
+ 
+   \item \verb!__ppc__!,  \verb!__PPC__!: if defined, it indicates the PowerPC
+  architecture (Sect.\ref{sec:macro-GNU-to-detect-CPU} in C/C++ Manual)
+  
+  \item \verb!$(OS)!: 
+  
+  \item \verb!_POSIX_C_SOURCE=199309!
+  
+  \item \verb!__USE_MISC!: The reason is that 
+  
+\verb!<sys/stat.h>! define \verb!S_IFDIR! only when
+\begin{verbatim}
+#if defined __USE_BSD || defined __USE_MISC || defined __USE_XOPEN
+    # define S_IFDIR        __S_IFDIR
+#endif
+\end{verbatim}
+To get rid of 
+\begin{verbatim}
+ls2.c:91: `S_IFMT' undeclared (first use in this function)
+ls2.c:91: (Each undeclared identifier is reported only once
+ls2.c:91: for each function it appears in.)
+ls2.c:92: `S_IFREG' undeclared (first use in this function)
+ls2.c:93: `S_IFDIR' undeclared (first use in this function)
+ls2.c:94: `S_IFCHR' undeclared (first use in this function)
+ls2.c:95: `S_IFBLK' undeclared (first use in this function)
+\end{verbatim}
+try to add \verb!-D_XOPEN_SOURCE=600! to the compiler option.
+
+
+\begin{itemize}
+  \item \verb!__USE_BSD!: uses APIs based on BSD (Sect.\ref{sec:BSD})
+  
+  \item \verb!__USE_XOPEN!: use APIs based on XPG (Sect.\ref{sec:XPG})
+  
+  \item \verb!__USE_MISC!: use APIs from both \verb!__USE_BSD! and
+  \verb!__USE_SVID!
+\end{itemize}
+  
+    \item \verb!MCP750!: if defined, it means the board is MCP750
+  (Sect.\ref{sec:MCP750})
+  
+  \textcolor{red}{HOW TO remove this and use a different header/source file?}
+  
+  if defined, it checks the files
+\begin{verbatim}
+psp/fsw/mip405t-vxworks6.4/src/mcpx750.h:#ifdef MCP750
+psp/fsw/mcp750-vxworks6.4/src/mcpx750.h:#ifdef MCP750
+psp/fsw/mip405t-linux/src/mcpx750.h:#ifdef MCP750
+\end{verbatim}
+The header is included in these files
+\begin{verbatim}
+psp/fsw/mcp750-vxworks6.4/src/cfe_psp_timer.c:#include "mcpx750.h"
+psp/fsw/mcp750-vxworks6.4/src/cfe_psp_watchdog.c:#include "mcpx750.h"
+psp/fsw/mcp750-vxworks6.4/src/cfe_psp_start.c:#include "mcpx750.h"
+\end{verbatim}
+  
+  
+\end{enumerate}
+
+\verb!SYSINCS! is empty
+\begin{verbatim}
+SYSINCS=
+\end{verbatim}
+and we remove \verb!VXINCDIR! macro.
+
+As PowerPC CPU, \verb!ENDIAN_DEFS! is the same as that in PPC750
+\begin{verbatim}
+ENDIAN_DEFS=-D_EB -DENDIAN=_EB -DSOFTWARE_BIG_BIT_ORDER
+\end{verbatim}
+Except, modify \verb!ARCH_OPTS! to use \verb!-mcpu=405!
+\begin{verbatim}
+ARCH_OPTS = -mcpu=405 -mstrict-align -fno-builtin
+APP_EXT = so
+\end{verbatim}
+
+
+
+Cross-compiler:
+\begin{verbatim}
+COMPILER   = $(CROSS_COMPILE)cc
+ASSEMBLER  = $(CROSS_COMPILE)cc
+LINKER    = $(CROSS_COMPILE)ld
+AR              = $(CROSS_COMPILE)ar
+NM         = $(CROSS_COMPILE)nm
+OBJCPY     = $(CROSS_COMPILE)objcopy
+OBJDUMP    = $(CROSS_COMPILE)objdump
+\end{verbatim}
+
+
+When you compile it may asks for these files
+\begin{verbatim}
+vxworks.h
+sysLib.h
+taskLib.h
+ramDrv.h
+dosFsLib.h
+xdbBlkDev.h
+errnoLib.h
+usrLib.h
+cacheLib.h
+drv/hdisk/ataDrv.h
+\end{verbatim}
+\url{http://opensource.apple.com/source/gdb/gdb-282/src/gdb/vx-share/vxWorks.h}
+\url{ftp://ftp.desy.de/pub/EPICS/vx_GPFC/h/vxWorks.h}
+\url{http://svn.gna.org/svn/xenomai/trunk/include/vxworks/vxworks.h}
+
+\section{Embedded Boards}
+\label{sec:embedded-boards}
+
+
+An embedded board includes
+\begin{enumerate}
+  \item ROM (can be PROM, EPROM or Masked): persistent storage
+  
+  writing to EPROM is possible, but require rewrite the entire chip, but
+  also with a limited number of read/write cycles 
+  
+  
+  \item RAM (DRAM or SRAM): temporarily, volatile storage
+  
+  \item Hybrid:
+  \begin{itemize}
+    \item EEPROM:
+    
+   more expensive than Flash, write per byte, also with a limited number of
+   read/write cycles
+       
+    \item Flash: combine the best of ROM and RAM
+    
+   less expensive the EEPROM, write per sector, also with a limited number of
+   read/write cycles
+       
+    \item NVRAM:
+    
+   expensive, write per byte, and unlimited number of read/write cycles 
+  \end{itemize}
+  \url{http://www.barrgroup.com/Embedded-Systems/How-To/Memory-Types-RAM-ROM-Flash}
+  
+   
+  \item embedded CPU
+  \item I/O port
+  \item Ethernet port
+\end{enumerate}
+
+\subsection{MCP750}
+\label{sec:MCP750}
+
+  \begin{verbatim}
+  CPU: Motorola MPC750 233MHz, 1MB L2 cache, 4-8MB FLASH ROM, RAM 16-256MB, 
+       64-bit  CompactPCI interface 
+  
+  Instruction set (architecture): Freescale/IBM 7xx
+  \end{verbatim}
+  \url{https://bsp.windriver.com/index.php?bsp&on=details&bsp=138}
+  \url{http://www.artisantg.com/TestMeasurement/63140/Emerson_Motorola_MCP750_MCP750HA_CompactPCI_Single_Board_Computer}
+
+\subsection{MCF525x}
+
+
+\begin{verbatim}
+CPU: Freescale ColdFire v2 32-bit, 140MHz, 
+
+
+Instruction set: compatible Motorola 68000 series 
+\end{verbatim}
+
+\url{http://www.freescale.com/webapp/sps/site/prod_summary.jsp?code=MCF525X}
+
+\subsection{Arduino}
+\label{sec:Arduino}
+
+An Arduino is a microcontroller motherboard. A microcontroller is a simple
+computer that can run one program at a time, over and over again.
+Tasks: opening and closing a garage door, reading the outside temperature and
+reporting it to Twitter, driving a simple robot.
+
+The  Arduino Uno differs from all preceding boards in that it does not use the
+FTDI USB-to-serial driver chip. Instead, it features the Atmega16U2 (Atmega8U2
+up to version R2) programmed as a USB-to-serial converter.
+
+\url{https://www.arrow.com/en/products/a000066/arduino-corporation}
+
+
+
+
+\subsection{Beaglebone}
+\label{sec:BeagleBone}
+
+BeagleBone has its roots in Texas Instruments.
+These boards have always been popular as a high-end alternative to an Arduino (Sect.\ref{sec:Arduino}).
+
+They are great for those situations where you need to attach a screen or need
+some serious processing power.
+
+\begin{verbatim}
+CPU:  AM335x 1GHz ARM Cortex-A8 32-bit, 4GB 8-bit FLASH ROM,
+
+Instruction set: ARMv7-A architecture 
+(A=application profile, R=realtime, M=microcontroller)
+\end{verbatim}
+\url{http://beagleboard.org/BLACK}
+
+\subsection{MPL MIP405T}
+\label{sec:MPL_MIP405T}
+
+Chap.\ref{chap:embedded_MPL_MIP405-MIP405T}
+
+\subsection{Adapteva Epiphany Parallella}
+
+This affordable platform is designed for developing and implementing high
+performance, parallel processing.
+
+The Epiphany 16 or 64 core chips consists of a scalable array of simple RISC
+processors programmable in C/C++ or a parallel programming framework like OpenCL.
+The mesh of independent cores are connected together with a fast on chip network
+within a single shared memory architecture.
+
+As Parallella has no GPU, you can connect to RasperiPi
+\url{http://forums.parallella.org/viewtopic.php?f=34&t=708}
+
+\subsection{Raspberry Pi}
+\label{sec:Raspberry-Pi}
+
+Raspberry Pi is a general-purpose computer, usually with a Linux operating
+system, and the ability to run multiple programs. It is more complicated to use
+than an Arduino (Sect.\ref{sec:Arduino}).
+
+\begin{mdframed}
+
+The Arduino Uno and the Raspberry Pi 3 are popular choices when it comes to DIY,
+IoT, or just fun engineering projects. They can be used for prototyping and
+real-world engineering solutions
+
+
+\end{mdframed}
+
+\begin{enumerate}
+  \item Raspberry Pi 3 Model B+
+  
+\begin{verbatim}
+1.4GHz 64-bit quad-core processor, 
+
+dual-band wireless LAN, 
+
+Bluetooth 4.2/BLE, faster Ethernet, and 
+
+Power-over-Ethernet support (with separate PoE HAT)
+\end{verbatim}
+
+\url{https://www.raspberrypi.org/products/raspberry-pi-3-model-b-plus/}
+
+
+  \item Raspberry Pi Zero W - (RPZW) (released 2018): as an upgrade to the
+  original Raspberry Pi Zero (RPZ) and a “smaller brother” to the Raspberry Pi
+  3, i.e.
+  20\% slower than the RP3. Single-core can handle easier applications, like
+  surfing the web, watching videos, or checking emails.
+  
+\begin{verbatim}
+CPU: Broadcom BCM2835 SoC 
+[1 GHz 32-bit ARM1176JZF-S core] (single-core)
+
+GPU: Broadcom VideoCore IV.
+(similar to RP3]
+
+
+RAM: 512 MB memory 
+
+1 micro-USB port
+[simply adding the Zero4U USB hub to make more USB]
+
+a height of 1.18 inches and width of 2.55 inches. 
+weight 9g
+
+integrate: 2.4GHz 802.11n wireless LAN and Bluetooth Classic 4.1
+no Ethernet
+
+display via mini-HDMI
+[1080p HD video and stereo audio.]
+
+analog video: accessed by an unpopulated pin on the board.
+
+no support LCD panel
+
+
+~ 10$
+\end{verbatim}
+
+  The RPZ and RPZW have very similar specifications, the only difference being
+  that the RPZW has built-in Wi-Fi while the RPZ has no Wi-Fi connectivity
+  unless you add a dongle.
+  
+  \ite Raspberry Pi 3 model B - RP3 (released Feb, 2016): A quad core can handle more
+  processing load better, like video editing, GPS systems, or audio/video
+  chatting.
+  
+ The first 64-bit product; and to intergrate wireless connectivity of Raspberry
+
+\begin{verbatim}
+CPU: Broadcom BCM2837 SoC
+[1.2 GHz 64-bit ARM Cortex-A53 core] (quad-core)
+
+GPU: Broadcom VideoCore IV.
+(similar to RPZW]
+
+RAM: 1 GB memory 
+(shared with the GPU)
+
+4 USB 2.0 ports
+
+a height of 2.22 inches and width of 3.37 inches.
+weight 45g
+
+
+integrate: 2.4GHz 802.11n wireless LAN and Bluetooth Classic 4.1
+one 10/100 Mbit/s Ethernet connectivity
+
+display via HDMI rev 1.3
+[1080p HD video and stereo audio.]
+
+analog video: sharing the analog video output with its audio jack
+
+support LCD panel
+[touchscreen LCD easily]
+
+~ 35$
+
+
+\end{verbatim}  
+  
+  \item Raspberry Pi Model B: (released Oct, 2014) uses quad-core 900 MHz ARM chip and
+512 GB RAM.
+\url{http://www.digitaltrends.com/computing/raspberry-pi-2-hands-on-more-than-a-hobby/}
+
+Beside enhanced processing, the Raspberry Pi 1 Model B+ added two additional USB ports.  
+
+
+  \item Raspberry Pi 2: (\$ 75, released 2014) uses quad-core 900 MHz ARM Cortex-A7
+chip and 1 GB LPDDR2 RAM. The cost to start with Pi 2: a power adapter for \$9,
+a 16GB microSD card for \$8, and a mouse and keyboard combo for \$15. A case is another \$8, though we went without. All
+told, then, the final price (without monitor) is around \$75. Not bad, for sure,
+but more than double the \$35 MSRP that makes headlines.
+
+
+  \item Raspberry Pi: (\$ 35, released early 2012)
+its broad base of support and ability to run variants of common Linux
+distributions, yet it uses single-core 700 MHz ARM chip and 256 MB RAM (slow).
+There's no power adapter, no microSD card, not even a case. All of that must be purchased individually.
+
+
+\end{enumerate}
+
+
+\url{http://www.adapteva.com/parallella-board/}
+
+\subsection{-- using Raspberry Pi}
+
+
+The Raspberry Pi models do NOT come with an operating system. You must either
+buy a blank SD card (4 GB or more) and install your own disk image onto it using
+one of many tools available to do this from your PC, Mac or Linux box.
+
+The O/S for Raspberry Pi: the 'standard' and most used distribution for
+Raspberry Pi is 'Raspbian' which is based on Debian.
+
+\begin{mdframed}
+
+BeagleBone Black has on-board flash storage, with  Ångström Linux pre-installed,
+making it fully ready to go, straight from the box.
+Ångström is fast and small and will allow the BeagleBone Black to boot and
+establish a network connection in about 10 seconds, compared with 20 or 30
+seconds for a Raspberry Pi running Raspbian.
+
+
+Ångström Linux is not a particularly popular distribution, and the makers of the
+BeagleBone Black also provide a micro-SD card slot on the underside of the
+board, which can be used either to boot directly onto an operating system
+installed on a micro SD card, or with the press of a button, to upload a disk
+image from the micro SD card directly into the 2 GB on-board storage.
+\end{mdframed}
+
+
+The Raspberry Pi was intended to be used as a tool for kids to learn
+programming. The Raspbian distribution includes Python (2 and 3) as well as
+Scratch, the visual programming environment and of course C / C++. Indeed the name 'Pi' is a reference to the language 'Python'. 
+
+
+\subsection{Tinker Board (ASUS)}
+\label{sec:TinkerBoard-Asus}
+
+Asus recently launched the Tinker Board, a mini PC similar to the Raspberry Pi.
+
+It features a similar layout to the Raspberry Pi 3 Model B, with four USB 2.0
+ports and an array of GPIO pins. The Asus board boasts more power than the
+Raspberry Pi 3, thanks to its faster processor and 2GB of RAM.
+\begin{verbatim}
+
+Cortex-A17 Quad-core 1.8GHz	
+ 	vs. (Raspberry Pi 3) Cortex-A53 Quad-core 1.2GHz
+
+2GB LPDDR3	
+	vs. 1GB LPDDR2
+	
+Wi-Fi 802.11b/g/n, Bluetooth 4.0, Gigabit LAN
+	vs. Wi-Fi 802.11n, Bluetooth 4.1, 10/100Mbit/s Ethernet
+\end{verbatim}
+
+Tinker Board uses maximum 5W compared to the Raspberry Pi 3’s maximum of 4W.
+
+Asus Tinker Board provides DIY enthusiasts with a powerful SoC and has several
+advantages over the Raspberry Pi, including 4K support.
+
+
+
+\subsection{Stamp9G20 }
+\label{sec:Stamp9G20}
+
+ one of the smallest ARM9 Computer-on-Module (CoM) available on the market.
+ \begin{verbatim}
+CPU: Atmel AT91SAM9G20 396 MHz, 32KB Inst-Cache, 32KB Data-Cache
+     3.3V
+Flash: 128MB NAND flash memory
+RAM: 64 MB SDRAM
+     2x16 KB SRAM
+     128bytes EEPROM       
+ \end{verbatim}
+\url{http://www.taskit.de/tl_files/cust/dl/stamp9g20technicalreference_EN.pdf}
+
+\section{Architecture-specific exception handling}
+
+
+\url{http://www.vxdev.com/docs/vx55man/vxworks/ref/excArchLib.html}
+Exception Stack Frame (ESF) \verb!ESFPPC! is a structure designed for PowerPC
+used to save the registers is defined in \verb!h/arch/ppc/esfPpc.h! header file
+
+\begin{verbatim}
+ void excHandler (ESFPPC *);
+\end{verbatim}
+
+\section{Flash an image to flash memory on embedded board}
+
+If you have a NOR-Flash based system use \verb!flashcp! instead of
+\verb!nandwrite!.
+
+Example: (board Stamp9G20 or PortuxG20)
+Suppose the IP of the embedded system is \verb!192.168.4.238!
+\begin{verbatim}
+mount -o nolock,tcp 192.168.4.238:/develop /mnt/net
+flash_eraseall /dev/mtd5
+   Erasing 128 Kibyte @ 1fd60000 -- 100 % complete.
+
+nandwrite /dev/mtd5 /mnt/net/jffs2-root.img
+   Writing data to block 137 at offset 0x1120000
+\end{verbatim}
+
+Now reboot, interrupt booting with u-boot, type run flashboot to boot your
+newly created image on Stamp9G20 or PortuxG20.
+\url{http://armbedded.eu/node/175}
+
+\section{FPGA (field-programmable gate arrays)}
+\label{sec:FPGA}
+
+Programming on FPGA mainly uses VHDL or Verilog. A Python-based system - PyCPU
+converts very, very simple Python code (.py) into either VHDL or Verilog (.vhd
+or .v file).
+\url{https://pycpu.wordpress.com}
+
+The current support is minimal, with only ints being the only built-in data type
+supported. Of course ifs and whiles are still included along with all the
+assignments and operators. A new addition is a way to get digital IO access with
+Python, and obvious requirement if you’re going to be programming Silicon.
+
+
+\subsection{MyHDL}
+
+MyHDL is an open source, pure Python package. 
+\url{http://www.myhdl.org/docs/examples/}

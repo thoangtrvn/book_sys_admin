@@ -1,0 +1,3040 @@
+\chapter{Build a Linux kernel and/or modules from sources}
+\label{chap:build-Linux-kernel}
+
+To build a Linux kernel from source, there are 3 important concepts you need to
+understand (Sect.\ref{sec:build-host-target}).
+You need to build a \verb!built platform! (a tool-chain) that can run on a
+\verb!host! machine, and can compile the source code designed to be used on a
+(different) \verb!target! machine. If the target machine and the host machine
+are not the same (i.e.
+different CPU architecture), then the compiler to be built is called {\bf
+cross-compiler}.
+
+IMPORTANT information
+\begin{itemize}
+  \item select the host machine: O/S kernel version?, compiler version?
+  
+  
+  \item build the (cross-platform) tool-chain: which include many tools
+  (Sect.\ref{sec:cross_compiler})
+  
+  You can choose to build yourself (Sect.\ref{sec:cross_compiler_build}) or
+  using crosstool-ng (Sect.\ref{sec:crosstool-ng})
+  
+  \item buithe target machine: O/S kernel version?, root file system (folder
+  structure), kernel modules and other modules
+  
+  This requires proper understanding of the target machine system to have
+  proper tweak to the kernel source and settings, e.g.
+  MIP405T embedded system (Sect.\ref{sec:Linux_kernel_PowerPC}).
+  Then, you configure the host machine to use the built tool-chain for compiling
+  \begin{itemize}
+    \item Linux kernel
+    \item kernel module
+    \item other modules
+  \end{itemize}
+  
+  You don't need the tool-chain to create the root file system, but you need to
+  know the target Linux kernel version to create the right folder structure
+  (Sect.\ref{sec:root-file-system}) which then can be compress into a single
+  image file.
+\end{itemize}
+
+\section{Introduction}
+
+\subsection{Headless system}
+\label{sec:headless_system}
+
+A {\bf headless system} is the one operating without a monitor, GUI or
+peripheral devices (e.g.
+keyboards, mouse). In other words, it also refer to a motherboard without a
+graphics card and graphic output port.
+
+A headless system is usually an embedded system in various devices (automobiles,
+medical equipments, cameras, houshould appliances, airplanes, vending machines,
+\ldots).
+\url{http://whatis.techtarget.com/definition/headless-system}
+
+% \subsection{root file system (RFS) vs. Linux kernel}
+% 
+% One of the important kernel boot parameters is "root=", which tells the kernel where to find the root filesystem.
+% \begin{verbatim}
+% root=/dev/hda1
+% \end{verbatim}
+% 
+% First of all, at kernel initialization time, there is an absolutely minimal
+% filesystem registered, called "rootfs" (Sect.\ref{sec:rootfs}). 
+% 
+
+% 
+% \subsection{RAM Disk with initrd vs. initramfs}
+% \label{sec:RAM_Disk}
+
+
+% There are two implementation of \verb!initrd!
+% \begin{itemize}
+%   \item old \verb!initrd! (ramdisk) : acts as a block device (called \verb!ramdev!), so requires a filesystem driver (e.g. ext2)
+%   It means the kernel must have at least one built-in module for detecting filesystem.
+%   Also as it is a block device, it is cached, i.e. waste memory and memory bus bandwidth.  
+%   
+%   \item new \verb!initrd! (\verb!ramfs! and \verb!tmpfs!): 
+%   
+%   \verb!ramfs!  is to replace ramdisk. The downside of \verb!ramfs! is it does not prevent
+%   memory fill-up. \verb!tmpfs! is a derivative of ramfs, with adding size limits, and the 
+%   ability to write data to swap space. \verb!rootfs! is a special instance
+%   of \verb!ramfs! (or tmpfs, if it is enabled), which is always present since Linux
+%   kernel 2.6.x. NOTE: If \verb!CONFIG_TMPFS! is enabled, then \verb!rootfs! uses
+%   \verb!tmpfs! instead of \verb!ramfs! by default. In such case, to force using ramfs,
+%   add \verb!rootfstype=ramfs! to the kernel command-line.
+%   
+% %   use a dummy
+% %   filesystem (called \verb!tmpfs!) and there is no extra copy of data in memory.
+%   
+% NOTE: The image is a compressed \verb!cpio! file and is compressed into the \verb!/tmpfs! 
+% \begin{verbatim}
+% zcat initramfs | cpio -i
+% \end{verbatim}
+% \url{https://www.kernel.org/doc/Documentation/filesystems/ramfs-rootfs-initramfs.txt}
+% %  unpacked via \verb!cpio! into the memory
+% \end{itemize}
+% \url{http://stackoverflow.com/questions/10603104/the-difference-between-initrd-and-initramfs}
+
+
+
+
+
+\subsection{Concept: Build/Host/Target platform}
+\label{sec:build-host-target}
+
+A \verb!build! platform is the platform that you want to build the compiler
+and it can be configured to run on some \verb!host! platform.
+When it runs on this \verb!host! platform, it compiles the code
+for running on some \verb!target! platform. 
+Building compilers that will run on some other linux system is called a Canadian Cross.
+
+
+The format of a GNU target specification is CPU-PLATFORM-OS. For example,
+Solaris 8 for x86 is \verb!i386-pc-solaris2.8!, while Macintosh OS X is
+\verb!powerpc-apple-darwin7.6.0!.
+
+Most Linux targets can be specified according to their CPU; hence, PowerPC/Linux
+is \verb!ppc-linux!. 
+
+
+
+\section{Cross-compiler toolchain}
+\label{sec:cross_compiler}
+
+
+Cross-compilation is to build the code on one platform but the compiled code is
+expected to run on another platform. We pass two different
+options: \verb!--build=! and \verb!--host=! to the tool \verb!./configure!
+\begin{itemize}
+  \item \verb!--host=!: the system where the built program/library will run
+  \item \verb!--build=!: the system on which the package is built
+  \item \verb!--target=!: use only if the built package is a cross-compiler,
+  which tells the system for which the built package will create output.
+\end{itemize}
+
+\begin{verbatim}
+./configure --build i686-pc-linux-gnu --host i586-mingw32msvc
+\end{verbatim}
+before we call
+\begin{verbatim}
+make
+\end{verbatim}
+
+This is not a single tool, but a series of tools, thus giving them the
+collective name cross-compiler {\bf toolchain} (Sect.\ref{sec:toolchain}).  
+A cross-compiler is capable of building compiled code for a platform
+other than the one the compiler is running
+(Sect.\ref{sec:cross_compiler_build}).
+\url{http://landley.net/writing/docs/cross-compiling.html}
+
+
+You can either get a pre-built cross-compilers for your host machine if it is
+running an O/S that has the pre-built versions.
+There are several groups that provide the pre-built cross-compilers, e.g. ELDK
+(Sect.\ref{sec:ELDK}) or Buildroot (Sect.\ref{sec:Buildroot}).
+
+
+You can build your cross-compiler either (1) using \verb!crosstool-ng! package
+to suppor the compilation (Sect.\ref{sec:crosstool-ng} -
+\textcolor{red}{RECOMMENDED METHOD}), (2) do it yourself by setting up
+everything (Sect.\ref{sec:cross_compiler_build}).
+
+
+\subsection{Toolchain}
+\label{sec:toolchain}
+
+
+Toolchains are made of different pieces of
+software, each being quite complex and requiring specially crafted options to
+build and work seamlessly.
+A toolchain is a very sensitive piece of software, as any bug in one of the
+components, or a poorly configured component, can lead to execution problems,
+ranging from poor performance, to applications ending unexpectedly, to
+mis-behaving software (which more than often is hard to detect), to hardware
+damage, or even to human risks (which is more than regrettable).
+
+IMPORTANT concepts in cross-compilation is {\bf host, target}
+(Sect.\ref{sec:build-host-target}).
+
+You'll need the GNU toolchain to compile the kernel, particularly gcc and binutils.
+\url{http://elinux.org/Toolchains}
+Depending on your host O/S to compile the kernel, you can choose the right pre-built toolchain
+\url{http://www.denx.de/wiki/PPCEmbedded/CompilerToolset}
+\begin{itemize}
+  \item Debian-based O/S: \url{http://www.emdebian.org/}
+  \item DENX ELDK: \url{http://www.denx.de/wiki/DULG/ELDK}
+\end{itemize}
+
+or compile the toolchain from source using \verb!crosstool-ng!
+\url{http://crosstool-ng.org/download/crosstool-ng/}
+crosstool-NG can build from generic, general purpose toolchains, to very
+specific and dedicated toolchains.
+
+
+\subsection{make-kpkg}
+\label{sec:make-kpkg}
+
+If the target platform and the host platform is the same, you do not need to
+build a cross-compiler. Instead, the installed compiler on the host platform is
+good enough
+\url{https://wiki.debian.org/BuildADebianKernelPackage}
+
+\url{http://sukhanov.net/cross-compile-with-make-kpkg.html}
+
+Example: build a different version of the Debian kernel on the same platform
+\begin{verbatim}
+// install necessary packages
+// NOTE: kernel-package provides 'make-pkg' tool
+apt-get install build-essential linux-source kernel-package libncurses5-dev
+
+//  update information for
+// 	maintainer
+//  email
+emacs -nw /etc/kernel-pkg.conf
+
+// extract kernel source to compile
+// linux-source-x.x.tar.bz2
+cd /usr/src
+tar xjvf linux-source-3.2.tar.bz2
+
+// create 'defconfig' file
+cd linux-source-3.2
+make ARCH=i386 defconfig
+\end{verbatim}
+\url{http://www.makelinux.net/books/lkd2/ch02lev1sec3}
+
+\begin{verbatim}
+make config
+
+make <some settings> menuconfig
+
+make <some settings> xconfig
+
+make oldconfig
+    update the kernel configuratio using
+    current .config file, and prompt for any new
+    options that have been added to the kernel
+    
+make <some settings> defconfig
+    generate new kernel configuration using
+    default values from
+    arch/$ARCH/defconfig file
+        
+\end{verbatim}
+\url{http://www.linuxdevcenter.com/pub/a/linux/excerpts/9780596100797/kernel-build-command-line-reference.html}
+
+% NOTE: \verb!defconfig! file contains the configuration based on the defaults for
+% your architecture.
+If you use \verb!crosstool-ng! it can help to generate a more detail of this
+file using
+\begin{verbatim}
+./cng-nt menuconfig
+\end{verbatim}
+
+
+Finally, build the kernel based upon the previous configuration
+\begin{verbatim}
+make-dpkg
+\end{verbatim}
+a script which automates and replaces the sequence 
+\begin{verbatim}
+make dep; make clean; make bzImage; make modules
+\end{verbatim}
+Check Sect.\ref{sec:compressed-kernel-file-format} for information about \verb!bzImage!.
+
+SYNTAX:
+\begin{verbatim}
+make-kpkg <options> <target>
+\end{verbatim}
+\url{http://newbiedoc.sourceforge.net/system/kernel-pkg.html#KPKG-KERNEL-PKG}
+
+Example: build PowerPC kernel
+\begin{verbatim}
+make-kpkg --cross-compile powerpc-linux-gnu- --arch ppc --subarch powerpc
+\end{verbatim}
+
+
+
+\subsection{Build a native-compiler for target platform}
+\label{sec:configure-environment-target-platform}
+
+Once you have the cross-compiler, you need to setup the environment 
+on the host platform for building the binary for this target platform.
+
+\begin{verbatim}
+// make folder
+mkdir crossbuild
+cd crossbuild
+
+// obtain latest version of gcc, binutils, gdb, newlib
+// and extract them in the above folder
+$ bunzip2 -c gcc-3.3.2.tar.bz2|tar xf -
+$ bunzip2 -c binutils-2.14.tar.bz2 |tar xf -
+$ bunzip2 -c linux-2.6.9.tar.bz2 |tar xf -
+$ bunzip2 -c gdb-6.3.tar.bz2|tar xf -
+$ bunzip2 -c glibc-2.3.tar.bz2|tar xf -
+
+// create the folder with target name
+mkdir powerpc-405
+cd powerpc-405
+
+// create the subfolders
+mkdir build-binutils build-gcc build-glibc build-gdb
+
+// configure the right environment variable
+export TARGET=i386pc
+export PREFIX=/usr/local/crossgcc
+export TARGET_PREFIX=$PREFIX/$TARGET
+export PATH=$PATH:$PREFIX/bin
+
+
+// obtain Linux headers for the version you 
+// want to run on that target platform
+// NOTE: use generic kernel
+//       you may need some patches
+cd linux-2.6.9
+make ARCH=i386 CROSS_COMPILE=i386-linux- menuconfig
+\end{verbatim}
+
+
+How to build a compiler, from the host platform, and this compiler
+only run on that target platform.
+
+\subsection{Configure a complete environment for compiling target platform}
+
+\subsection{Buildroot}
+\label{sec:Buildroot}
+
+Buildroot is able to generate a cross-compilation toolchain, a root filesystem,
+a Linux kernel image and a bootloader for your target.
+
+Buildroot is useful mainly for people working with embedded systems. Embedded
+systems often use processors that are not the regular x86 processors everyone is
+used to having in his PC. They can be PowerPC processors, MIPS processors, ARM
+processors, etc.
+
+\url{http://buildroot.uclibc.org/downloads/manual/manual.chunked/ch01.html}
+
+\subsection{DENX ELDK}
+\label{sec:ELDK}
+
+DENX ELDK provides (1) some pre-built toolchains (SDK), (2) some pre-built 
+target Linux kernel (RFS - Root FileSystem) that users can download and use. 
+
+The pre-built toolchain was compiled to run on 32-bit host O/S, maintained by
+Wolfgang Denk. Thus, if you use 64-bit host O/S, you need to install a compatibility layer
+called \verb!ia32-libs! or \verb!gcc-multilib!, and \verb!g++-multilib! (if C++
+is used). On Debian or Ubuntu
+\begin{verbatim}
+sudo apt-get install ia32-libs
+\end{verbatim}
+On 64-bit Fedora 11
+\begin{verbatim}
+sudo yum -y install glibc.i686 zlib.i686
+\end{verbatim}
+\url{http://www.denx.de/wiki/view/DULG/ELDKUsageIn64BitEnvironment}
+
+Stable versions of the ELDK are distributed in the form of an ISO image, which
+can be either burned onto a DVD or mounted directly, using the loopback Linux
+device driver (Linux host only).
+
+\begin{itemize}
+  \item ELDK v5.5.3 can be installed and run on any recent Linux distribution
+  running on x86 (i686) and \verb!x86_64! systems.
+ 
+\end{itemize}
+
+
+NOTE: MIP405/MIP405T uses target as \verb!powerpc-4xx-softfloat! (or
+\verb!ppc_4xx! in older ELDK versions)
+\begin{verbatim}
+powerpc-4xx-softfloat = AMCC 4xx processors without FPU
+(replace for ppc_4xx since ELDK 5.3)
+ 
+powerpc-4xx = AMCC 4xx processors with FPU
+(replace for ppc_4xxFP since ELDK 5.3)
+
+ppc_6xx = PowerPC processors based on 60x cores 
+(This includes support for MPC5xxx, 7xx, 82xx and 83xx processors).
+ppc_74xx = 74xx processors
+ppc_8xx = MPC8xx processors
+ppc_85xx = MPC85xx processors
+ppc64 = PPC64 processors with FPU (PA6T)
+\end{verbatim}
+
+Rebuild ELDK from scratch (so that it can run directly on 64-bit host O/S:
+\url{http://www.denx.de/wiki/view/DULG/ELDKDownload}
+
+\subsubsection{Download binary files}
+
+Making sure you keep the same folder structure, as the \verb!install.sh!
+script only recognizes files under the given structure.
+
+Example: you want to download the chain tool with target is \verb!armv7a!
+\begin{verbatim}
+$ mkdir eldk-download
+$ cd eldk-download
+$ mkdir -p targets/armv7a
+$ wget ftp://ftp.denx.de/pub/eldk/5.5.3/install.sh
+$ cd targets/armv7a
+$ wget ftp://ftp.denx.de/pub/eldk/5.5.3/targets/armv7a/target.conf
+$ wget ftp://ftp.denx.de/pub/eldk/5.5.3/targets/armv7a/eldk-eglibc-i686-arm-toolchain-gmae-5.5.3.sh
+$ wget ftp://ftp.denx.de/pub/eldk/5.5.3/targets/armv7a/core-image-minimal-generic-armv7a.tar.gz
+$ wget ftp://ftp.denx.de/pub/eldk/5.5.3/targets/armv7a/core-image-sato-sdk-generic-armv7a.tar.gz
+\end{verbatim}
+\url{http://www.denx.de/wiki/ELDK-5/WebHome}
+
+NOTE: from the  link
+\begin{itemize}
+  \item \verb!qte! = Qt-embedded based image, 
+  
+  \item \verb!gmae! = GNOME Mobile and
+Embedded Initiative software stack, 
+ 
+   \item  \verb!xenomai! = Xenomai is a real-time
+development framework cooperating with the Linux kernel, to provide a pervasive,
+interface-agnostic, hard real-time support to user space applications,
+seamlessly integrated into the Linux environment. The Xenomai project was
+launched in August 2001,
+
+   \item \verb!sato! = Sato is a new visual style for Poky Linux, the embedded
+   Linux distribution.
+  
+\end{itemize}
+
+\url{http://www.denx.de/wiki/ELDK-5/WebHome}
+\begin{itemize}
+  \item name: minimal, base, lsb, qte, sato 
+
+  \item  \verb!lsb! = 'basic' image suitable for implementations that conform Linux Standard Base (LSB - Sect.\ref{sec:LSB}),
+
+  \item name-\verb!dev!: with tools suitable for development work
+  
+  \item name-\verb!sdk!: include everythings in meta-toolchain and development headers + libraries
+  to form a complete standalone SDK
+\end{itemize}
+
+NOTE: In the past, ELDK provided a tool chain, but to set up your software build
+environment, you were mostly on your own.
+With ELDK 5.x, ELDK brings you not only the cross tools and the target
+environment, but also a complete, sophisticated software production environment
+that can easily be extended and customized for your specific project needs.
+
+NOTE: Target is PowerPC 4xx: \url{ftp://ftp.denx.de/pub/eldk/5.5.3/targets/powerpc-4xx-softfloat}
+
+To install ELDK 
+\begin{itemize}
+  \item targetting a particular CPU, e.g. \verb!powerpc-4xx-softfloat!
+  
+  \item and specify the proper kernel having a list of associated tools (i.e.
+  target configuration) we choose the value for \verb!-s! option
+
+\verb!-s! specify the SDK folder to be created in \verb!/opt/eldk-5.5.3/!
+\begin{verbatim}
+-s '-' 
+    no folder created
+    
+    
+\end{verbatim}
+% NOTE: The script \verb!install.sh! misses \verb!sato! SDK image, i.e. 
+% add one line with \verb!sato! so that we can use \verb!-s 'sato'!
+Available values for \verb!-s! options
+\begin{verbatim}
+: ${SDK_KNOWN_IMAGES:="
+    gmae
+    qte
+    qte-xenomai
+ "}
+\end{verbatim}
+
+\verb!-r! specify the RFS (Root FileSystem) folder to be created in
+\verb!/opt/eldk-5.5.3/!
+\begin{verbatim}
+-r 'lsb-dev'
+\end{verbatim}
+% NOTE: Use either \verb!-s! option (SDK image) or \verb!-r! option (Root FileSystem).
+% It seems that only \verb!-r! works.
+
+\end{itemize}
+
+Example: Install the cross-compiler ELDK running on the 64-bit host platform to
+build the kernel for powerpc-4xx with no floating support 
+\begin{verbatim}
+// NOTE: use this for MPL MIP405T
+// core-....tar.gz files refers to -r option
+./install.sh -D -a 'x86_64' -s '-' -r 'lsb-dev' powerpc-4xx-softfloat
+
+./install.sh -D -a 'x86_64' -s 'gmae' powerpc-4xx-softfloat
+
+./install.sh -D -a 'x86_64' -r 'sato-sdk' powerpc-4xx-softfloat
+\end{verbatim}
+NOTE: If the host O/S is 64-bit, use \verb!-a 'x86_64'!, the last argument is
+the target platform. \verb!-D! is for dry-run (testing), and then
+we can remove to do the real install of ELDK.
+
+
+While ELDK v5.3 (and newer) can be installed in any directory
+(modify \verb!install.sh! script), for ELDK v5.2 and
+older, the cross tool chain packages are not relocatable and can only be
+installed into their default location, i. e. into the "/opt/eldk-5.5.3/"
+directory.
+\begin{verbatim}
+sudo chmod 01777 /opt/eldk-5.5.3/
+\end{verbatim}
+
+The two folders under \verb!/opt/eldk-5.5.3/powerpc-405-softfloat/!
+\begin{itemize}
+  \item \verb!sysroots! : the root filesystem content,
+  which has a complete Linux filesystem to run on MPL MIP405 board's CPU.
+  
+    \item \verb!rootfs-qte-sdk! : the SDK content (when \verb!-s 'qte'! is used)
+\end{itemize}
+
+Setting ups environment variables
+\begin{itemize}
+  \item ELDK 5.2.1:
+\begin{verbatim}
+CC="powerpc-linux-gcc  -m32 -mhard-float --sysroot=/opt/eldk-5.3/powerpc/sysroots/powerpc-linux"
+CFLAGS=" -O2 -pipe -g -feliminate-unused-debug-types"
+\end{verbatim}  
+
+  \item ELDK 5.3:
+\begin{verbatim}
+CC=powerpc-linux-gcc
+CFLAGS=" -m32 -mhard-float --sysroot=/opt/eldk-5.2.1/powerpc/sysroots/powerpc-linux"
+\end{verbatim}
+\end{itemize}
+MAKE sure you use the correct \verb!--sysroot! settings.
+
+
+\begin{verbatim}
+ export PATH=/opt/eldk-5.5.3/powerpc/sysroots/i686-eldk-linux/usr/bin:/opt/eldk-5.5.3/powerpc/sysroots/i686-eldk-linux/usr/bin/powerpc-linux:$PATH
+ 
+ export ARCH=powerpc
+ 
+ export CROSS_COMPILE=powerpc-linux-
+ 
+source /opt/eldk-5.5.3/powerpc/environment-setup-*
+
+ export CROSS_COMPILE=${TARGET_PREFIX}
+ export ARCH=${TARGET_PREFIX%%-*}
+\end{verbatim}
+
+
+Once the environment variables are setup, we can jump to 
+\begin{itemize}
+  \item U-Boot
+  \item Source of Linux kernel
+\end{itemize}
+and compile each of them, using (see the same commands in Sect.\ref{sec:make-kpkg})
+\begin{verbatim}
+make <some setting> ARCH=... CROSS_COMPILE=...
+
+make install 
+\end{verbatim}
+
+\subsection{armv5}
+\label{sec:armv5}
+
+To compile the code for \verb!ARM! architecture, we need to install
+build-essential and \verb!gcc-arm-linux-gnueabi!.
+
+\begin{verbatim}
+arm-linux-gnueabi-gcc -static -march=armv5 hi.c -o hi
+\end{verbatim}
+
+The new compiler accepts several \verb!-m! options (defined for ARM
+architectures).
+\begin{verbatim}
+ARCH=arm CROSS_COMPILE=arm-linux-gnueabi-
+\end{verbatim}
+
+The toolchain \verb!CodeSourcery! is suggested. In Ubuntu, it uses Linaro
+optimizations in the toolchain, so may not work properly when compiling code for
+ARM.
+
+\section{Marvell ARM CPUs}
+\label{sec:Marvell}
+
+Marvell designs architecture for CPUs that implements ARM instruction set
+designed by ARM holdings.
+
+\url{https://wiki.openwrt.org/doc/hardware/soc/soc.marvell}
+
+\subsection{Marvell Feroceon}
+\label{sec:Marvell-Feroceon-}
+
+Marvell Feroceon has a variable-length processing pipeline that allows
+out-of-order instruction execution. The Feroceon made some significant changes
+to the standard ARM fixed pipeline, with a variable-stage pipeline that ranges
+from six stages to eight if the writeback stage is included.
+
+
+
+\section{Build cross-compiler}
+\label{sec:cross_compiler_build}
+
+A typical build process is 
+\begin{verbatim}
+./configure
+make
+make install
+\end{verbatim}
+
+SCENARIO: When you call \verb!./configure!, it needs to detect the information
+of the target platform, not the host platform. However, most of the time,
+it uses the information from the host platform.
+
+SOLUTION: We need to have a cross-compiler toolchains.
+The cross-compiler toolchain tends to prefix the utilities, e.g. \verb!gcc!
+becomes \verb!armv51-linux-gcc!. The prefix is specifed in the environment
+variable \verb!CROSS_COMPILE!.
+\begin{verbatim}
+export CROSS_COMPILE=armv51-linux-!
+\end{verbatim}
+NOTICE the ending hyphen (-) character of the value in the \verb!CROSS_COMPILE!
+environment variable.
+
+\begin{mdframed}
+The core components of any compiler
+\begin{enumerate}
+  \item parser: convert source code to assembly code
+  
+  \item assembler: convert assembly code to bytecode that CPU can execute.
+  
+  \item linker: combine one or more object files generated by the assembler
+  into an executable file.
+  
+  The linker needs to know the target platform to link the files.
+  
+  \item standard C library (glibc, $\mu$libc, \ldots): the library of core C
+  functions, to be used with the linker and source code to produce the final
+  executable files, any calls to the underlying target platform
+  will use the C functions from this library.
+  
+\end{enumerate}
+
+\end{mdframed}
+
+The question is how to set up an environment (with the right tool chains and the
+right information of the target platform) that allows you to compile an
+application for a variety of different targets. This is explained in
+Sect.\ref{sec:configure-environment-target-platform}.
+\url{http://www.sourceware.org/ml/crossgcc/2005-08/msg00114/l-cross-ltr.pdf}
+
+
+
+PREREQUISITE:
+\begin{itemize}
+  \item working \verb!gcc! on host platform
+  \item source code of the various tools used to build the cross-compiler
+  \item copy of header files for the target platform
+
+  \item OPTION: Build also the \verb!gdb! for target platform.
+\end{itemize}
+
+\begin{verbatim}
+sudo apt-get install gawk bison flex texinfo automake libtool \
+   cvs curl aria2 patch lzma libncurses5-dev g++ \
+   openjdk-7-jre-headless build-essential \
+   libcloog-ppl-dev gettext
+\end{verbatim}
+%sudo apt-get install gawk bison flex texinfo automake libtool cvs curl aria2 patch lzma libncurses5-dev g++ openjdk-7-jre-headless build-essential libcloog-ppl-dev gettext
+
+To build a cross-compiler, we need 3 components
+\begin{enumerate}
+  \item \verb!binutils! : contains basic binary utilities (assembler, linker,
+  and associated tools - e.g. size, strip)
+  
+  \item \verb!gcc! : the main component of the compilation process
+  
+  \item \verb!newlib/glibc! : standard C library (\verb!newlib! is developed
+  from RedHat and can be more user-friendly in cross-compilers designed to be
+  used for embedded targets)
+  
+\end{enumerate}
+and the {\it header files} of the target platform. The cross-compiler needs to
+be able to compile the code on that platform so it needs to know the content of
+the header files for glibC codes. 
+
+
+Make sure you have the right combinations of versions:
+\url{http://pmc.polytechnique.fr/pagesperso/dc/arm-en.html}
+
+
+To be able to build 32-bit package on 64-bit platform, we need
+\begin{verbatim}
+sudo apt-get install libc6-dev-i386 g++-multilib
+\end{verbatim}
+\url{http://stackoverflow.com/questions/7412548/error-gnu-stubs-32-h-no-such-file-or-directory-while-compiling-nachos-source}
+
+\subsection{cross-compiler 3.2}
+\label{sec:cross-compiler-GNU_3.2}
+
+Due to the change in gcc 4.2.x, it cannot be used to compile gcc 3.2. The
+solution is \textcolor{red}{compiled GCC v3.4 with GCC v4.2.*, and then used
+v3.4 to compile v3.2...}.
+
+NOTICE: Choose gcc 3.2 (is too old, and you may get errors. However, it can be
+built using gcc-3.4.6). Most old applictions can be buit using
+cross-compiler gcc-3.3.3 (Sect.\ref{sec:cross-compiler-GNU_3.3.3}).
+\url{http://www.trevorpounds.com/blog/?p=111}
+\url{https://ftp.gnu.org/gnu/gcc/gcc-3.2.3/gcc-3.2.3.tar.gz}
+
+%To download the gcc 3.2 version:   \url{http://ftp.gnu.org/gnu/gcc/gcc-3.2/}
+  
+\begin{verbatim}
+wget https://ftp.gnu.org/gnu/gcc/gcc-3.2.3/gcc-3.2.3.tar.gz
+tar xzf gcc-3.2.3.tar.gz
+cd gcc-3.2.3
+patch -p0 < gcc-multilib-fix-v3.2.x.debian.x86_64.diff
+mkdir ../gcc-3.2.3-objdir
+cd ../gcc-3.2.3-objdir
+../gcc-3.2.3/configure --prefix=/opt/x86_64/gcc/gcc-3.2.3 --enable-languages=c,c++
+make
+make install
+\end{verbatim}
+Error:
+\begin{verbatim}
+../../gcc-3.2/gcc/read-rtl.c: In function 'read_rtx':
+../../gcc-3.2/gcc/read-rtl.c:662: error: lvalue required as increment operand
+\end{verbatim}
+\url{http://www.linuxquestions.org/questions/linux-newbie-8/installing-gcc-3-2-make-errors-884121/}
+
+\subsection{cross-compiler 3.3.3}
+\label{sec:cross-compiler-GNU_3.3.3}
+
+Build gcc 3.3.3 as cross-compiler
+\begin{verbatim}
+wget https://ftp.gnu.org/gnu/gcc/gcc-3.3.3/
+\end{verbatim}
+or download Debian-compatible (Ubuntu Hardy 8) version: \url{https://launchpad.net/ubuntu/+source/gcc-3.3/1:3.3.6-15ubuntu6}
+
+If you get error
+\begin{verbatim}
+> >  > f/com.c:11080: Error conflicting types for: >ffecom_gfrt_basictype<
+> >  > f/com.h:236: Error existing declaration of >ffecom_gfrt_basictype< was here
+\end{verbatim}
+check if you have \verb!--enable-languages=c,c++!.
+\url{https://gcc.gnu.org/ml/gcc-help/2007-09/msg00096.html}
+
+If you get error
+\begin{verbatim}
+fatal error: gnu/stubs-32.h: No such file or directory
+\end{verbatim}
+gnu/stubs-32.h is not directed included in programms. It's a back-end type
+header file of gnu/stubs.h, just like gnu/stubs-64.h. You can install the
+\verb!multilib! package to add both.
+
+If Ubuntu 12.04, there is a known problem as the files reside in non-standard location
+\begin{verbatim}
+export LIBRARY_PATH=/usr/lib/$(gcc -print-multiarch)
+export C_INCLUDE_PATH=/usr/include/$(gcc -print-multiarch)
+export CPLUS_INCLUDE_PATH=/usr/include/$(gcc -print-multiarch)
+\end{verbatim}
+
+\subsection{cross-compiler 3.4.6}
+\label{sec:cross-compiler-GNU_3.4.6}
+
+Choose gcc 3.4.6
+
+\section{Build cross-compiler using crosstool-ng}
+
+
+
+%\section{Build kernel from source (target=host platform)}
+\subsection{crosstool}
+\label{sec:crosstool}
+
+\verb!crosstool! is the tool to support building a cross-compiler, based on
+\verb!crossgcc! script
+\url{http://kegel.com/crosstool/}
+
+Crosstool was originally developed for embedded system developers, but is also
+useful for mainstream developers.
+It includes minimal patches for gcc and glibc needed to build a few combinations
+of (alpha, arm, i686, ia64, mips, powerpc, powerpc64, sh4, sparc, sparc64, s390,
+\verb!x86_64!) x (gcc-2.95.3 ... gcc-4.0.0) x (glibc-2.1.3 ... glibc-2.3.5).
+
+
+
+\subsection{crosstool-ng}
+\label{sec:crosstool-ng}
+
+\verb!crosstool-ng! is a set of scripts that assist in building a cross-compiler
+from scratch, which is a better version of \verb!crosstool! (Sect.\ref{sec:crosstool}).
+These scripts can also produce a matching cross-glibc, which means you can
+cross-compile userspace applications as well as kernels.
+
+Make sure you download the latest version, otherwise some old links for
+necessary packages may not be available.
+\begin{itemize}
+  \item crosstool-ng 1.6.0
+  \item crosstool-ng 1.6.2
+  \item crosstool-ng 1.9.3
+\end{itemize}
+
+Fix: \url{http://crosstool-ng.org/download/crosstool-ng/01-fixes/}
+
+Example: use \verb!crosstool-ng! to build the toolchain
+\begin{verbatim}
+// download and untar
+
+// install prequisites
+sudo apt-get install automake cvs ncurses-dev
+
+// choose
+//  (1) install to the subfolder of the current directory
+./configure --local
+//  (2) install to the specified directory
+./configure --prefix=/opt/crosstool
+//or ./configure --prefix=~/x-tools/
+//or if you want to keep track whick kernel is used to compile
+//   for which version of crosstool-ng
+// ./configure --prefix=~/x-tools_1.6.2_kernel_2.6.12
+
+// generate pre-processed files
+// This is extremely useful when you suspect something could be wrong with your
+//  macros.
+make -j4 2>&1 | tee m.txt
+make install | tee mi.txt
+
+\end{verbatim}
+
+\textcolor{red}{This is the setting for cross-compilation target PowerPC 32-bit CPU}
+\begin{verbatim}
+// you can adjust the above settings with
+//  e.g. select the desired kernel
+//       select the output location
+./ct-ng menuconfig
+\end{verbatim}
+
+\textcolor{red}{If you build cross-compiler target MIP405/MIP405T
+(Sect.\ref{sec:MIP405_MIP405T})}, you should disable floating-point
+instruction (as they are not used in MIP405/MIP405T and is not used in the
+kernel). \verb!glibc! (Sect.\ref{sec:GLIBC}) is not used in the kernel too.
+  
+
+\begin{itemize}
+  \item \verb!Path and misc options!: 
+
+RECOMMEND: for first time crosstool-NG build, in 
+\verb!MenuConfig / Paths and Misc options! enable
+\begin{verbatim}
+[x]Debug crosstool-ng
+[x]Save intermediary steps
+\end{verbatim}
+  
+  \begin{enumerate}
+    \item keep the new tarballs (compared to files in \verb!$HOME/sources!)
+    
+    put new tarballs in \verb!$CT_TOP_DIR/targets!
+    
+    \item prefix of directory: 
+ \begin{verbatim}
+ /home/daglitch/v2plin/crosstool-ng-1.6.1/${CT_TARGET}
+ \end{verbatim}
+ 
+   \item build behavior: 3 or 4 parallel jobs (assuming quad-core CPU), nice
+   level = 10
+   
+   \item logging: set EXTRA (maximum level)
+   
+  \end{enumerate}
+
+   \item Target options: choose \verb!powerpc!, emit assembly for CPU
+   (e.g. 405), tune assembly for (e.g. 405), floating-point (e.g. software in
+   the case of PowerPC 405Gr)
+   
+   \item Toolchain options: vendor string = 405
+   
+   \item O/S: target OS = linux, \textcolor{red}{linux kernel version} = 2.6.12
+  
+  \item C Compiler:
+  
+  \url{http://ftp.gnu.org/gnu/gcc/}
+\end{itemize}
+\url{http://blog.droidzone.in/2012/01/17/building-a-toolchain-crosstool-ng/}
+
+Finally, run
+\begin{verbatim}
+// specify the configurations
+// for the target processor architecture
+// e.g. powerpc-405-linux-gnu is the ${CT_TARGET}
+//   NOTE: check the link for supported target names
+// http://crosstool-ng.org/
+
+./ct-ng powerpc-405-linux-gnu
+\end{verbatim}
+
+\textcolor{red}{Troubleshoot}:
+NOTE: Sometimes the version you want is not available, so you need to download them separately
+\begin{verbatim}
+http://ftp.gnu.org/gnu/gcc/  for gcc
+http://ftp.gnu.org/gnu/binutils/
+http://ftp.gnu.org/gnu/gmp/
+http://ftp.gnu.org/gnu/glibc/
+http://ftp.gnu.org/gnu/gmp/
+http://ftp.gnu.org/gnu/mpfr/
+http://www.mr511.de/software/ for Libelf 
+\end{verbatim}
+and put them into the \verb!.build/tarballs! directory,
+\begin{verbatim}
+cd .build/tarballs
+
+wget http://ftp.gnu.org/gnu/glibc/glibc-2.1.3.tar.gz
+wget http://ftp.gnu.org/gnu/gcc/gcc-4.6.1/gcc-4.6.1.tar.bz2
+wget http://ftp.gnu.org/gnu/binutils/binutils-2.20.1a.tar.bz2
+wget http://ftp.gnu.org/gnu/glibc/glibc-2.1.3.tar.gz
+wget http://www.mr511.de/software/libelf-0.8.13.tar.gz
+\end{verbatim}
+Finally, manually add them to the list
+\begin{verbatim}
+./scripts/addToolVersion.sh --binutils -s -c 2.20.1a
+./scripts/addToolVersion.sh --gcc -s -c 4.6.1
+./scripts/addToolVersion.sh --glibc -s -c 2.1.3
+\end{verbatim}
+
+
+
+Now we can do the real build of crosstool-NG
+\begin{verbatim}
+// do the real work: building the toolchain
+./ct-ng build
+
+// finally, put it's in the PATH
+export PATH=$PATH:~/x-tool/powerpc-405-linux-gnu
+\end{verbatim}
+
+\textcolor{red}{TROUBLESHOOT DURING BUILD}:  You may need to modify the scripts 
+in \verb!./script/build/gcc/gcc.sh!
+\begin{verbatim}
+## if sstrip not found
+## 
+
+## if ecj-latest not found, 
+## add this path
+https://www.mirrorservice.org/sites/sourceware.org/pub/java/
+\end{verbatim}
+
+
+NOTE:
+\begin{verbatim}
+CT_TARGET = powerpc-405-linux-gnu
+CT_TARBALLS_DIR = 
+CT_CC_VERSION = 
+\end{verbatim}
+
+If you find the location, and you can download it yourself, 
+you just need to put the right file into
+\verb!.build/tarballs/! (NOTE: older versions of crosstool-NG uses
+\verb!target/tarballs/!), such as
+\begin{verbatim}
+./build/tarballs/ecj-latest.jar
+./build/tarballs/gmp-4.3.2.tar.bz2
+\end{verbatim}
+and copy
+\begin{verbatim}
+cp -v "${CT_TARBALLS_DIR}/ecj-latest.jar" "${CT_SRC_DIR}/gcc-${CT_CC_VERSION}/ecj.jar"
+\end{verbatim}
+it means
+\begin{verbatim}
+cp <somewhere>/ecj-latest.jar .build/tarballs/
+cp .build/tarballs/ecj-latest.jar .build/src/ecj.jar
+\end{verbatim}
+
+TROUBLESHOOT: \verb!duma_2_5_15!
+Modify the script to change the download link from
+\begin{verbatim}
+http://mesh.dl.sourceforge.net/sourceforge/duma/
+\end{verbatim}
+to
+\begin{verbatim}
+http://kent.dl.sourceforge.net/sourceforge/duma/
+\end{verbatim}
+\url{https://gitorious.org/oselas/crosstool-ng/commit/c790487094a61afcf80a48f2db5bcb7a36c69235}
+or
+\begin{verbatim}
+http://downloads.sourceforge.net/project/duma/duma
+\end{verbatim}
+\url{https://gitorious.org/pibox/pibox/commit/5507049fe6deb3c2d02735c46375043069c6cb00?format=patch}
+NOTE: We need to modify multiple files 
+\begin{verbatim}
+scripts/build/debug/200-duma.sh
+scripts/build/debug/300-gdb.sh
+scripts/build/debug/500-strace.sh
+\end{verbatim} 
+or we can download the corresponding file and put into \verb!.build/tarballs! folder
+\begin{verbatim}
+http://dfn.dl.sourceforge.net/project/duma/duma/2.5.15/duma_2_5_15.tar.gz
+http://sourceforge.net/projects/expat/files/expat/2.0.1/expat-2.0.1.tar.gz/download
+ftp://invisible-island.net/ncurses
+\end{verbatim}
+
+TROUBLESHOOT: \verb!sstrip! should be disabled as it becomes
+obsolete and is removed from croosstool-NG
+\url{https://sourceware.org/ml/crossgcc/2012-11/msg00081.html}
+
+TROUBLESHOOT: if you get the error
+\begin{verbatim}
+error: 'IFCVT_ALLOW_MODIFY_TEST_IN_INSN' undeclared (first use in this
+function)
+\end{verbatim}
+It means you should choose C compiler 4.2.4 (not 4.2.2), i.e. rerun
+\begin{verbatim}
+./ct-ng menuconfig
+\end{verbatim}
+
+
+TROUBLESHOOT: if you choose custom header files for Linux kernel, it
+may not be able to detect the version
+\begin{verbatim}
+Linux version is unavailable in installed headers files
+\end{verbatim}
+the reason is that \verb!<linux-kernel-dir>/include/linux/version.h!
+file does not exist. Suppose the kernel is 2.6.12, you can create the file with the content
+\begin{verbatim}
+#define LINUX_VERSION_CODE 132620
+#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
+\end{verbatim}
+NOTE: To get the value, just write a simple code
+\begin{verbatim}
+#include <stdio.h>
+int main()
+{
+  printf("%d", KERNEL_VERSION(2,6,12));
+}
+\end{verbatim}
+
+TROUBLESHOOT: use \verb!uClibc!, then you get error
+\begin{verbatim}
+You did not provide a uClibc config file!
+\end{verbatim}
+If you elect to build a uClibc-based toolchain, you will have to prepare a config file for uClibc.
+\url{http://www.uclibc.org/downloads/INSTALL}
+ 
+TROUBLESHOOT: if you choose to use custom header files from an old version of Linux kernel, error
+\begin{verbatim}
+error: redefinition of 'struct termios'
+\end{verbatim} 
+the reason is that glibc and the linux kernel both define the same structure \verb!termios!
+\begin{verbatim}
+//file .build/src/glibc/
+
+
+// file <linux-kernel>/include/asm/termbits.h
+
+\end{verbatim}
+The solution is to add a guard in the \verb!bits/termbits.h! of glibc.
+\begin{verbatim}
+#ifndef NCCS
+#define NCCS 32
+struct termios {
+
+}
+#endif
+\end{verbatim}
+and to \verb!include/asm/termbits.h! as well.
+
+TROUBLESHOOT: if you choose to use custom header files from an old version of Linux kernel, error
+\begin{verbatim}
+sys-root/usr/include/asm/stat.h:26
+  error: expected specifier-qualifier-list before '__kernel_into_t'
+\end{verbatim}
+if you look into the file \verb!include/asm/stat.h! line 26
+\begin{verbatim}
+#include <linuxx/types.h>
+
+     ino_t    st_ino;   // line 26
+\end{verbatim}
+and if we check the file \verb!linux/types.h!
+\begin{verbatim}
+#include <linux/posix_types.h>
+#include <asm/types.h>
+
+typedef __kernel_ino_t     ino_t;
+\end{verbatim}
+and the true type is (defined in \verb!include/asm/posix_types.h!)
+\begin{verbatim}
+typedef unsigned long  __kernel_ino_t;
+\end{verbatim}
+the reason is that the compiler doesn't know that \verb!__kernel_ino_t! is a type,
+but at the end of \verb!linux/posix_types.h! it already include
+\begin{verbatim}
+#include <asm/posix_types.h>
+\end{verbatim}
+So the true problem is that when we do symbolic link \verb!include/asm! to
+\verb!include/asm-ppc!, the final output of 
+\begin{verbatim}
+~/x-tools/powerpc-405-linux-gnu/powerpc-405-linux-gnu/sys-root/usr/include/
+\end{verbatim}
+does not have the \verb!asm! folder. To resolve the problem, we need to make a copy of
+\verb!asm-ppc! to \verb!asm! in the folder of Linux kernel source header files. However, you may still
+get the same problem when compiling \verb!strace! package. The reason is that the file
+\begin{verbatim}
+.build/src/strace/file1.c
+\end{verbatim}
+does not include \verb!<asm/posix_types.h!, so add that at the beginning of \verb!file1.c! 
+and recompile the crosstool-NG.
+% , as 
+% we should use
+% \begin{verbatim}
+% #include <asm/posix_types.h>  // instead of <asm/types.h>
+% \end{verbatim}
+% so that the compiler knows to map to \verb!unsigned long!.
+ 
+% the reason is that \verb!<linux-kernel>/include/asm/termios.h!
+% also include \verb!<asm/termbits.h>!.
+% Both files define \verb!struct termios!. RESOLUTION:
+% block this line from the file \verb!termios.h!
+% \begin{verbatim}
+% /*#include <asm/termbits.h>*/
+% \end{verbatim}
+ 
+Example:
+\begin{verbatim}
+Paths and misc options
+Paths
+Local tarballs directory: ${HOME}/sources
+Save new tarballs: Yes
+Prefix directory: /home/daglitch/v2plin/crosstool-ng-1.6.1/${CT_TARGET}
+Build behavior
+Number of parallel jobs: 3 or 4 (if you have a quad-core computer)
+Nice level: 10
+Logging
+Maximum log level to see: EXTRA
+Target options
+Target Architecture: powerpc
+Emit assembly for CPU: 405
+Tune assembly for CPU: 405
+Floating point: software
+Toolchain options
+Vendor string: 405
+Operating System
+Target OS: linux
+Linux kernel version: 2.6.32.7
+binutils
+binutils version: 2.20
+binutils libraries for the target: Yes (libiberty and libbfd)
+C compiler
+gcc version: 4.4.3
+C++: Yes
+Fortran: Yes (optional)
+Java: Yes (optional)
+(Untested: enable any other languages you may want)
+C-library
+C library: glibc
+glibc version: 2.9
+Threading implementation to use: nptl
+Use the ports addon: Yes
+Tools (Optional, Untested!)
+libelf: Yes
+sstrip: No (because I couldn't get it to build)
+Debug facilities (Optional, Untested!)
+dmalloc: Yes (5.5.2)
+duma: Yes (2_5_15)
+gdb: Yes
+Build a static cross gdb: Yes
+Native gdb: Yes
+Build a static native gdb: Yes
+Use GMP and MPFR: yes
+Version: 6.8
+ltrace: No (couldn't get it to build)
+strace: No (because I couldn't get it to build)
+Companion Libraries
+GMP and MPFR
+Build libraries for target: Yes
+GMP version: 4.3.1
+MPFR version: 2.4.2
+\end{verbatim}
+
+
+\section{Root file system (RFS image or folder structure)}
+\label{sec:root-file-system}
+\label{sec:RFS}
+
+A Linux kernel is not very useful without a root file system (RFS), e.g. initrd
+(Sect.\ref{sec:initrd}). It is a folder structure (compressed into a image file,
+and will be loaded into RAM as a virtual filesystem) containing
+\begin{itemize}
+  \item a set of files/subfolders necessary for the system to run
+
+This depends on which Linux kernel versions you want to use
+\begin{itemize}
+  \item Linux kernel 2.4 and earlier: Sect.\ref{sec:RFS-Linux-kernel-2.4}
+  \item Linux kernel 2.6 and earlier: Sect.\ref{sec:RFS-Linux-kernel-2.6}
+\end{itemize}
+NOTE: There are significant changes from Linux 2.4 to Linux 2.6, so the folder
+structures of the RFS are different (Sect.\ref{sec:kernel-change-2.4-to-2.6}).
+ %Consult Sect.\ref{sec:rootfs} for the content of this files/folders structure
+  
+  \item a set of applications and utilities
+
+The Busybox is a collection of utilities that can be put in the RFS
+(Sect.\ref{sec:busybox}).
+
+\end{itemize}
+\url{https://www.tecmint.com/linux-directory-structure-and-important-files-paths-explained/}
+
+The whole folder structure can be compressed into an image file:
+initrd or initramfs. Sect.\ref{sec:boot-process-Linux-kernel} how a root
+filesystem image is used. Also, you can keep a regular RFS
+folder that is mountable over the network (NFS) - Sect.\ref{sec:rootfs}).
+  
+  
+A RFS image can be created in several formats:
+\begin{enumerate}
+  \item (Linux kernel 2.4) create a RAMDISK image file in ext2 format (e.g.
+  initrd  image - Sect.\ref{sec:initrd}).
+
+% It is similar to creating a initial RAM disk (Sect.\ref{sec:initrd}) except that
+% you don't have to create an image file.
+  
+  \item (LInux kernel 2.6) create a cpio archive (e.g. a initramfs image).
+    
+  \item Create RAMDISK in ext3 format
+  
+\begin{verbatim}
+
+\end{verbatim}
+  
+  \item Create image in JFFS2 format (jffs2-image):
+  
+  Make sure the complete RFS is available in \verb!./jffs2-test! folder, and we
+  build a jffs2-image  to store into flash of embedded device to boot from it.
+
+\begin{verbatim}
+su
+mkfs.jffs2 --little-endian --eraseblock=0x20000 -n --pad -d ./jffs2-test -o jffs2-root.img
+\end{verbatim}
+NOTE: add \verb!--squash! to enable root squashing (i.e. chown to root for all
+files/folders - but do not use it if they already have the proper ownership).
+    
+  \item Create a U-bootable image to stored in embedded flash ROM
+  
+From the RADMSIK image file above, run \verb!mkimage! (Sect.\ref{sec:mkimage})  
+\end{enumerate} 
+\url{http://processors.wiki.ti.com/index.php/Creating_a_Root_File_System_for_Linux_on_OMAP35x}
+
+
+
+\subsection{Kernel 2.4 RFS}
+\label{sec:RFS-Linux-kernel-2.4}
+
+This section describes the minimal required folder structure for a RFS in Linux
+kernel 2.4 and before. A corrupted root filesystem will
+generally mean that the system becomes unbootable.
+\begin{verbatim}
+/bin/
+/dev/
+/sbin/
+/etc/
+/root/
+/lib/
+/lib/modules/
+/dev/
+/tmp/
+/mnt/
+/proc/
+/usr/
+/var/
+/home/
+\end{verbatim}
+
+\url{http://www.tldp.org/HOWTO/Bootdisk-HOWTO/buildroot.html}
+
+\subsection{Kernel 2.6 RFS}
+\label{sec:RFS-Linux-kernel-2.6}
+
+This section describes the minimal required folder structure for a RFS in Linux
+kernel 2.6 and above. 
+
+Suppose the folder holding the RFS structure is name
+\verb!rootfs!
+\begin{verbatim}
+mkdir rootfs
+cd rootfs
+mkdir bin dev etc lib mnt proc root sbin sys tmp usr var
+\end{verbatim}
+totally 11 subfolders.
+
+Create a main folder, which serves as the root filesystem. Inside that folder,
+we create other files/fodlers, e.g. /dev, /bin, /etc, and /sbin
+\begin{verbatim}
+su
+mkdir rootfs 
+cd rootfs
+mkdir -p {boot,proc,sys,mnt,sbin,dev,lib,usr/bin}
+ # add required device files
+ # if you want to output to the console
+mknod -m 644 dev/console c 5 1
+ #use a loop device, if booting from CD and rootfs is in compressed filesystem
+ # Using a loopback device you can create a three megabyte file on your hard
+ #disk and build the filesystem on it.
+mknod -m 644 myinitfs/dev/loop0 b 7 0   	
+\end{verbatim}
+\url{http://www.tldp.org/HOWTO/Bootdisk-HOWTO/buildroot.html}
+
+Then, we need to put shell script and utilities at least from BusyBox.
+An example to create the RFS for Linux kernel 2.6 with utilities using Busybox
+is given in Sect.\ref{sec:create-RFS-BusyBox}.
+
+\url{http://www.tldp.org/LDP/intro-linux/html/sect_03_01.html}
+
+% 
+%  When the system boots up, the system requires some essential device
+% nodes
+
+\url{http://www.linux.org/threads/specfs-devfs-tmpfs-and-others.4989/}
+
+
+
+The first process on a normal unix system is called init (Sect.\ref{sec:init}).
+Its job is to start other services. BusyBox contains an \verb!init! binary,
+which we can use. In addition to the init binary (usually located in /sbin),
+you'll need its configuration files (usually called /etc/inittab -
+Sect.\ref{sec:inittab}) - some modern init replacement do away with that file
+but you won't find them on a small embedded system) that indicate what services
+to start and when.
+  
+\begin{enumerate}
+  \item  Simply pass \verb!init=/bin/sh! to the kernel command line!
+
+  \item Come with a set of utilities, e.g. busybox
+  (Sect.\ref{sec:create-RFS-BusyBox})
+  
+Using \verb!/etc/inittab! is optional; if it's missing, you get a root shell on
+the console and the script /etc/init.d/rcS (default location) is executed at
+boot time.
+
+\end{enumerate}	
+
+Unless all your executables are statically linked, you will need the
+  dynamic loader (ld.so, which may be called by different names depending on the
+  choice of libc and on the processor architectures) and all the dynamic
+  libraries (/lib/lib*.so, perhaps some of these in /usr/lib) required by these
+  executables.
+  
+\subsection{Create a dummy RFS}
+\label{sec:create-dummy-RFS}
+
+Create a dummy root filesystem, which contains only a single executable file;
+and we put it in \verb!cpio! archive like initramfs image
+(Sect.\ref{sec:initramfs}).
+
+This dummy root filesystem basically wait for user to press a key, and print a
+message. IMPORTANT: The programs must runs infinitely, if it returns then kernel
+panic.
+
+\begin{verbatim}
+#include<stdio.h>
+int main(){
+    while(1){
+        printf("Hello Open World\n");
+        getchar();
+    }
+\end{verbatim}
+The endless loop (while(1)) will print a message when the user presses a key. 
+
+Build the following code as static, i.e. we use \verb!-static! for the target
+machine, e.g. ARM
+\begin{verbatim}
+# arm-none-linux-gnueabi-gcc hello.c -static -o hello
+\end{verbatim}
+
+Copy the output binary executable file to a cpio archive which will be
+used as a root filesystem.
+\begin{verbatim}
+# echo hello | cpio -o --format=newc > rootfs
+1269 blocks
+
+# (to check the file)
+# file rootfs
+rootfs: ASCII cpio archive (SVR4 with no CRC)
+\end{verbatim}
+%The command cpio is used for this purpose.
+
+\subsection{Create RFS + Busybox}
+\label{sec:create-RFS-BusyBox}
+
+The example above (Sect.\ref{sec:create-dummy-RFS}) is not practicle, as the
+RFS does not have a complete folder structure.
+Here, we create a complete folder structure, put some essential utilities
+(Busybox), and (optionally put some Linux kernel modules - given in
+Sect.\ref{sec:add-kernel-modules-to-RFS}).
+
+\textcolor{red}{CRITICAL: Whenever you create a root filesystem, make sure
+you are under root privilege. If you want to copy the root filesystem folder
+structure, use the following command}
+\begin{verbatim}
+su
+tar -cvf backup_rfs.tar <folder-of-rfs>
+\end{verbatim}
+and you can freely copy the tar file to another place, then at the new
+machine/location, also under root privilege, type
+\begin{verbatim}
+su
+tar -xvf backup_rfs.tar
+\end{verbatim}
+
+
+\begin{enumerate}
+  
+  \item Setup skeleton of folder for the RFS: Depending on Linux kernel 2.4
+  (Sect.\ref{sec:RFS-Linux-kernel-2.4}) or Linux kernel 2.6+
+  (Sect.\ref{sec:RFS-Linux-kernel-2.6})
+    
+Suppose the name of the folder holding the RFS structure is \verb!rootfs!.
+    
+  \item Download, Expand and Jump to the busybox source:
+
+  Compile busybox (using the correct cross-compiler) to the target machine
+  where the Linux kernel image 
+  will runs (Sect.\ref{sec:busybox-compile-target-machine}), 
+  and specify the location where the build will be save which is
+  the name of the folder holding the RFS via 
+  \verb!CONFIG_PREFIX! argument. 
+\begin{verbatim}
+// untar 
+// then
+cd <busybox-folder> 
+// make necessary patch so that busybox work best on target machine
+// e.g. target machine is mip405
+cp -iv <path>/busybox-mip405.config .config
+
+make oldconfig
+make
+
+make install CONFIG_PREFIX=</absolute/path/to/rootfs>
+\end{verbatim}
+\end{enumerate}  
+
+\textcolor{red}{EXAMPLE}: Linux 2.6.12 and Busybox with target machine is MPL
+MIP405T (Chap.\ref{chap:embedded_MPL_MIP405-MIP405T}). First create the folder
+where you want to store the RFS structure
+\begin{verbatim}
+cd <Linux-kernel-2.6-source-dir>
+mkdir ./rfs_image
+\end{verbatim}
+
+Next, install busybox (Sect.\ref{sec:busybox}) into this folder
+\begin{verbatim}
+cd <busybox-src>
+export CROSS_COMPILE=powerpc-405-linux-gnu-
+make menuconfig
+make install CONFIG_PREFIX='<path-to-rfs_image>'
+\end{verbatim}
+
+Among the commands that Busybox supports, it provides \verb!init!-like
+capabilities, which is well adapted to embedded environment as it provides most
+of the \verb!init! functionality that an embedded system needs without dragging
+the weight of using System V \verb!init! (Sect.\ref{sec:init}). So make a
+symbolic link
+\begin{verbatim}
+cd <rfs_image>
+ln -s /bin/busybox init
+cd <rfs_image>/sbin
+ln -s /bin/busybox init
+\end{verbatim}
+At this point, there are only these folders and files
+\begin{verbatim}
+drwxr-xr-x  2 root root 4096 Nov 21 10:20 bin
+lrwxrwxrwx  1 root root   11 Nov 21 10:20 linuxrc -> bin/busybox
+drwxr-xr-x  2 root root 4096 Nov 21 10:20 sbin
+drwxr-xr-x  4 root root 4096 Nov 21 10:20 usr
+\end{verbatim}
+
+NOTE: The 1.11.1 version of BusyBox does not create a link for /bin/sh so change
+any /bin/sh to /bin/busysbox.
+\begin{verbatim}
+cd bin
+sudo ln -s sh busybox
+\end{verbatim}
+
+NOTE: we need these folders:
+\verb!dev, dev/pts, etc, etc/init.d, lib!, 
+\verb!mnt, opt, proc, root, sys, tmp, var, var/log!, and device node for initial
+console.
+\begin{verbatim}
+cd rfs_image
+sudo mkdir dev  dev/pts  etc  etc/init.d  lib  mnt  opt  proc  root  sys  tmp 
+sudo mkdir var  var/log 
+sudo mknod dev/console c 5 1
+sudo mkdir debug
+\end{verbatim}
+Since 2.6.11 the debugfs has been introduced and so you may optionally create a
+directory called debug for mounting the debugfs (Sect.\ref{sec:debugfs}).
+
+To have the /proc and /dev/pts file systems mounted at boot time, the file
+\verb!etc/fstab! must be created in the etc directory. \verb!vi etc/fstab! and
+add
+\begin{verbatim}
+proc            /proc           proc    defaults        0 0
+none            /dev/pts        devpts  mode=0622       0 0
+/dev/nfs       /               nfs     defaults        0 0
+\end{verbatim}
+
+Create the minimum \verb!/etc/group!, \verb!/etc/passwd!, and \verb!/etc/hosts!
+with the contents
+\begin{verbatim}
+[root@localhost etc]# vi group
+root:x:0:root
+
+[root@localhost etc]# vi passwd
+root::0:0:root:/root:/bin/ash 
+
+[root@localhost etc]# vi hosts
+127.0.0.1       localhost
+\end{verbatim}
+\textcolor{red}{NOTE:} if you upgrade the kernel, you can copy the three files
+from existing kernel settings.
+
+\textcolor{red}{IMPORTANT}: The kernel starts \verb!/sbin/init! after it boots
+(actually the kernel attempts to execute several known programs until one
+succeeds). Init reads the etc/inittab file to determine what to do at start up,
+shutdown, or when a user logs in (Sect.\ref{sec:inittab}). 
+
+NOTE: 
+\begin{itemize}
+  \item Please note that in more recent kernels (2.6.29 and newer) the
+\verb!sysfs! entries shown below to disable power management and control the LCD
+inactivity timeout shown above have been removed.
+\url{http://elinux.org/OMAP_Power_Management}
+  
+\end{itemize}
+
+
+\begin{verbatim}
+#!/bin/sh
+#   ---------------------------------------------
+#   Common settings
+#   ---------------------------------------------
+HOSTNAME=OMAP3EVM
+VERSION=1.0.0
+
+hostname $HOSTNAME
+
+#   ---------------------------------------------
+#   Prints execution status.
+#
+#   arg1 : Execution status
+#   arg2 : Continue (0) or Abort (1) on error
+#   ---------------------------------------------
+status ()
+{
+       if [ $1 -eq 0 ] ; then
+               echo "[SUCCESS]"
+       else
+               echo "[FAILED]"
+
+               if [ $2 -eq 1 ] ; then
+                       echo "... System init aborted."
+                       exit 1
+               fi
+       fi
+
+}
+
+#   ---------------------------------------------
+#   Get verbose
+#   ---------------------------------------------
+echo ""
+echo "    System initialization..."
+echo ""
+echo "    Hostname       : $HOSTNAME"
+echo "    Filesystem     : v$VERSION"
+echo ""
+echo ""
+echo "    Kernel release : `uname -s` `uname -r`"
+echo "    Kernel version : `uname -v`"
+echo ""
+
+
+#   ---------------------------------------------
+#   MDEV Support
+#   (Requires sysfs support in the kernel)
+#   ---------------------------------------------
+echo -n " Mounting /proc             : "
+mount -n -t proc /proc /proc
+status $? 1
+
+echo -n " Mounting /sys              : "
+mount -n -t sysfs sysfs /sys
+status $? 1
+
+echo -n " Mounting /dev              : "
+mount -n -t tmpfs mdev /dev
+status $? 1
+
+echo -n " Mounting /dev/pts          : "
+mkdir /dev/pts
+mount -t devpts devpts /dev/pts
+status $? 1
+
+echo -n " Enabling hot-plug          : "
+echo "/sbin/mdev" > /proc/sys/kernel/hotplug
+status $? 0
+
+echo -n " Populating /dev            : "
+mkdir /dev/input
+mkdir /dev/snd
+
+mdev -s
+status $? 0
+
+#   ---------------------------------------------
+#   Disable power management
+#   (Requires sysfs support in the kernel)
+#   ---------------------------------------------
+# echo -n " Disabling Power mgmt       : "
+# echo -n "1" > /sys/power/cpuidle_deepest_state
+# status $? 1
+
+#   ---------------------------------------------
+#   Turn off LCD after 1 hour of inactivity
+#   (Requires sysfs support in the kernel)
+#   ---------------------------------------------
+# echo -n " Turn off LCD after 1 hour  : "
+# echo -n "3600" > /sys/power/fb_timeout_value
+# status $? 1
+
+
+#   ---------------------------------------------
+#   Mount the default file systems
+#   ---------------------------------------------
+echo -n " Mounting other filesystems : "
+mount -a
+status $? 0
+
+
+#   ---------------------------------------------
+#   Set PATH
+#   ---------------------------------------------
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin
+
+
+#   ---------------------------------------------
+#   Start other daemons
+#   ---------------------------------------------
+echo -n " Starting syslogd           : "
+/sbin/syslogd
+status $? 0
+
+echo -n " Starting telnetd           : "
+/usr/sbin/telnetd
+status $? 0
+
+
+#   ---------------------------------------------
+#   Done!
+#   ---------------------------------------------
+echo ""
+echo "System initialization complete."
+
+
+#   ---------------------------------------------
+#   Start demo app
+#   ---------------------------------------------
+#if [[ -x /etc/init.d/demo_start ]]; then
+#       echo " Starting Demo Application..."
+#       /etc/init.d/demo_start &
+#       sleep 5
+#fi
+\end{verbatim}
+
+Next, copy the binary files from the crosstool-chain to the \verb!bin! folder
+\begin{verbatim}
+sudo cp ~/Tuan/crosstool-ng-1.9.3/.build/tools/bin <rfs_image>/bin/
+\end{verbatim}
+which provides these binary
+\begin{verbatim}
+bash     grep     install  libtool  make     objcopy  objdump  patch    readelf 
+sed 
+\end{verbatim}
+
+Next, copy the glibc library from the cross-compiler toolchain, e.g.
+crosstool-ng put it in \verb!.build! folder. Make sure copy the minimum first, 
+to avoid oversizing the kernel libraries.
+\begin{verbatim}
+strings .build/powerpc-405-linux-gnu/build/build-libc/libc.so.6  | grep 'GLIBC'
+
+GLIBC_2.0
+GLIBC_2.1
+GLIBC_2.1.1
+GLIBC_2.1.2
+GLIBC_2.1.3
+GLIBC_2.2
+GLIBC_2.2.1
+GLIBC_2.2.2
+GLIBC_2.2.3
+GLIBC_2.2.4
+GLIBC_2.2.6
+GLIBC_2.3
+GLIBC_2.3.2
+GLIBC_2.3.3
+GLIBC_2.3.4
+GLIBC_2.4
+GLIBC_2.5
+GLIBC_2.6
+GLIBC_2.7
+GLIBC_2.8
+GLIBC_2.9
+GLIBC_PRIVATE
+
+\end{verbatim}
+
+At this step, you boot it into a prompt without login request. 
+Next steps
+\begin{itemize}
+  \item add kernel modules (Sect.\ref{sec:kernel-modules}) to the RFS -
+  Sect.\ref{sec:add-kernel-modules-to-RFS}
+  
+  \item Configure the login prompt (Sect.\ref{sec:login-prompt})
+\end{itemize}
+
+\subsection{Enhance the root filesystem: add kernel modules}
+\label{sec:add-kernel-modules-to-RFS}
+
+The root file system built contains only the bare minimum files to operate.
+Kernel driver modules have not been added yet. Also, as applications are built
+and added, the shared libraries used by the applications will need to be added.
+The file system will get larger when these files are added.
+
+Next, put the Linux kernel modules into this RFS folder (the folder that
+contains \verb!lib/modules!, i.e. so that the modules will be saved there)
+
+\begin{verbatim}
+cd <Linux-kernel-2.6-source-dir>
+sudo make modules_install INSTALL_MOD_PATH='<path-to-rfs_image>'
+\end{verbatim}
+to reduce RFS memory foot print of kernel modules, we can strip some debug information from the
+driver modules by adding one of these options to the command
+\begin{verbatim}
+INSTALL_MOD_STRIP=1
+INSTALL_MOD_STRIP=--strip-unneeded
+\end{verbatim}
+
+The busybox executable and all symbolic links to it must have user and group
+ownership set to \verb!root!. This is required because the kernel boots as
+root. If the generated root file system does not have user/group set to root,
+the kernel will not boot.
+\begin{verbatim}
+sudo chgrp root rfs_image/* -R
+ssudo chown root rfs_image/* -R
+\end{verbatim}
+
+In Linux root file systems the /dev directory contains device nodes - special
+files that give application access to devices on the system.
+The problem when creating a root file system is which device nodes are needed
+and which are not? (Sect.\ref{sec:devices}).
+\begin{itemize}
+  \item early on Linux RFS, it need to statically build the nodes with
+  \verb!mknod! command
+\begin{verbatim}
+ mknod target/dev/ttyS0 c 4 64
+\end{verbatim}
+This led to missing nodes, unnecessary nodes, or nodes with the wrong name
+
+  \item Linux 2.4.x : it uses \verb!devfs! filesystem (sect.\ref{sec:devfs})
+  
+  When device drivers loaded they would register with the devfs file system and
+  the device node would be created. 
+
+NOTE: \verb!devfs! is completely removed since Linux 2.6.16.
+  
+  \item Linux 2.6.11:  There were problems with \verb!devfs! this so that starting at 2.6.11 kernels,
+  devfs was removed and replaced. The mechanism to pupulate \verb!/dev! is done
+  via \verb!sysfs! (Sect.\ref{sec:sysfs}) mounted on /sys and \verb!tmpfs! file
+  system (Sect.\ref{sec:tmpfs}).
+  
+%   SOLUTION: During  initialization, when file systems are getting mounted, the
+%   \verb!sysfs! file system (Sect.\ref{sec:sysfs}) is mounted on /sys.
+%   
+%   \verb!udev! file system (Sect.\ref{sec:udev}) is mounted on /dev.
+  
+  That way all device nodes are in virtual memory and are not saved between
+  reboots of the board (Sect.\ref{sec:hotplug_udev}).
+  
+ 
+  
+\end{itemize}
+
+
+
+In Linux kernel 2.6.11, the kernel source file init/main.c includes these lines:
+\begin{verbatim}
+    /*
+     * We try each of these until one succeeds.
+     *
+     * The Bourne shell can be used instead of init if we are
+     * trying to recover a really broken machine.
+     */
+
+    if (execute_command)
+        run_init_process(execute_command);
+
+    run_init_process("/sbin/init");
+    run_init_process("/etc/init");
+    run_init_process("/bin/init");
+    run_init_process("/bin/sh");
+
+    panic("No init found.  Try passing init= option to kernel.");
+\end{verbatim}
+
+
+
+The 2.6 kernel build process always creates a gzipped cpio format \verb!initramfs!
+archive and links it into the resulting kernel binary. 
+  
+\begin{verbatim}
+// create RFS only gzipped \verb!cpio! format  
+// NOTE: <location of RFS root directory>
+cd <path-to-rfs_image>
+find . | cpio -o -v -H newc | gzip -9 -n > ~/mip405t_rfs.gz
+
+// or use the script come with the Linux kernel source
+cd <Linux-kernel-2.6-source-folder>
+sh scripts/gen_initramfs_list.sh -o ~/mip405t_rfs.gz -u squash -g squash \
+       <path-to-rfs_image>
+\end{verbatim}
+
+
+
+\subsection{Create U-boot Flash image of RFS}
+\label{sec:Create-U-boot-image}
+
+First, you need to create a ramdisk image (Sect.\ref{sec:RAMDISK-for-RFS}),
+and then we build \verb!ramdisk! file using \verb!mkimage!
+(Sect.\ref{sec:mkimage}).
+
+\begin{verbatim}
+$ mkimage -T ramdisk -C gzip -n 'Test Ramdisk Image' -d ramdisk.img.gz uRamdisk
+
+Image Name:   Test Ramdisk Image
+Created:      Sun Jun 12 16:58:06 2005
+Image Type:   PowerPC Linux RAMDisk Image (gzip compressed)
+Data Size:    1618547 Bytes = 1580.61 kB = 1.54 MB
+Load Address: 0x00000000
+Entry Point:  0x00000000
+\end{verbatim}
+\url{http://www.denx.de/wiki/view/DULG/RootFileSystemOnARamdisk}
+ 
+\subsection{Create U-boot Flash image of RFS + Linux kernel}
+\label{sec:Create-Flash-image}
+
+Example: we put 3 binary files (\verb!u-boot.bin! file, \verb!zImage! linux
+kernel image, \verb!ramdisk! of RFS) into the
+single image file \verb!flash.bin!, at a distance of 2MiB. 
+\begin{itemize}
+  \item we first create two U-boot images: zImage.uimg, rootfs.uimg
+  
+  \item create 6MiB empty file \verb!flash.bin!
+  
+  \item copy the content of \verb!u-boot.bin!
+  \item copy the content of \verb!zImage.uimg! at 2MiB from the beginning of
+  flash.bin file
+  \item copy the content of \verb!rootfs.uimg! at 4MiB from the beginning of
+  flash.bin file
+\end{itemize}
+Here, we build for arm architecture
+\begin{verbatim}
+mkimage -A arm -C none -O linux -T kernel -d zImage -a 0x00010000 -e 0x00010000 zImage.uimg
+mkimage -A arm -C none -O linux -T ramdisk -d rootfs.img.gz -a 0x00800000 -e 0x00800000 rootfs.uimg
+dd if=/dev/zero of=flash.bin bs=1 count=6M
+dd if=u-boot.bin of=flash.bin conv=notrunc bs=1
+dd if=zImage.uimg of=flash.bin conv=notrunc bs=1 seek=2M
+dd if=rootfs.uimg of=flash.bin conv=notrunc bs=1 seek=4M
+\end{verbatim}
+
+
+\section{Linux kernel modules}
+\label{sec:kernel-modules}
+
+Linux Kernel modules (LKMs) are pieces of code that can be loaded and unloaded
+into the kernel upon demand. They extend the functionality of the kernel without the need
+to reboot the system, nor recompile the kernel.
+\url{http://www.tldp.org/HOWTO/Module-HOWTO/x73.html}
+
+LKMs did not exist in Linux in the beginning.
+LKMs have been around at least since Linux 1.2 (1995).
+So, the kernel you buid is indeed a {\bf base kernel}
+(Chap.\ref{chap:build-Linux-kernel}), and LKMs (when loaded) are very much part
+of the kernel, and communicate with the base kernel.
+
+However, a LKM is compiled for a specific ABI version of the kernel. So, if
+there is a kernel update that changes ABI (Sect.\ref{sec:ABI}), the module needs to be
+recompiled.
+
+To build a kernel module, read Sect.\ref{sec:build-Linux-kernel-module}.
+
+
+As the Ubuntu updates appear to break the ABI quite frequently and require
+kernel modules to be recompiled. As this is a very much boring and repetitive
+task, DKMS was invented to overcome this (Sect.\ref{sec:DKMS}). 
+It inserts hooks in APT to trigger compiling and installing the new version.
+
+\subsection{DKMS}
+\label{sec:DKMS}
+
+The mechanism of DKMS is specifically created for automatic recompiling
+kernel modules against the new kernel installed when there is an ABI change for
+that new Linux kernel.
+
+Example: \verb!nvidia-XXX! (XXX=version) driver is a kernel module
+
+To check current kernel modules installed using DKMS
+\begin{verbatim}
+dkms status
+\end{verbatim}
+\url{https://askubuntu.com/questions/249509/how-does-updating-the-kernel-affect-custom-modules}
+
+
+To rebuild all DKMS modules for all installed kernels
+\begin{verbatim}
+ls /var/lib/initramfs-tools | \
+    sudo xargs -n1 /usr/lib/dkms/dkms_autoinstaller start
+\end{verbatim}
+\url{https://askubuntu.com/questions/53364/command-to-rebuild-all-dkms-modules-for-all-installed-kernels}
+
+
+\subsection{extension: .ko or .o ?}
+
+The loadable module has the extension \verb!.ko! (kernel object) since Linux
+kernel 2.6, e.g. nvidia.ko (before 2.6, the extension is .o). 
+
+\subsection{load/unload a modules}
+\label{sec:rmmod}
+\label{sec:load-module}
+\label{sec:unload-module}
+\label{sec:insmod}
+\label{sec:modprobe}
+
+
+\textcolor{red}{To load a KLM}, we use \verb!insmod! or \verb!modprobe!.
+\begin{verbatim}
+insmod mymodule.ko
+\end{verbatim}
+
+NOTE: \verb!modprobe! load the modules from
+\verb!/lib/modules/$(uname -r)/modules.dep.bin! (or without the .bin suffix if
+the other file is not available)
+
+NOTE: \verb!insmod! on the other hand accepts paths to files.
+The module does not have to reside in \verb!/lib/modules/$(uname -r)!, but
+dependencies are not automatically loaded. 
+
+\textcolor{red}{To unload a KLM}, we use \verb!rmmod!
+\begin{verbatim}
+rmmod mymodule.ko
+\end{verbatim}
+\verb!rmmod! removes a kernel name based on the name from /proc/modules.
+his name does not necessarily have to be the same as the one passed to
+\verb!modprobe!.
+
+Once loaded, they are in \verb!/lib/modules!. To list all the loaded modules, we
+use
+\begin{verbatim}
+lsmod
+\end{verbatim}
+command.  Similar commands in FreeBSD
+\begin{verbatim}
+kldload
+kldunload
+kldstat
+\end{verbatim}
+Similar commands in OS/X (extension is .kext)
+\begin{verbatim}
+kextload
+kextstat
+\end{verbatim}
+The modules distributed by 
+\begin{itemize}
+  \item  the Linux OS is in \verb!/boot/kernel! or
+\verb!/boot/modules!. 
+
+  \item the Mac OS/X are in \verb!/System/Library/Extensions!.
+\end{itemize}
+
+If one module is broken which can affect the boot up processes, we can disable
+it or replace with an alternative one by modifying the kernel boot parameters in
+the bootloader, e.g. GRUB (press 'e' in the GRUB boot menu to edit). There are
+free as well as proprietary modules.
+
+References:
+\begin{itemize}
+  \item
+  \url{http://askubuntu.com/questions/20070/whats-the-difference-between-insmod-and-modprobe}
+\end{itemize}
+
+\subsection{module information}
+\label{sec:modinfo}
+
+\verb!modinfo! accepts a filename, or the filename without .ko suffix in
+\verb!/lib/modules/$(uname -r)!.
+
+\begin{verbatim}
+modinfo hello-4.ko 
+license:        GPL
+author:         Peter Jay Salzman <p@dirac.org>
+description:    A sample driver
+vermagic:       2.6.5-1.358 686 REGPARM 4KSTACKS gcc-3.3
+depends:        
+
+\end{verbatim}
+
+\subsection{Troubleshoot}
+
+\textcolor{red}{\bf Error 'wrong magic number'}:
+When you load a module, you get the error
+\begin{verbatim}
+version magic '3.3.0-xxx SMP preempt mod_unload ARMv7 ' should be '3.3.0-xxx+
+    SMP preempt mod_unload ARMv7 '
+          invalid module format    
+\end{verbatim}
+or
+\begin{verbatim}
+version magic '2.6.12-mip405t preempt gcc-4.2' should be
+          '2.6.12-mip405t preempt gcc-4.3'          
+          invalid module format
+\end{verbatim}
+
+The reason is due to the mismatch in the version magic number, which can be
+checked using \verb!modinfo! (Sect.\ref{sec:modinfo})
+
+\begin{verbatim}
+modinfo -F vermagic myModule.ko
+ # or
+objdump myModule.ko --full-contents --section=.modinfo
+  
+Result:  
+  2.6.23.1-42.fc8 SMP mod_unload 
+     means kernel was build with CONFIG_MODULE_UNLOAD set.
+     most distros enable module unloading; otherwise
+     when you run "rmmod myModule" will cause this:
+     - FATAL: Kernel does not have unload support
+     
+modules built against 2.6.x.y.* (e.g. 2.6.25.9-76.fc9.x86_64)
+will load into 2.6.x.y kernels.          
+\end{verbatim}
+ 
+Here are different options
+\begin{enumerate}
+  \item force it to load (make sure the kernel was compiled with
+  \verb!MODULE_FORCE_LOAD! for Linux kernel 2.6.26+)
+   
+\begin{verbatim}
+insmod -f mymodule.ko
+\end{verbatim}
+-f or --force options is the same as --force-vermagic
+and -force-modversion.
+
+Behind the scene: insmod/modprobe call a system call,
+\verb!sys_init_module()! or \verb!check_version()! (kernel/module.c). See the
+code snipet
+\begin{verbatim}
+modmagic = get_modinfo(sechdrs, infoindex, "vermagic");
+/* This is allowed: modprobe --force will invalidate it. */
+if (!modmagic) {
+tainted |= TAINT_FORCED_MODULE;
+printk(KERN_WARNING "%s: no version magic, tainting kernel.\n",
+        mod->name);
+} else if (!same_magic(modmagic, vermagic)) {
+        printk(KERN_ERR "%s: version magic '%s' should be '%s'\n",
+               mod->name, modmagic, vermagic);
+        err = -ENOEXEC;
+        goto free_hdr;
+}
+\end{verbatim}
+
+  \item 
+  Or the quick fix is to modify the \verb!version magic number! in the source file
+of the target Linux kernel, so that all modules compiled against the kernel will
+load with no issues.
+DETAILS explanation: \verb!mymodule.mod.o! get the vergion magic number from
+\verb!include/linux/vermagic.h! 
+\begin{verbatim}
+#include <linux/version.h>
+#include <linux/module.h>
+
+#define VERMAGIC_STRING                                                 \
+        UTS_RELEASE " "                                                 \
+        MODULE_VERMAGIC_SMP MODULE_VERMAGIC_PREEMPT                     \
+        MODULE_ARCH_VERMAGIC                                            \
+        "gcc-" __stringify(__GNUC__) "." __stringify(__GNUC_MINOR__)                                                                            
+\end{verbatim}
+which returns 
+\begin{verbatim}
+2.6.12-mip405t preempt gcc-4.3
+\end{verbatim}
+or if we break down
+\begin{verbatim}
+UTS_RELEASE = 2.6.12-mip405t
+MODULE_VERMAGIC_PREEMPT = preempt
+__GNUC__    =  4
+__GNUC_MINOR__ = 3
+\end{verbatim}
+
+The quick fix for compiler version mismatch is to modify to (gcc-4.3) 
+\begin{verbatim}
+        "gcc-" __stringify(__GNUC__) ".3"                                                                             
+\end{verbatim}
+%which in turn includes
+%\verb!generated/utsrelease.h!, which supplies the version magic explicitly.
+
+  
+ \item You can choose to build the module for many Linux distribution:
+\url{http://haifux.org/lectures/192/rrLight.pdf}
+ 
+\end{enumerate}
+
+\url{http://blog.umbrellaj.com/blog/2013/03/15/trick-on-the-verson-magic-number-of-linux-kernel/}
+\url{http://billauer.co.il/blog/2013/10/version-magic-insmod-modprobe-force/}
+
+
+\url{http://tldp.org/LDP/lkmpg/2.6/html/x380.html}
+
+\subsection{compatibility}
+
+COMPATIBILITY ISSUE: A loadable kernel module needs to be compatible in ABI/API
+with the kernel version. Free BSD maintain compatibility within minor version,
+e.g. a kernel module compiled with Linux kernel 6.1 can be loaded in Linux
+kernel 6.4; but not with Linux kernel 7.0. To check for compatibility, read the
+symbol versioning data in \verb!.modinfo! section in ELF modules
+(Sect.\ref{sec:ELF}).
+\begin{verbatim}
+objdump myModule.ko --full-contents --section=.modinfo
+\end{verbatim}
+
+
+
+\section{Compile kernel modules}
+\label{sec:build-Linux-kernel-module}
+\label{sec:LKM}
+\label{sec:build-Linux-kernel-modules}
+
+Essentially, (Linux kernel) modules are to Linux as drivers are to Windows.
+
+To compile, a "typical" 
+\begin{verbatim}
+./configure; make; sudo make install 
+\end{verbatim}
+will just install one specific kernel module and requires you to recompile it
+every time.  If you fail to do so, the kernel module will simply not be found
+after an update.
+
+DKMS helps to automate this process (Sect.\ref{sec:DKMS})
+\url{https://askubuntu.com/questions/249509/how-does-updating-the-kernel-affect-custom-modules}
+
+\subsection{Command}
+
+Suppose you are on the host machine
+\begin{verbatim}
+host: intel x86 32 bit, linux-3.0.0
+\end{verbatim}
+and try to compile a module for a target system
+\begin{verbatim}
+target: ARM machine (Parrot AR.Drone), linux-2.6.27.47
+\end{verbatim}
+
+You need to configure \verb!CROSS_COMPILE!, \verb!ARCH!, \verb!PATH! (to bin
+folder of the cross-compiler).
+
+Example:
+\begin{verbatim}
+export CROSS_COMPILE=arm-none-linux-gnueabi- 
+export ARCH=arm  
+\end{verbatim}
+
+This is the Makefile
+\begin{verbatim}
+PWD := $(shell pwd)
+obj-m := test.o
+all:
+    $(MAKE) -C /path/to/target-machine/kernel M=$(PWD) modules
+\end{verbatim}
+\url{http://www.gnu.org/software/make/manual/make.html#toc-Features-of-GNU-make}
+or examples
+\begin{verbatim}
+obj-m := myModule.o
+CC:= /work/tools/fc6/gcc/bin/gcc
+KDIR:=/usr/src/kernels/2.6.18-1.2798.fc6-x86_64
+PWD := $(shell pwd)
+default:
+   $(MAKE) CC=$(CC) -C $(KDIR) SUBDIRS=$(PWD) modules
+\end{verbatim}
+or custom build by adding the checking code
+\begin{verbatim}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
+  ....
+#endif
+\end{verbatim}
+
+NOTE:
+\begin{verbatim}
+mymodule.c --> mymodule.mod.c -->   mymodule.mod.o
+   
+   mymodule.mod.o + mymodule.o  --[MODPOST]-> mymodule.ko
+\end{verbatim} 
+mymodule.mod.c that is responsible for supplying the version magic. It's
+compiled into mymodule.mod.o, and then fused together with mymodule.o to become
+mymodule.ko. This is what the famous "MODPOST" compilation stage does (in fact,
+it's a \verb!make -f! on \verb!scripts/Makefile.modpost!, which in turn calls
+\verb!scripts/mod/modpost!).
+  
+\subsection{Troubleshoot}
+
+\textcolor{red}{\bf Error}:
+You may get the error
+\begin{verbatim}
+falsely claims to have parameter debug 
+\end{verbatim}
+when you try to load a module
+\begin{verbatim}
+insmod module.ko
+\end{verbatim}
+when trying to load a module from Linux 2.6.*. The problem is due to some
+changes (Sect.\ref{sec:module_Linux-2.6.x})
+
+\textcolor{red}{\bf Error}: Another potential error is 
+\begin{verbatim}
+error: 'MOD_INC_USE_COUNT' undeclared
+\end{verbatim}
+This was previously use in Linux 2.5.x to manipulate the use count to protect
+against module being removed
+\footnote{\url{http://people.netfilter.org/rusty/unreliable-guides/kernel-hacking/routines-module-use-counters.html}}
+Using \verb!MOD_INC_USE_COUNT! is obsolete and has been removed since Linux
+2.5.x (as the kernel can take care of this automatically).
+
+
+
+\subsection{*.o: Linux 2.5-}
+\label{sec:module_Linux-2.5-}
+
+The purpose of \verb!MODULE_PARM! is to enable passing the command-line
+arguments to a module. Suppose you want to be able to pass \verb!myvar=5!
+\begin{verbatim}
+insmod mymodule.o myvar=5
+\end{verbatim}
+
+Then, you need to define the appropriate \verb!MODULE_PARM!
+which takes 2 arguments: the name of the variable (which is \verb!'myvar'! in
+this case) and its type (which is a single character representing the type).
+\begin{itemize}
+  \item 'b' = single byte
+  \item 'h' = short int
+  \item 'i' = integer (can be signed or unsigned)
+  \item 'l' = long int
+  \item 's' = string
+
+ should be a string declared as \verb!char *!, with the content
+ 
+  \item 'num1-num2<char-type>': represent an array of some minimum and/or
+  maximum length (num1= minimum length,  num2=maximum length)
+   
+\begin{verbatim}
+int myshortArray[4];
+  # an array of 'int' with length in the range [3-9]
+MODULE_PARM (myintArray, "3-9i");
+
+#define SM518_MAX_NR_DEVICES 8
+
+MODULE_PARM(i0, "0-" __MODULE_STRING(SM518_MAX_NR_DEVICES) "l")
+\end{verbatim}
+NOTE: The macro \verb!__MODULE_STRING! is define in
+\verb!<linux-kernel-source>/include/module.h! file
+\begin{verbatim}
+#define __MODULE_STRING(x) __stringify(x)
+\end{verbatim}
+with \verb!__strinify(x)! convert the parameter value of a given macro to string
+
+Example:
+\begin{verbatim}
+-DFOO=bar, __stringify(FOO)
+\end{verbatim}
+returns \verb!''bar''!.
+
+\end{itemize}
+Example:
+\begin{verbatim}
+char myvar;
+char *mystr;
+
+MODULE_PARM(myvar, "i");
+MODULE_PARM(mystr, "s");
+
+MODULE_PARM_DESC(myvar, "This integer really does nothing at all.");
+MODULE_PARM_DESC(mystr, "Pass this string to do something.");
+\end{verbatim}
+You may also add the description to explain the parameter with
+\verb!MODULE_PARM_DESC! macro.
+\url{http://www.tldp.org/LDP/lkmpg/2.4/html/x354.htm}
+
+If you have to use \verb!MOD_INC_USE_COUNT!, make sure add
+\verb!MOD_DEC_USE_COUNT! follow this
+\begin{verbatim}
+
+/* THIS IS BAD */
+foo_open (...)
+{
+        stuff..
+        if (fail)
+                return -EBUSY;
+        sleep.. (might get unloaded here)
+        stuff..
+        MOD_INC_USE_COUNT;
+        return 0;
+}
+
+/* THIS IS GOOD /
+foo_open (...)
+{
+        MOD_INC_USE_COUNT;
+        stuff..
+        if (fail) {
+                MOD_DEC_USE_COUNT;
+                return -EBUSY;
+        }
+        sleep.. (safe now)
+        stuff..
+        return 0;
+}
+\end{verbatim}
+\url{http://people.netfilter.org/rusty/unreliable-guides/kernel-hacking/routines-module-use-counters.html}
+
+
+
+\subsection{*.ko: Linux 2.6+}
+\label{sec:module_Linux-2.6.x}
+
+Since the first 2.6.x releases, \verb!MODULE_PARM! has been deprecated, and need
+to be replaced by \verb!module_param! macro which now \textcolor{red}{takes 3 arguments}
+the name of the variable (similar to above), its type (different: use
+full type name) and permissions for the corresponding file in sysfs.
+\begin{itemize}
+  \item type name: \verb!int!, \verb!charp! (string: char*), \verb!short!,
+  \verb!long!
+   
+  \item permission bits (defined in sys/stat.h): can be a combination of any of
+  the following using \verb!|! (or) operator (NOTE: We can use zero (0) as the permission bit)
+  \url{http://www.gnu.org/software/libc/manual/html_node/Permission-Bits.html}
+\begin{verbatim}
+0  
+   disable everything
+S_IRUGO | S_IWUSR
+      
+\end{verbatim}
+and some pre-defined combination (include/linux/stat.h)
+\begin{verbatim}
+#define S_IRWXUGO       (S_IRWXU|S_IRWXG|S_IRWXO)
+#define S_IALLUGO       (S_ISUID|S_ISGID|S_ISVTX|S_IRWXUGO)
+#define S_IRUGO         (S_IRUSR|S_IRGRP|S_IROTH)
+#define S_IWUGO         (S_IWUSR|S_IWGRP|S_IWOTH)
+#define S_IXUGO         (S_IXUSR|S_IXGRP|S_IXOTH)
+\end{verbatim}  
+  
+  Example:
+  \begin{verbatim}
+  (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
+  \end{verbatim}
+\end{itemize}
+
+Example:
+\begin{verbatim}
+int myint = 3;
+module_param(myint, int, 0);
+\end{verbatim}
+
+\textcolor{red}{To handle array, you need to use a new macro}
+\verb!module_param_array! (for array of integer) and \verb!module_param_string! (for array of strings)
+\begin{verbatim}
+module_param_array(name, type, num, perm);
+   name = name of array
+   type = data type of elements in the array (int, charp, long, ...)
+   num = pointer to the variable that will store the number of elements 
+         in the array (i.e. array size) (use NULL if not care)
+   perm = permission bits (see above, use zero (0) to disable)
+\end{verbatim}
+
+Example:
+\begin{verbatim}
+int myintarray[2];
+module_param_array(myintarray, int, NULL, 0); /* not interested in count */
+
+short myshortarray[4];
+int count;
+module_parm_array(myshortarray, short, &count, 0); /* put count into "count" variable */
+
+static int fish[MAX_FISH];
+static int nr_fish;
+   # avoid to use the explicit permission number
+   # but use the one from sys/stat.h file
+   #   which may requires #include <sys/stat.h>
+module_param_array(fish, int, &nr_fish, 0444);
+\end{verbatim}
+
+{\bf EXTRA}: 
+You can name the internal array something different than the external parameter with 
+\verb!module_param_array_named()!:
+
+\begin{verbatim}
+module_param_array_named(name, array, type, nump, perm);
+\end{verbatim}
+
+
+\section{Build Linux kernel}
+\label{sec:build_Linux-kernel}
+
+Before that you can build a kernel, you need to understand the difference
+between a build machine vs. a host machine vs. target machine
+(Sect.\ref{sec:build-host-target}). If the build machine and the target machine
+is different, then read Sect.\ref{sec:cross-compile-Linux-kernel}
+
+The target machine PowerPC is a big-endian, RISC, 64-bit architecture with
+32-bit implementations. 32-bit PPC userland binaries run without modification on
+64-bit processors. The Linux kernel has run on all POWER/PowerPC processors
+since the year 2000. It is usually the primary software enablement target for
+PowerPC semiconductor vendors.
+
+Then, you need to know (1) what version of Linux you want to build, (2)
+the kernel type
+\begin{itemize}
+  \item 'vanilla' kernel: officially released by Linus Torvald, or by a member
+  of the community appointed by Linus.
+  
+Link: \url{http://ftp.kernel.org}
+   
+  \item distribution kernel - the 'vanilla' kernel + patches on top of it
+  
+  The distribution's kernel has gone through more orderly testing and could be
+  more stable. Example:
+  \begin{itemize}
+    \item RedHat:
+    \item Debian:
+  \end{itemize}
+\end{itemize}
+
+\textcolor{red}{Overview:}
+\begin{verbatim}
+make mrproper        # remove existing object files and configuration
+make menuconfig      # a full-screen text-mode program for you to select configuration
+   make config      # a simple text-mode programs (not recommend)
+   make xconfig     # a graphical program
+make depend         # prepare the dependencies list
+make clean
+make bzImage        # build the kernel in bzImage
+         # the result is stored in arch/<target-architecture>/boot/bzImage 
+         # e.g. arch/i386/boot/bzImage 
+         
+    # the two belows for building kernel modules
+make modules        
+make modules_install INSTALL_MOD_PATH=<RFS-folder> 
+\end{verbatim}
+
+\subsection{compile a Linux kernel}
+
+\textcolor{red}{Details}: This is the steps
+\begin{enumerate}
+  \item download the kernel source:
+
+  \item make proper adjustment to the source configuration file
+
+\verb!make ***config! create the configuration file, and make sure save them
+into \verb!.config! file of the kernel folder to compile, e.g.
+\begin{verbatim}
+make menuconfig
+make xconfig
+\end{verbatim}
+allows you to select the features you want to compile into the kernels (e.g. SCSI support,
+sound support, \ldots). The available values for each feature
+ \begin{verbatim}
+'y'       = all required software to support that feature is installed as well
+'m'       = the feature becomes a loadable module (i.e. can be loaded or
+            unloaded at will (see the next methods)
+'n'       = the feature is not enabled in the kernel and will not be available            
+ \end{verbatim}
+
+Make sure to enable some features for loading kernel modules as given in
+Sect.\ref{sec:build-Linux-kernel-modules}, such as
+\begin{verbatim}
+MODULE_FORCE_UNLOAD=y  # to enable unload a module using 'rmmod -f <module>'
+\end{verbatim}
+
+% The same jobs can be done by using 
+% \begin{verbatim}
+% ./ct-ng menuconfig
+% \end{verbatim}
+% when trying to built the crosstool-NG command.
+  
+Once the config file is stored, build the dependencies of your chosen configuration
+\begin{verbatim}
+make dep
+\end{verbatim}
+  
+  \item run the \verb!make! (with proper arguments) to build kernel source
+  into a kernel image (\verb!vmlinuz!, \verb!uImage!, or \verb!bzImage! -
+  Sect.\ref{sec:compressed-kernel-file-format})
+
+NOTE: Use \verb!V=1! to turn verbosity on for debugging purpose
+\begin{verbatim}
+make uImage  V=1
+make bzImage  
+\end{verbatim}
+which creates an image file in \verb!./arch/<architecture>/boot/images! folder.
+
+
+  \item (optional) \verb!make install! to copy the compiled kernel:
+  \verb!make install! install the built kernel into \verb!/vmlinuz! 
+  
+\textcolor{red}{IMPORTANT: It is strongly recommended to back-up your system}
+\verb!/vmlinuz! and 
+\verb!/lib/modules/<kernel-version>! before installing a new Linux kernel
+module.
+
+NOTE: On your machine, the currently kernel image is \verb!/boot/vmlinuz! (DO NOT delete it),
+if the target machine is also the build machine, then you can move the new compress kernel image
+to the \verb!/boot/! directory.
+\begin{verbatim}
+sudo cp ./arch/.../bzImage /boot/testImg
+\end{verbatim}
+
+  \item create the kernel modules: those features selected as 'm'
+  
+\begin{verbatim}
+make modules
+\end{verbatim}
+This will compile individual files for each question you
+answered 'm' during kernel config (i.e. use \verb!.config! file).
+ 
+Typically, we want to put the modules to a particular folder being used as a
+root filesystem (Sect.\ref{sec:RFS})
+\begin{verbatim}
+\end{verbatim}
+
+\url{http://unix.stackexchange.com/questions/20864/what-happens-in-each-step-of-the-linux-kernel-building-process}
+
+  \item copy the kernel modules to a particular location:
+    
+\verb!make modules_install! installs the built kernel into \verb!/lib/modules!
+or \verb!/lib/modules/<version>!
+
+You can install into a user-defined folder by adding
+\verb!INSTALL_MOD_PATH=<folder>! option.
+
+\begin{verbatim}
+make modules_install INSTALL_MOD_PATH=<WhereTheModulesShallGo> 
+\end{verbatim}
+Typically \verb!INSTALL_MOD_PATH! is the path to the \verb!lib! subfolder
+of the RFS (Sect.\ref{sec:RFS}).
+\begin{verbatim}
+make modules_install INSTALL_MOD_PATH=./my_rfs/lib/
+\end{verbatim}
+
+\end{enumerate}
+
+
+% First we need to know the target machine, i.e. the machine on which the
+% Linux kernel image runs.
+
+% Then, we need to have a right compiler, e.g. cross-compiler to compile the Linux
+% kernel if the target machine is not the same as the build machine
+% (Sect.\ref{sec:cross_compiler}).
+% 
+% Next, we need to configure the Linux kernel, i.e. 
+% \begin{verbatim}
+% // choose one
+% make menuconfig
+% make xconfig
+% \end{verbatim}
+
+% Next, we compile the kernel (in the same directory of the Linux kernel source)
+% \begin{verbatim}
+% make
+% \end{verbatim}
+% 
+% Next, choose to install the kernel (to \verb!/boot/! directory by default) 
+% \begin{verbatim}
+% make install
+% \end{verbatim}
+% \url{http://www.linux.org/threads/the-linux-kernel-compiling-and-installing.5208/}
+
+% Next, we need to compile the modules, i.e. saved in a compressed kernel image
+% (e.g. zImage or uImage or bzImage)
+% \begin{verbatim}
+% make uImage modules
+% \end{verbatim}
+% which creates an image file in \verb!./arch/<architecture>/boot/images! folder.
+
+% Next, we need to install the kernel modules (if we want any parts of the kernel
+% to be compiled as 'modules',
+% \begin{verbatim}
+% sudo make modules_install  INSTALL_MOD_PATH=<location-of-RFS-root-directory>
+% \end{verbatim}
+% which requires 'root' permission.
+
+
+Once the new linux kernel is available, you can put the new entry into the
+boot-loader, for it to know the location of the new kernel
+image
+\begin{itemize}
+  \item use LILO as boot-loader - Sect.\ref{sec:LILO}
+  \item use U-boot as boot-loader - Sect.\ref{sec:U-boot_loader}
+  \item use GRUB as boot-loader - Sect.\ref{sec:GRUB1}
+\end{itemize}
+
+Example:
+{\bf LILO}: append to the content of \verb!/etc/lilo.conf! file
+\begin{verbatim}
+image = /boot/testImg
+root = /dev/hda5
+label = test
+append = 'idebus=66'
+\end{verbatim}
+then reinstall LILO
+\begin{verbatim}
+sudo lilo
+sudo reboot
+\end{verbatim}
+
+then once the machine is reboot, type at the LILO prompt the label of the new
+kernel, i.e. \verb!test! in this case (IMPORTANT: hit TAB to list available boot optionsq)
+\begin{verbatim}
+LILO boot: test
+\end{verbatim}
+\url{http://www.csee.umbc.edu/courses/undergraduate/CMSC421/fall02/burt/projects/howto_build_kernel.html}
+
+
+\subsection{cross-compile a Linux kernel}
+\label{sec:cross-compile-Linux-kernel}
+
+To compile the kernel source for the target PowerPC platform, from a non-PowerPC
+platform, it is better to use the SoC motherboard manufacturer website for their
+distributions' source packages. Distributions apply many fixes and enhancements
+to their kernels. However, you can also check the right Linux kernel source:
+\url{http://penguinppc.org/dev/\#kernel}
+
+Configure what modules is 'y', 'n' and 'm' as usual
+\begin{verbatim}
+make menuconfig
+\end{verbatim}
+
+
+Cross-compile a Linux kernel is a little bit different.
+First, you need to have a cross-compiler for the target machine is ready
+(Sect.\ref{sec:cross_compiler}).
+A cross-compiler tool chain is used to build the code on one machine, and for
+running on a machine with a different architecture.
+The host and target architectures are not binary compatible, so you need to
+install a cross-compiler tool chain on the host machine.
+Example: The Linux kernel is compiled from source on the host machine (e.g. the
+Laptop you are using) which is using Intel CPU architecture. However, the binary one is
+expected to run on a target machine, e.g. MIP405/405T which is using ARM CPU
+architecture.
+
+Check if the host platform is 64-bit or 32-bit, and the guest platform is 32-bit
+or 64-bit. Example:  
+  \textcolor{red}{the MIP405/MIP405T use 32-bit CPU}, so we need to
+  know how to compile the 32-bit kernel using 64-bit host platform
+  (Sect.\ref{sec:compile_32-bit-kernel_from-64-bit-platform})
+
+
+PARAMETERS: \verb!ARCH=! and \verb!CROSS_COMPILE=! are the two common options,
+and others \verb!V=1! (verbose), \verb!-j4! (parallel 4 threads), and target \verb!all!.
+  
+\verb!make! compiles and links the kernel image (generating \verb!vmlinuz! file
+by default). We can choose other format, by using \verb!uImage! or
+\verb!bzImage!.
+Make sure the cross-compiler is selected \verb!CROSS_COMPILE=! and \verb!ARCH=!
+environment variables, before you run
+\begin{verbatim}
+make
+
+make modules
+make modules_install ...
+\end{verbatim}
+More details: Sect.\ref{sec:Linux_kernel_PowerPC}.
+
+Example:
+\begin{verbatim}
+make CROSS_COMPILE=powerpc-linux-gnu- ARCH=powerpc V=1 -j4 all
+
+make bzImage CROSS_COMPILE=powerpc-linux-gnu- ARCH=powerpc V=1 -j4 all
+\end{verbatim}
+
+For making mmodules
+\begin{verbatim}
+make uImage modules CROSS_COMPILE=powerpc-linux-gnu- ARCH=powerpc V=1 -j4 all
+\end{verbatim}
+
+
+\subsection{compile target 32-bit kernel on 64-bit host platform}
+\label{sec:compile_32-bit-kernel_from-64-bit-platform}
+
+First jump to the source folder of the kernel code to compile.
+
+To compile a 32 bit kernel for x86 on a \verb!x86_64! host, run 
+\begin{verbatim}
+i386 
+\end{verbatim}
+(which is a link to /usr/bin/setarch), then proceed as normal (make config;
+make).
+
+Other options:
+\begin{verbatim}
+make ARCH=i386 CFLAGS=-m32 menuconfig
+
+make ARCH=i386 CFLAGS=-m32
+\end{verbatim}
+
+To clean the previous compiled code
+\begin{verbatim}
+make clean
+\end{verbatim}
+or save your .config somewhere safe for the latter, and then run
+\begin{verbatim}
+make mrproper
+\end{verbatim}
+
+NOTE: 
+\begin{verbatim}
+make distclean
+\end{verbatim}
+does everything mrproper does and removes some editor backup and patch leftover
+files.
+
+NOTE: \verb!make clean! removes what you've compiled, while \verb!make mrpoper!
+does the same but a removing a little bit more (the .config file and a few
+others I think).
+% When you get the kernel .tar.gz/.tar.bz2 from kernel.org and unpack it in
+% /usr/src/ -- that is considered the 'original state'.
+% We can all \begin{verbatim} make mrproper \end{verbatim}
+
+\subsection{Build kernel from source (module-assistant)}
+\label{sec:Linux_kernel_rebuild}
+
+The kernel built for a given distro (e.g. Ubuntu) has a fixed numbers of
+modules, suppose you want to add some new features to the kernel, you can decide
+to change the build configuration and rebuild the kernel from source.
+
+\verb!module-assistant! is a powerful, yet not very well documented tool to
+build Debian kernel modules 
+
+\url{http://wiki.debian.org/ModuleAssistant}
+
+
+
+\subsection{Build Linux kernel 2.4 (minimal) with initrd}
+\label{sec:build_Linux-kernel-with-initrd}
+
+\begin{verbatim}
+make menuconfig
+   CONFIG_BLK_DEV_RAM=y  (RAM disk support)
+   CONFIG_INITRAMFS_SOURCE=""
+   CONFIG_BLK_DEV_INITRD=y (initrd support)
+   CONFIG_BLK_DEV_LOOP=y  (loop device support)
+   CONFIG_FAT_FS=y       (fast FS support)
+   CONFIG_MSDOS_FS=y     (optional, MSDOS support)
+   
+   CONFIG_BLK_DEV_RAM=y
+   CONFIG_BLK_DEV_RAM_COUNT=1
+   CONFIG_BLK_DEV_RAM_SIZE=8192   (i.e. 8 MiB)
+   CONFIG_BLK_DEV_RAM_BLOCKSIZE=1024
+\end{verbatim}
+
+\url{http://www.tldp.org/HOWTO/archived/Loopback-Root-FS/Loopback-Root-FS-3.html}
+
+\subsection{Build Linux kernel 2.6+ (minimal) with initramfs}
+\label{sec:build_Linux-kernel-with-initramfs}
+
+From Linux kernel 2.6, it is a good idea to add the initramfs
+(Sect.\ref{sec:initramfs}) into the Linux kernel image if the kernel is designed
+to run on embedded system or for testing.
+
+NOTE: By default, \verb!CONFIG_INITRAMFS_SOURCE=``''! (empty).
+Suppose the location of of the folder containing the whole RFS structure is
+\verb!/home/somewhere/initramfs/!, then we run
+
+\begin{verbatim}
+make allnoconfig
+make menuconfig
+
+   CONFIG_BLK_DEV_INITRD=y
+   CONFIG_INITRAMFS_SOURCE=/home/somewhere/initramfs
+   CONFIG_PCI=y
+   CONFIG_BINFMT_ELF=y
+   CONFIG_SERIAL_8250
+   CONFIG_EXT2_FS=y
+   CONFIG_IA32_EMULATION=y # might not need if on 32-bit host
+   CONFIG_NET=y
+   CONFIG_PACKET=y
+   CONFIG_UNIX=y
+   CONFIG_INET=y
+   CONFIG_WIRELESS=n
+   CONFIG_ATA=y
+   CONFIG_NETDEVICES=y
+   CONFIG_NET_VENDOR_REALTEK=y
+   CONFIG_8139TOO=y (unchecked all other Ethernet drivers)
+   CONFIG_WLAN=n
+   CONFIG_DEVTMPFS=y
+
+make
+\end{verbatim}
+
+References:
+\begin{itemize}
+  \item 
+\url{http://mgalgs.github.io/2012/03/23/how-to-build-a-custom-linux-kernel-for-qemu.html}
+
+   \item
+   \url{http://linuxtips.pbworks.com/w/page/17653834/Howtos Creating Initrd and Initramfs}
+\end{itemize}
+
+\subsection{kernel file format}
+\label{sec:compressed-kernel-file-format}
+
+The kernel image isn't so much an executable kernel, but a compressed kernel
+image.
+\begin{enumerate}
+  \item \verb!zImage! = old format for small kernels (compressed with zlib,
+  below 512KB). At boot, this image gets loaded low in memory (the first 640KB
+  of the RAM).
+
+At the Linux kernel source, type
+\begin{verbatim}
+make zImage
+\end{verbatim}  
+to create a compressed kernel image (zImage.elf).
+
+  \item \verb!bzImage! = The big zImage (this has nothing to do with bzip2), was
+  created while the kernel grew and handles bigger images (compressed, over
+  512KB). 
+  
+  The image gets loaded high in memory (above 1MB RAM). As today's
+  kernels are way over 512KB, this is usually the preferred format.
+
+\begin{verbatim}
+make bzImage
+\end{verbatim}  
+
+\end{enumerate}
+
+\begin{verbatim}
+ls ~/Tuan/linux-2.6.12_crosstool_1.9.3./arch/ppc/boot/images/
+   uImage
+   vmlinux.bin
+   vmlinux.gz
+   zImage.elf
+\end{verbatim}
+
+
+NOTE: 
+\begin{itemize}
+  \item \verb!vmlinux! = This is the Linux kernel in an statically linked
+  executable file format. Generally, you don't have to worry about this file,
+  it's just a intermediate step in the boot procedure.
+  
+  The raw vmlinux file may be useful for debugging purposes.
+  
+  \item \verb!vmlinux.bin! = The same as vmlinux, but in a binary file format.
+  
+  \item \verb!vmlinuz! (=\verb!bzImage!) = the \verb!vmlinux! file compressed
+  using \verb!zlib! format. 
+\url{http://www.linfo.org/vmlinuz.html}
+  
+  %This is the same as \verb!bzImage! kernel image.
+  
+  Since Linux kernel 2.6.30 LZMA and bzip2 are also available.
+  By adding further boot and decompression capabilities to vmlinuz, the image
+  can be used to boot a system with the vmlinux kernel. 
+  
+  %The compression of  vmlinux can occur with zImage or bzImage.
+  The function \verb!decompress_kernel()! handles the decompression of vmlinuz
+  at bootup, a message indicates this:
+  \begin{verbatim}
+Decompressing Linux... done
+Booting the kernel.
+  \end{verbatim}
+  
+  \item \verb!vmliux.gz!
+  
+  
+  \item \verb!make zdisk! creates a boot disk (without root filesystem or LILO)
+  (make sure you insert the floppy in A: drive)
+  
+
+Example: 
+\begin{verbatim}
+ls -lh /boot/vmlinuz-$(uname -r)
+-rw-r--r-- 1 root root 4.1M 2010-11-24 12:21 /boot/vmlinuz-2.6.35-23-generic
+
+file /boot/vmlinuz-$(uname -r)
+/boot/vmlinuz-2.6.35-23-generic: Linux kernel x86 boot executable bzImage, 
+    version 2.6.35-23-generic (buildd@rosea, RO-rootFS, root_dev 0x6801,
+   swap_dev 0x4, Normal VGA
+\end{verbatim}  
+  
+  \item \verb!uImage! = 
+  
+  \verb!make uImage! creates a kernel image in uImage
+  format (which is required by U-boot - Sect.\ref{sec:U-boot_loader})
+  
+  
+\end{itemize}
+\url{http://www.csee.umbc.edu/courses/undergraduate/CMSC421/fall02/burt/projects/howto_build_kernel.html}
+
+\url{http://stackoverflow.com/questions/22322304/image-vs-zimage-vs-uimage}
+
+\url{http://unix.stackexchange.com/questions/5518/what-is-the-difference-between-the-following-kernel-makefile-terms-vmlinux-vml}
+
+
+\subsection{Tiny ppc cloud image}
+
+\url{https://www.ibm.com/developerworks/community/wikis/home?lang=en#!/wiki/W51a7ffcf4dfd_4b40_9d82_446ebc23c550/page/Building a tiny ppc cloud image for CI testing}
+
+\subsection{To enable USB support}
+
+To enable USB support in Linux kernel, run
+\begin{verbatim}
+make menuconfig
+
+#
+# USB support
+#
+CONFIG_USB=y
+# CONFIG_USB_DEBUG is not set
+
+Also make sure you also compile at least one of the USB controllers also.
+
+#
+# USB Host Controller Drivers sample
+#
+CONFIG_USB_EHCI_HCD=y
+CONFIG_USB_OHCI_HCD=y
+CONFIG_USB_UHCI_HCD=y
+\end{verbatim}
+
+\subsection{login prompt}
+\label{sec:login-prompt}
+
+For the Linux kernel that use \verb!init! (Sect.\ref{sec:init}), we
+need to create and modify \verb!/etc/inittab! to specify
+(1) what user-space process to run at bootup (Sect.\ref{sec:inittab}) based on
+the running level, (2) what is the prompt once the kernel start (this section).
+
+% is often
+% called by the kernel with an argument to specify the runlevel, in order to do different
+% things according to different runlevel, and that runlevel can be found from
+% /etc/inittab.
+
+
+Now edit the content of \verb!/etc/init.d/rcS! file and \verb!/etc/mdev.conf!
+file.
+
+Make sure to change the permission of \verb!rcS! file to executable.
+\begin{itemize}
+  \item The rcS script will test for the existence of file systems and mount
+  them accordingly.
+
+  \item \verb!mdev! is used (Sect.\ref{sec:mdev}). The content of
+  \verb!mdev.conf!
+\begin{verbatim}
+audio       0:5 0666
+console     0:5 0600
+control.*   0:0 0660 @/bin/mv /dev/$MDEV /dev/snd/
+dsp         0:5 0666
+event.*     0:0 0600 @/bin/mv /dev/$MDEV /dev/input/
+fb          0:5 0666
+nfs         0:5 0770
+null        0:0 0777
+pcm.*       0:0 0660 @/bin/mv /dev/$MDEV /dev/snd/
+rtc         0:0 0666
+tty         0:5 0660
+tty0*       0:5 0660
+tty1*       0:5 0660
+tty2*       0:5 0660
+tty3*       0:5 0660
+tty4*       0:5 0660
+tty5*       0:5 0660
+tty6*       0:5 0660
+ttyS*       0:5 0640
+urandom     0:0 0444
+zero        0:0 0666
+\end{verbatim}
+\end{itemize}
+
+\section{Boot BSD kernel with U-boot}
+
+
+\url{http://www.bsdcan.org/2008/schedule/attachments/49_2008_uboot_freebsd.pdf}
+
+\section{Debug a Linux kernel}
+
+Debugging the kernel of a running operating system has always been tricky, but
+now the Qemu emulator supports cross-platform kernel and module debugging at the
+programming language level.
+\url{http://www.linux-magazine.com/Online/Features/Qemu-and-the-Kernel}
+
+Try to download these Linux kernel, initrd for PowerPC:
+\url{https://code.google.com/p/cellos/source/browse/trunk/output/?r=2}
+
+\begin{verbatim}
+qemu-system-ppcemb -S -s -bios output/ppc405_rom.bin -kernel output/cellos.bin
+            -nographic -M taihu -cpu 0x51210950 -d in_asm,op,op_opt,int,exec,cpu
+\end{verbatim}
+\url{http://cellos.googlecode.com/svn-history/r21/trunk/Makefile}
+
+\section{Linux From Scratch (LFS)}
+\label{sec:LFS}
+
+Linux From Scratch (LFS) is a way to install a working Linux system by building
+all components of it manually. It also refers to the book written by  Gerard
+Beekmans, and now is maintained by  Bruce Dubbs.
+\url{https://en.wikipedia.org/wiki/Linux_From_Scratch}
+
+In order to build Linux system, we need a cross-compiling systems
+\begin{itemize}
+  \item LFS 8.1: 
+  
+  \item LFS 
+\end{itemize}
+
+Later on, there are others
+\begin{enumerate}
+  \item  Beyond Linux From Scratch (BLFS) 
+   instructions on how to further develop the basic Linux system that was
+  created in LFS
+  
+  Since Release 5.0, the BLFS book version matches the LFS book version.
+  
+  \item Cross Linux from Scratch (CLFS) focuses on cross compiling, including
+  compiling for headless or embedded systems that can run Linux, but lack the
+  resources needed to compile Linux.
+  
+  \item Hardened Linux From Scratch (HLFS) focuses on security enhancements
+  
+  \item Automated Linux From Scratch (ALFS): automate the process of creating an
+  LFS system
+\end{enumerate}

@@ -1,0 +1,1255 @@
+\chapter{Terminal Emulator}
+\label{chap:terminal-emulator}
+
+
+\section{What is a terminal?}
+\label{sec:terminal}
+
+A terminal is a device that allows you to communicate with a computer, i.e. the
+CPU. Generally, a terminal is a combination of keyboard and display screen. 
+
+Terminals are sometimes divided into three classes based on how much processing
+power they contain:
+\begin{enumerate}
+  \item  intelligent terminal: a stand-alone device that contains main memory
+  and a CPU.
+
+  \item  smart terminal: contains some processing power, but not as much as an
+intelligent terminal. 
+   
+  \item dumb terminal: has no processing capabilities. It relies entirely on the
+computer's processor. 
+\end{enumerate}
+
+
+\subsection{VT100 (1978: DEC)}
+
+\begin{mdframed}
+
+DEC's first successful video terminal was the VT50, introduced in 1974 and
+quickly replaced by the VT52 in 1975.
+
+VT52 has a text-display with 80 columns, 24 rows; bidirectional scrolling, and a
+custom control language that allowed the cursor to be moved about the screen.
+
+VT50, VT52, and VT100 communicated with its host system over serial lines at a
+speed selectable between 50 and 19,200 bit/s.
+
+To support adding command-code into the sequence of bytes, VT50 and VT52 control
+system is VT50/52's proprietary language.
+
+\end{mdframed}
+
+Video Terminal 100 (introduced by DEC in 1978) was the first terminal (with a
+keyboard and screen) to use a general-purpose processor for interpreting the
+newly published (1977) ANSIcontrol codes (ANSI X3.64).
+
+VT100 supports 
+\begin{itemize}
+  \item a mode with 132 columns
+  
+  \item new graphics capabilities: including blinking, bolding, reverse video,
+  and underlining.
+  
+  \item add support for box-drawing character set, i.e. those containing various
+  pseudographics that allowed the drawing of on-screen forms.
+  
+  \item major change: VT100 were based on the emerging ANSI X3.64 standard for
+  command codes
+
+To support cursor control, and other tasks, VT100 accepts ANSI escape code,
+within which we can embed code representing colors, for example -
+Sect.\ref{sec:color-terminal}.
+
+  
+  \item VT100 used the new Intel 8080 as its internal driver to handle 'command
+  code' passing from the terminal by user.
+  
+  \item  VT100 provided backwards compatibility for VT52 users, with support for
+  the VT52 control sequences
+  
+  \item  Advanced Video Option or AVO, allowed the terminal to support a full 24
+  lines of text in 132 column mode.
+  
+  VT102 came standard with the AVO and serial printer port options
+  pre-installed.
+\end{itemize}
+
+
+VT102, was extremely successful in the market, and made DEC the leading terminal
+vendor.  VT102 came standard with the AVO and serial printer port options
+pre-installed. VT105 contained a simple graphics subsystem known as waveform
+graphics which was mostly compatible with same system in the earlier VT55. This
+system allowed two mathematical functions to be drawn to the screen on top of
+the normal text display, allowing text and graphics to be mixed to produce
+charts and similar output.
+
+VT125 added an implementation of the byte-efficient {\bf Remote Graphic
+Instruction Set}, ReGIS, which used custom ANSI codes to send the graphics
+commands to the terminal, rather than requiring the terminal to be set to a
+separate graphics mode like the VT105.
+
+Quickly, the vt100 become popular, and the ANSI control codes embodied
+in the vt100 became a de facto standard. Eventually, IBM adopted them for its line of
+PCs.  Today, most terminal-emulation programs, i.e. the program that provides a
+text-based window interface [from this we can launch programs], commonly use the
+vt100 setting.
+
+\subsection{VT220 (1983: DEC)}
+
+
+VT200 series was just as successful as VT100, providing more functionality in a
+much smaller unit with a much smaller and lighter keyboard, and a much faster
+microprocessor.
+
+VT220's display is a CRT that used white, green, or amber phosphors.
+LK201 keyboard supplied with the VT220 was one of the first full-length,
+low-profile keyboards available.
+
+VT240 added monochrome ReGIS vector graphics support to the base model, while
+the VT241 did the same in color. 
+
+
+VT200s also support more character sets, i.e. better internationalization
+support. 
+\begin{itemize}
+  
+  \item original: when operating on a typical 7-bit link, only 128 were
+  available, and only 96 of these produced display output as the rest were
+  control characters
+  
+  This was not enough characters to handle all European languages. 
+  Most terminals solved this by shipping multiple complete character sets in
+  ROM, but there was a cost in doing so.
+  
+  \item 
+  now: using the National Replacement Character Set (NRCS) concept.
+  
+  NRCS allowed individual characters glyphs in the base set of 96 7-bit
+  characters to be swapped out
+
+   it also allowed for another 96 characters in the Dynamically Redefined
+   Character Set (DRCS), which could be downloaded from the host computer.
+  
+  This eliminated the need to ship 14 versions of the terminal, or to include 14
+  different 7-bit character sets in ROM.
+\end{itemize}
+
+To draw on the display, data for the glyphs was sent by encoding a set of six
+vertical pixels (i.e. Sixels) into a single character code, and then sending
+many of these Sixels to the terminal, which decoded them into the character set
+memory.
+
+
+\section{\$TERM environment variable, termcap, terminfo}
+\label{sec:TERM-variable}
+\label{sec:TERM-env-var}
+\label{sec:env-var-TERM}
+
+
+\textcolor{red}{What is \$TERM for?}  The \$TERM variable is for use by
+applications to take advantage of capabilities of that terminal
+(Sect.\ref{sec:terminal}), e.g. VT100, VT220.
+\begin{itemize}
+  \item early values (it reflects the physical terminal): vt100, vt220
+  
+  
+  \item nowdays values (it reflects the name of the (common) terminal emulator,
+  whose features are supported by the current terminal emulator):
+    
+\end{itemize}
+
+The terminal type specified in the TERM setting must correspond to an entry in
+the termcap file or terminfo directory (Sect.\ref{sec:terminfo}).
+
+Once you launch a terminal emulator, it is supposed to set \$TERM, and this
+should not be changed from within the shell by user. After TERM is set, you can
+verify it by invoking
+\begin{verbatim}
+msgcat --color=test
+
+//or
+
+infocmp
+\end{verbatim}
+seeing whether the output looks like a reasonable color map. 
+You can get a detailed list of these cababilities by using the 'infocmp'
+command, using 'man 5 terminfo' as a reference.
+{\tiny
+\begin{verbatim}
+#	Reconstructed via infocmp from file: /packages/ncurses/6.0//share/terminfo/x/xterm
+xterm|xterm terminal emulator (X Window System),
+	am, bce, km, mc5i, mir, msgr, npc, xenl,
+	colors#8, cols#80, it#8, lines#24, pairs#64,
+	acsc=``aaffggiijjkkllmmnnooppqqrrssttuuvvwwxxyyzz{{||}}~~,
+	bel=^G, blink=\E[5m, bold=\E[1m, cbt=\E[Z, civis=\E[?25l,
+	clear=\E[H\E[2J, cnorm=\E[?12l\E[?25h, cr=^M,
+	csr=\E[%i%p1%d;%p2%dr, cub=\E[%p1%dD, cub1=^H,
+	cud=\E[%p1%dB, cud1=^J, cuf=\E[%p1%dC, cuf1=\E[C,
+	cup=\E[%i%p1%d;%p2%dH, cuu=\E[%p1%dA, cuu1=\E[A,
+	cvvis=\E[?12;25h, dch=\E[%p1%dP, dch1=\E[P, dim=\E[2m,
+	dl=\E[%p1%dM, dl1=\E[M, ech=\E[%p1%dX, ed=\E[J, el=\E[K,
+	el1=\E[1K, flash=\E[?5h$<100/>\E[?5l, home=\E[H,
+	hpa=\E[%i%p1%dG, ht=^I, hts=\EH, ich=\E[%p1%d@,
+	il=\E[%p1%dL, il1=\E[L, ind=^J, indn=\E[%p1%dS,
+	invis=\E[8m, is2=\E[!p\E[?3;4l\E[4l\E>, kDC=\E[3;2~,
+	kEND=\E[1;2F, kHOM=\E[1;2H, kIC=\E[2;2~, kLFT=\E[1;2D,
+	kNXT=\E[6;2~, kPRV=\E[5;2~, kRIT=\E[1;2C, kb2=\EOE, kbs=^H,
+	kcbt=\E[Z, kcub1=\EOD, kcud1=\EOB, kcuf1=\EOC, kcuu1=\EOA,
+	kdch1=\E[3~, kend=\EOF, kent=\EOM, kf1=\EOP, kf10=\E[21~,
+	kf11=\E[23~, kf12=\E[24~, kf13=\E[1;2P, kf14=\E[1;2Q,
+	kf15=\E[1;2R, kf16=\E[1;2S, kf17=\E[15;2~, kf18=\E[17;2~,
+	kf19=\E[18;2~, kf2=\EOQ, kf20=\E[19;2~, kf21=\E[20;2~,
+	kf22=\E[21;2~, kf23=\E[23;2~, kf24=\E[24;2~,
+	kf25=\E[1;5P, kf26=\E[1;5Q, kf27=\E[1;5R, kf28=\E[1;5S,
+	kf29=\E[15;5~, kf3=\EOR, kf30=\E[17;5~, kf31=\E[18;5~,
+	kf32=\E[19;5~, kf33=\E[20;5~, kf34=\E[21;5~,
+	kf35=\E[23;5~, kf36=\E[24;5~, kf37=\E[1;6P, kf38=\E[1;6Q,
+	kf39=\E[1;6R, kf4=\EOS, kf40=\E[1;6S, kf41=\E[15;6~,
+	kf42=\E[17;6~, kf43=\E[18;6~, kf44=\E[19;6~,
+	kf45=\E[20;6~, kf46=\E[21;6~, kf47=\E[23;6~,
+	kf48=\E[24;6~, kf49=\E[1;3P, kf5=\E[15~, kf50=\E[1;3Q,
+	kf51=\E[1;3R, kf52=\E[1;3S, kf53=\E[15;3~, kf54=\E[17;3~,
+	kf55=\E[18;3~, kf56=\E[19;3~, kf57=\E[20;3~,
+	kf58=\E[21;3~, kf59=\E[23;3~, kf6=\E[17~, kf60=\E[24;3~,
+	kf61=\E[1;4P, kf62=\E[1;4Q, kf63=\E[1;4R, kf7=\E[18~,
+	kf8=\E[19~, kf9=\E[20~, khome=\EOH, kich1=\E[2~,
+	kind=\E[1;2B, kmous=\E[M, knp=\E[6~, kpp=\E[5~,
+	kri=\E[1;2A, mc0=\E[i, mc4=\E[4i, mc5=\E[5i, meml=\El,
+	memu=\Em, op=\E[39;49m, rc=\E8, rev=\E[7m, ri=\EM,
+	rin=\E[%p1%dT, ritm=\E[23m, rmacs=\E(B, rmam=\E[?7l,
+	rmcup=\E[?1049l, rmir=\E[4l, rmkx=\E[?1l\E>,
+	rmm=\E[?1034l, rmso=\E[27m, rmul=\E[24m, rs1=\Ec,
+	rs2=\E[!p\E[?3;4l\E[4l\E>, sc=\E7, setab=\E[4%p1%dm,
+	setaf=\E[3%p1%dm,
+	setb=\E[4%?%p1%{1}%=%t4%e%p1%{3}%=%t6%e%p1%{4}%=%t1%e%p1%{6}%=%t3%e%p1%d%;m,
+	setf=\E[3%?%p1%{1}%=%t4%e%p1%{3}%=%t6%e%p1%{4}%=%t1%e%p1%{6}%=%t3%e%p1%d%;m,
+	sgr=%?%p9%t\E(0%e\E(B%;\E[0%?%p6%t;1%;%?%p5%t;2%;%?%p2%t;4%;%?%p1%p3%|%t;7%;%?%p4%t;5%;%?%p7%t;8%;m,
+	sgr0=\E(B\E[m, sitm=\E[3m, smacs=\E(0, smam=\E[?7h,
+	smcup=\E[?1049h, smir=\E[4h, smkx=\E[?1h\E=,
+	smm=\E[?1034h, smso=\E[7m, smul=\E[4m, tbc=\E[3g,
+	u6=\E[%i%d;%dR, u7=\E[6n, u8=\E[?1;2c, u9=\E[c,
+	vpa=\E[%i%p1%dd,
+\end{verbatim}
+}
+For example, if a program want's to display colored text, it must first find out
+if the terminal you're using supports colored text, and then if it does, how to
+do colored text, i.e. what escaped sequence associated with a color.  
+
+
+The way this works is that the system keeps a library of names of known
+terminals and their capabilities. On most systems this is in /usr/share/terminfo
+(there's also termcap, but it's legacy not used much any more).
+
+\begin{mdframed}
+
+\label{sec:termcap}
+
+Applications interact with terminals by writing escape sequences  -  sequences
+of characters that include nonprintable characters and have effects such as
+moving the cursor, erasing part of the screen, changing the current color, etc.
+In the old days, different brands of physical terminals
+(Sect.\ref{sec:terminal}) had different sets of escape sequences. Therefore the
+operating system maintains a database of terminal types and their
+characteristics.
+\begin{itemize}
+  \item  The traditional database is \verb!termcap! ("TERMinal CAPabilities")
+
+  \item Many modern systems and applications have switched to using
+  \verb!terminfo! database (Sect.\ref{sec:terminfo}). 
+  
+  Nowadays, most terminals use a standard set of escape sequences with a
+few common sets of extensions, so you won't see many different values of TERM;
+even though there are way many more virtual terminals. Most GUI terminal
+emulators are compatible with xterm, the traditional X terminal (which is still
+used and maintained), so these virtual terminals declared themself with
+\verb!TERM=xterm-256colors! or \verb!TERM=xterm!.
+\end{itemize}
+
+\end{mdframed}  
+
+\subsection{where is TERM defined in the first place}
+
+It isn't set "globally". It's set by whichever program you use to login. 
+At the console, the program is "mingetty" or agetty, and it sets the TERM to
+linux.  Both agetty and mingetty pass control to "login"
+
+On virtual terminals and real terminals, the TERM environment variable is set by
+the program that chains to login, and is inherited all of the way along to the
+interactive shell that executes once one has logged on. Where, precisely, this
+happens varies from system to system, and according to the kind of terminal.
+
+Conventionally the \verb!getty! program is invoked with an argument that
+specifies the terminal type, or is passed the TERM program from a service
+manager's service configuration data.
+\begin{itemize}
+  
+  \item The "mingetty" program is expected for use with consoles on Linux, so
+  this is what you get. However, you can change this to the more sophisticated
+  agetty command, with which you can set the TERM variable.
+  
+  
+  \item getty or agetty: opens a \verb!tty! port (Sect.\ref{sec:tty}), prompts
+  for a logi name and invokes the \verb!/bin/login! command
+  
+  The program (getty) is normally invoked by \verb!init! (at boot time -
+  Sect.\ref{sec:init}).
+  
+  \verb!agetty! has non-standard features; and does NOT use
+  \verb!/etc/gettydefs! (System V) or \verb!/etc/gettytab! (SunOS 4) files.   
+  
+  \item On systems using mingetty or vc-get-tty (from the nosh package) the
+  program "knows" that it can only be talking to a virtual terminal, and they
+  hardwire the "known" virtual terminal types appropriate to the operating
+  system that the program was compiled for.
+  
+
+\end{itemize}
+
+On systems (e.g. System V (Sect.\ref{sec:System-V})) that use \verb!init!
+(Sect.\ref{sec:init}): \verb!init! reads /etc/inittab entries
+(Sect.\ref{sec:inittab}), which will read something along the lines of
+  
+\begin{verbatim}
+S0:3:respawn:/sbin/agetty ttyS0 9600 vt100-nav
+\end{verbatim}
+The last argument to agetty in that line, vt100-nav, is the terminal type set
+for /dev/ttyS0. 
+
+Example: to let inittab know you want console \verb!#1! to use vt100, you can do
+this:
+\begin{verbatim}
+1:12345:respawn:/sbin/agetty 57600 tty1 vt100
+\end{verbatim}
+  
+On systems (e.g. Ubuntu 16.04 (Sect.\ref{sec:Debian})) that use \verb!systemd!
+(Sect.\ref{sec:systemd}): 
+read the file \verb!/usr/lib/systemd/system/serial-getty@.service! unit file
+(\verb!/lib/systemd/system/serial-getty@.service! on un-merged systems), which
+reads 
+\begin{verbatim}
+Environment=TERM=vt100
+\end{verbatim}
+which setting the TERM variable in the environment passed to agetty. 
+This service unit file is where to change the terminal type for real terminals
+on such systems. Note that it applies to all real terminals that employ this
+service unit template. (To change it for only individual terminals, one has to
+manually instantiate the template.)  
+
+
+On BSD's init: \verb!init! takes the terminal type from the third field of each
+terminal's entry in the \verb!/etc/ttys! database, and sets TERM from that in
+the environment that it executes getty with. So /etc/ttys is where one changes the
+terminal type for real terminals on the BSDs.
+
+In the case of RHEL4, login uses PAM to control security access. But PAM can
+also be used to set environment variables. You can set system-wide defaults (for
+ALL logins) in \verb!/etc/security/pam_env.conf!
+
+
+Finally, you can use basic shell scripting to modify the environment variables.
+Simply change /etc/profile (or create a new file ending with .sh in
+/etc/profile.d/) to globally set the environment variable "TERM".
+\begin{verbatim}
+TERM=vt100; export TERM
+\end{verbatim}
+Once your shell (bash) starts, /etc/profile will be again read and will pick up
+the new TERM settings. A word of caution: if you do change /etc/profile, you
+should also change csh.cshrc (or a file in /etc/profile.d ending with .csh). But
+this will use the "csh" syntax which is 
+\begin{verbatim}
+setenv TERM vt100
+\end{verbatim}
+
+\subsection{tty}
+\label{sec:tty}
+
+\begin{verbatim}
+terminal = tty = text input/output environment
+\end{verbatim}
+
+Before you have a terminal (with a keyboard/screen), you use a typewritter.
+
+With the presence of a computer, using Unix O/S, console, terminal and tty are
+closely related. Originally, they meant a piece of equipment through which you
+could interact with a computer: in the early days of unix, that meant a
+teleprinter-style device resembling a typewriter, sometimes called a
+teletypewriter, or 'tty' in shorthand. T
+
+The name 'terminal' came from the electronic point of view, and the name
+'console' from the furniture point of view. Very early in unix history,
+electronic keyboards and displays became the norm for terminals.
+
+
+Early user terminals connected to computers were electromechanical teleprinters
+or teletypewriters (TeleTYpewriter, TTY), and since then TTY has continued to be
+used as the name for the text-only console although now this text-only console
+is a virtual console not a physical console.  
+\url{https://unix.stackexchange.com/questions/4126/what-is-the-exact-difference-between-a-terminal-a-shell-a-tty-and-a-con}
+
+In unix terminology, a tty is a particular kind of device file which implements
+a number of additional commands (ioctls) beyond read and write. In its most
+common meaning, terminal is synonymous with tty. Some ttys are provided by the
+kernel on behalf of a hardware device, for example with the input coming from
+the keyboard and the output going to a text mode screen, or with the input and
+output transmitted over a serial line. Other ttys, sometimes called pseudo-ttys,
+are provided (through a thin kernel layer) by programs called terminal
+emulators, such as Xterm (running in the X Window System), Screen (which
+provides a layer of isolation between a program and another terminal), Ssh
+(which connects a terminal on one machine with programs on another machine),
+Expect (for scripting terminal interactions), etc.
+
+
+A console is generally a terminal in the physical sense that is by some
+definition the primary terminal directly connected to a machine. The console
+appears to the operating system as a (kernel-implemented) tty.   
+ On some systems, such as Linux and FreeBSD, the console appears as several ttys
+(special key combinations switch between these ttys). Also, 
+ just to confuse matters, the name given to each particular tty can be
+'console', 'virtual console', 'virtual terminal', and other variations.
+
+There are 6 virtual consoles in Ubuntu accessed by the keyboard shortcuts
+Ctrl+Alt+F1 to Ctrl+Alt+F6. You can move away from a virtual console (move the
+console to the background) by using the keyboard shortcut Ctrl+Alt+F7 (switch
+to login screen GUI).
+
+In Ubuntu 17.10 the login screen now uses virtual terminal 1. In Ubuntu 17.10
+press Ctrl+Alt+F3 up to Ctrl+Alt+F6 for accessing a virtual console and press
+Ctrl+Alt+F2 to go back to the desktop environment.  
+
+Because most Linux distributions are open source, the number of virtual ttys can
+be changed in some Linux distributions as follows. 
+
+\begin{verbatim}
+$ tty 
+/dev/pts/20
+\end{verbatim}
+
+The first one returns you also the pty of the process running grep as you can
+notice:
+\begin{verbatim}
+$ ps ax | grep $$
+28295 pts/20   Ss     0:00 /bin/bash
+29786 pts/20   S+     0:00 grep --color=auto 28295
+
+$ ps ax | grep $$ | grep -v grep | awk '{ print $2 }'
+pts/20
+\end{verbatim}
+NOTE: \verb!$$! returns the process-ID of the current shell.
+
+\subsection{How a program interact with a terminal}
+
+So lets say you have a program that wants to display red text. It basically
+makes a call to the terminfo library that says "give me the sequence of bytes I
+have to send for red text for the xterm terminal". Then it just takes those
+bytes and prints them out.
+You can try this yourself by doing tput setf 4; echo hi. This will get the setf
+terminfo capability and pass it a parameter of 4, which is the color you want.
+
+What happens if a hiny new terminal emulator that was just released, and the
+system's terminfo library doesn't have a definition for it yet. When your
+application goes to look up how to do something, it will fail because the
+terminal isn't known. The way your terminal gets around this is by lying about
+who it is. So your gnome terminal is saying "I'm xterm" (Sect.\ref{sec:xterm}).
+
+The downside to lying about your terminal type is that the terminal might
+actually support a lot more than xterm does (for example, many new terminals
+support 256 colors, while older terminals only supported 16). So you have a
+tradeoff, get more features, or have more compatibility. Most terminals will opt
+for more compatibility, and thus choose to advertise themselves as xterm.
+
+\url{https://unix.stackexchange.com/questions/93376/which-terminal-type-am-i-using}
+
+Terminal emulators that differ from xterm may add their own entry to the
+terminal database under their own name. However this doesn't mesh well with
+remote shells.
+A program running on machine A but which is displaying on machine B, for example
+because it was launched through ssh from B to A, needs to query the terminal
+database on machine A. Remote login methods such as ssh carry over the TERM
+environment variable, but this is helpful only when B's terminal database also
+has an entry for the value user on A. Therefore many terminal emulators stick to
+TERM=xterm which is pretty much universally known.
+
+
+Modern terminals differentiated themself by and large does not come from the way
+applications interact with them, but by the way the terminals interact with the
+user and fit in their environment. For example, Gnome Terminal looks good on
+Gnome and provides tabs and other niceties; Konsole looks good on KDE and
+provides tabs and other niceties; urxvt has a small memory requirement; Console2
+runs on Windows; screen and tmux provide sessions that can be attached to
+different parent terminals; and so on. Since none of these features make a
+difference to applications running in the terminal, most terminal emulators use
+TERM=xterm.
+
+To find out what terminal a shell is running it, look at the parent of the shell:
+\begin{verbatim}
+ps -p$PPID
+\end{verbatim}
+and if the shell is a remote shell, then the terminal is carried over from the
+shell of the local session, and the result is 
+\begin{verbatim}
+PID         TTY       TIME   CMD
+...         ?         ....    sshd
+\end{verbatim}
+
+
+
+\subsection{TERM inside tmux and screen}
+\label{sec:TERM-in-tmux-screen}
+\label{sec:tmux-TERM}
+\label{sec:screen-TERM}
+
+\url{https://github.com/tmux/tmux/blob/2.3/FAQ#L4}
+
+We can do this inside \verb!~/.bashrc! file
+
+{\tiny
+\begin{verbatim}
+  case $TERM in
+    xterm)  TERM=xterm-256color ;; # for xterm, PuTTY, MinTTY
+    rxvt)   TERM=rxvt-256color  ;; # for rxvt
+    cygwin) ;; # DOS terminal - fewer than 16 colors are supported
+  esac
+\end{verbatim}
+}
+
+
+\begin{verbatim}
+infocmp -d xterm-256color tmux-256color|head -n 8
+\end{verbatim}
+\url{https://github.com/neovim/neovim/issues/6845}
+
+\url{https://bugs.launchpad.net/byobu/+bug/1544983}
+
+As of tmux version 2.1, you can tell tmux to pretend to be a screen terminal.
+For tmux to work correctly, this must be set to screen, tmux or a derivative of
+them. Inside tmux, TERM must be 'tmux', "screen" or similar (such as
+"screen-256color", 'tmux-256color'). The setting is defined in
+\verb!~/.tmux.conf! file (for tmux)
+\begin{verbatim}
+set -g terminal-default "screen-256color"
+\end{verbatim}
+
+
+HOWEVER, vim is broken without \verb!-bce!, and thus we cannot use
+\begin{verbatim}
+# - screen-256color: vim broken without -bce
+set -g default-terminal "screen"
+\end{verbatim}
+BUT; tmux does NOT support bce 
+\begin{verbatim}
+# - screen-bce, screen-256color-bce: tmux does not support bce
+\end{verbatim}
+\url{https://bugs.launchpad.net/byobu/+bug/1544983}
+
+To overcome, you can set inside \verb!~/.byobu/.tmux.conf! file
+\begin{verbatim}
+set -g default-terminal "screen-256color"
+\end{verbatim}
+
+
+\section{What is terminal emulator}
+\label{sec:terminal-emulators}
+
+Nowadays, you don't see actual terminals all that often anymore
+(Sect.\ref{sec:terminal}), but for instance the Linux text consoles on (CTRL +)
+ALT + F1 through F6 are considered terminals.
+
+
+Terminal type or emulation  specifies how your computer and the host computer to
+which you are connected exchange information. 
+
+Terminal emulators are programs that presents to user a text-based window (like
+the screen of a terminal (Sect.\ref{sec:terminal})), so the user interacts as
+like with a physical terminal. 
+
+
+The following terminal emulators put a window up and let you interact with
+the shell: 
+\begin{enumerate}
+  \item xterm - Sect.\ref{sec:xterm}
+  
+  XTerm also provides features that are in neither VT100 nor VT220, which are
+  used by other programs as "xterm emulation".
+
+  
+  \item rxvt - Sect.\ref{sec:rxvt}
+  
+  \item kvt, 
+  
+  \item nxterm, and 
+  
+  \item eterm.
+  
+  \item iTerm2 - Sect.\ref{sec:iTerm2}
+  
+  \item Putty - Sect.\ref{sec:putty}
+  
+  \item tmux or screen - Sect.\ref{sec:tmux}
+  
+  \verb!tmux! and \verb!screen! are not only a terminal emulator but also a
+  terminal multiplexer (Sect.\ref{sec:terminal_multiplexer}) since each pane
+  must behave as a separate terminal; its emulation is not exactly the same as
+  that of xterm or gnome-terminal.
+
+  \verb!tmux! and/or \verb!screen! is typically run inside a terminal emulator.
+  Within \verb!tmux!, then it provides  screen functions like a window manager
+  to run multiple virtual terminals.
+  
+  Advanced terminal emulator like \verb!gnome-terminal! also provide panes or
+  tabs (each pane to emulate 1 terminal); but \verb!tmux! keeps these tabs
+  persistent and can be loaded from any sessions.
+  
+  A terminal emulator like \verb!xterm! is a terminal emulator for systems
+  running the x-window system and a graphical user interface. It provides only a
+  single terminal, typically running a single process (an interactive shell by
+  default - Sect.\ref{sec:shell}).
+  
+  Konsole and similarly Gnome Terminal are slightly more advanced terminal
+  emulators for the GUI.
+
+  \item konsole, 
+  
+  \item gnome-terminal, 
+    
+\end{enumerate}
+
+The terminal emulator can host any shell program (Sect.\ref{sec:shell}).
+The terminal emulator receives the keyboard input, especially control characters
+like TAB, CTRL, and convert that into a proper byte-sequence before sending to
+the shell program.
+
+
+\subsection{color in Linux terminal}
+\label{sec:color-terminal}
+
+You've probably seen things like \verb!\e[32m! or \verb!\x1b[1;31m! or
+\verb!\033[32m!. These are ANSI escape codes used for defining a color.
+\url{https://en.wikipedia.org/wiki/Escape_character} 
+
+All ANSI escape sequences start with, well, ESC. There're several ways of
+encoding an ESC:
+\begin{verbatim}
+Shell		                   \e
+ASCII Hex                      \0x1B
+                               ^[
+ASCII Oct                      \033
+ASCII Dec		               27
+\end{verbatim}
+
+Example:
+\begin{verbatim}
+\033[31;4m
+\end{verbatim}
+\verb!\033! is the ESC; then \verb![! is part of CSI; then \verb!31;4! is a
+list of instruction separated by comma with general syntax 
+\begin{verbatim}
+[<PREFIX>];[COLOR];[<TEXT DECORATION>]
+
+// only use <PREFIX> in 256 color mode
+\end{verbatim}
+So \verb!31;4! means (no prefix, color-red, underline)
+and \verb!m! is the finishing symbol; before the regular text appears.
+
+
+Example:
+\begin{verbatim}
+echo "\x1b[31;4mHello\x1b[0m"
+\end{verbatim}
+\url{http://jafrog.com/2013/11/23/colors-in-terminal.html}
+
+\subsection{set window size and position}
+
+Each time we launch a new terminal, we can control the size and location using 
+\verb!-geometry! option (COLUMNSxROWS+X+Y)
+\begin{verbatim}
+gnome-terminal --geometry 73x31+100+300
+
+xterm -geometry 93x31+100+350
+\end{verbatim}
+
+
+\section{xterm} 
+\label{sec:xterm}
+
+
+Xterm is a very basic terminal that has been around since the dawn of X11, i.e.
+1984, and thus most terminal emulators support what it supports.
+Before X started, i.e. no X server and X client, xterm was used as a stand-alone
+terminal emulator for the VAXStation 100 (VS100). xterm was first written by
+Mark Vandevoorde - a coop intern at Jim Gettys.
+
+Later, as it became clear that X was more useful than trying to do a stand alone
+program. Part of why xterm's internals are so horrifying is that it was
+originally intended that a single process be able to drive multiple VS100
+displays. Then, Jim Gettys did a lot of hacking on it, and merged several
+improved versions from others back in.
+\begin{itemize}
+  \item  the proper ANSI parser - done by Bob McNamara.
+  
+  \item  Tek 4010 support came from a guy at Smithsonian Astrophysical
+  Observatory (at Harvard) named  Doug Mink.
+  
+  Doug knows Tektronix commands pretty well, and his group desparately needed
+  the graphics capabilities, it would be a good use of his time to implement a
+  Tektronix terminal emulator under X. The only X documentation at the time was
+  the code itself
+  
+  
+  \item ported to X11 by Loretta Guarino.
+  
+  \item \ldots
+\end{itemize}
+\url{https://invisible-island.net/xterm/xterm.faq.html}
+
+
+It provides DEC VT102/VT220 and selected features from higher-level
+terminals such as VT320/VT420/VT520 (VTxxx).
+It also provides Tektronix 4014 emulation for programs that cannot use the
+window system directly.  If the underlying operating system supports terminal
+resizing capabilities (for example, the SIGWINCH signal in systems derived from
+4.3bsd), xterm will use the facilities to notify programs running in the window
+whenever it is resized.  
+
+
+xterm can be customized via global X resources files (e.g.
+/usr/lib/X11/app-defaults/XTerm), per-user resource files (e.g. 
+\verb!~/XTerm!, \verb!~/.Xresources!), or command-line arguments. 
+
+
+So by gnome terminal saying it's an xterm, it's more likely to have a definition
+in the terminfo library.
+
+xterm is in most cases built with support for 16 colors. It can also be built
+with support for 88 or 256 colors (but not both). You can try to set TERM to
+either xterm-16color, xterm-88color, or xterm-256color. 
+
+\subsection{VT100}
+
+
+The most commonly emulated terminal type is the Digital Equipment Corporation
+(DEC) VT100 terminal
+
+
+
+\section{rxvt}
+\label{sec:rxvt}
+
+rxvt is often built with support for 16 colors. You can try to set TERM to
+rxvt-16color. 
+
+A single instance of urxvt takes about 6.5MB-8MB of RAM.
+
+\section{eterm}
+\label{sec:eterm}
+
+\section{konsole}
+\label{sec:konsole}
+
+konsole too is often built with support for 16 colors. You can try to set TERM
+to konsole-16color or xterm-16color. 
+
+
+\section{gnome-terminal}
+\label{sec:gnome-terminal}
+
+Gnome terminal, AFAIK, does not offer a configuration to change its TERM .
+
+but it does allow you to change your startup command, and that's all you need.
+Here is the trick:
+
+\begin{verbatim}
+Profile Preferences => Title and Command => Run a custom command instead of my
+shell
+
+then use [you can change to a different shell, e.g. /usr/bin/zsh]
+
+env TERM=xterm-256color /bin/bash
+
+\end{verbatim}
+And no, you can't use "\$SHELL" in that line for shell auto-detection ;) You
+have to hard-code it
+
+Beginning with gnome-terminal version 3.16, it defaults to TERM=xterm-256color.
+This latest version of GNOME 3 includes 33,525 changes by 1043 authors.
+\begin{enumerate}
+  \item   GTK+ support for OpenGL now allows GTK+ apps to support 3D natively, a new GLib
+reference counting feature will help with debugging, and GTK+ Inspector has also had a major update.
+  \item  a brand new notification system and updated calendar design, which
+  helps you to easily keep track of what's happened, and includes useful
+  information like world times and event reminders. Other features include
+  overlaid scrollbars, updated visuals, improved content views in Files, and a
+  redesigned image viewer.   
+  
+  \item gnome-terminal changed its default from xterm to xterm-256color in 3.16,
+  which is present in Ubuntu 15.10 beyond
+
+  \item Ubuntu 14.04 uses Gnome 3.6. The latest Gnome 3 you can get on 14.04 is 3.14.
+\begin{verbatim}
+#add staging and testing ppa:
+sudo add-apt-repository ppa:gnome3-team/gnome3-staging
+sudo add-apt-repository ppa:gnome3-team/gnome3
+sudo apt-get update
+sudo apt-get dist-upgrade
+
+
+The following packages will be REMOVED:
+  gnome-control-center gnome-session-flashback nautilus-sendto-empathy
+  ubuntu-session
+
+\end{verbatim}
+\url{https://launchpad.net/~gnome3-team/+archive/ubuntu/gnome3}
+
+Ubuntu 15.04 Vivid Vervet will feature GNOME 3.14 for the first time.
+
+15.04 will allow you to install 3.16 using the staging ppa already mentioned on this page
+  
+\end{enumerate}
+
+On gnome-terminal, it use \verb!VTE_VERSION!, so we can check the presence of
+this environment variable to see if gnome-terminal is being used for the shell.
+
+\begin{verbatim}
+if [ -n "$VTE_VERSION" ]; then
+    # Gnome-terminal and other vte3-based emulators
+    color_prompt=yes
+fi
+\end{verbatim}
+
+
+
+Due to the closeness of release schedules between Ubuntu and GNOME, the latest
+versions of GNOME do NOT get fully tested 'before' each release cycle of Ubuntu.
+As such it appears Ubuntu is a cycle behind. However we also provide the Gnome 3
+PPA which brings most components up to the latest versions for each cycle.
+
+
+\section{multi-gnome-terminal (MGT)}
+\label{multi-gnome-terminal}
+
+\url{http://multignometerm.sourceforge.net/}
+ 
+Multi-GNOME-terminal is an enhanced version of gnome-terminal
+(Sect.\ref{sec:gnome-terminal})
+
+\section{vte library (libvte)}
+\label{sec:vte}
+\label{sec:libvte}
+
+VTE is a LGPL 2+ licensed library (libvte) provising a virtual terminal emulator
+widget for GTK+, and a minimal sample application (vte) using that.  Vte is
+mainly used in gnome-terminal, but can also be used to embed a console/terminal
+in games, editors, IDEs, etc.	
+
+\url{https://github.com/GNOME/vte}
+
+APIs: \url{https://developer.gnome.org/vte/0.48/}
+
+
+
+\section{termite}
+\label{sec:termite}
+
+To install:
+\begin{verbatim}
+sudo apt-get install libgtk-3-dev -y
+sudo apt-get install gtk-doc-tools -y
+sudo apt-get install libpcre3-dev -y
+sudo apt-get install gobject-introspection -y
+\end{verbatim}
+
+NOTE: Ubuntu and some other Linux distributions don't include pcre2 in their
+package manager. pcre2 is used by the Pony regex package. To download and build
+pcre2 from source (Sect.\ref{sec:pcre2-library}): 
+
+and run the script
+\url{https://raw.githubusercontent.com/Corwind/termite-install/master/termite-install.sh}
+
+\ref{sec:configure}
+
+\subsection{pcre2 library}
+\label{sec:pcre2-library}
+
+PCRE2 is the name used for a revised API for the PCRE library, which is a set of
+functions, written in C, that implement regular expression pattern matching
+using the same syntax and semantics as Perl, with just a few differences.
+
+The source code for PCRE2 can be compiled to support 8-bit, 16-bit, or 32-bit
+code units. The three libraries contain identical sets of functions, with names
+ending \verb!_8, _16!, or \verb!_32!, respectively.
+However, by defining \verb!PCRE2_CODE_UNIT_WIDTH! to be 8, 16, or 32, a program
+that uses just one code unit width can be written using generic names such as
+\verb!pcre2_compile()!, instead of using \verb!pcre2_compile_8()! for 8-bit.
+
+To install
+\begin{verbatim}
+wget ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre2-10.21.tar.bz2
+tar xvf pcre2-10.21.tar.bz2
+cd pcre2-10.21
+./configure --prefix=/usr
+make
+sudo make install
+\end{verbatim}
+
+
+\section{Terminator (powerful terminal)}
+\label{sec:terminator}
+
+\url{http://www.linuxinsider.com/story/79552.html}
+
+Terminator is a powerful terminal that takes you well beyond the limited
+functionality of traditional terminal windows the likes of ROXTerm, Rxvt, xterm,
+LXTerminal and GNOME Terminal.
+
+
+
+Terminator, multiple terminals in one window. 
+\begin{verbatim}
+sudo add-apt-repository ppa:gnome-terminator
+\end{verbatim}
+\url{http://gnometerminator.blogspot.com/p/introduction.html}
+
+Get help:
+\begin{verbatim}
+man terminator
+man terminator_config
+\end{verbatim}
+\url{http://gnometerminator.blogspot.com/p/introduction.html}
+
+Split the view:
+\begin{verbatim}
+Ctrl-Shift-E: will split the view vertically.
+Ctrl-Shift-O: will split the view horizontally.
+
+
+Ctrl-Shift-W: will close the view where the focus is on.
+
+\end{verbatim}
+
+Adjust window size
+\begin{verbatim}
+Ctrl-Shift-Right: move the vertical split bar to the right
+Ctrl-Shift-Left: ...
+Ctrl-Shift-Up : move the horizontal split bar to up
+Ctrl-Shift-Down: 
+
+
+Ctrl-Shift-S : hide/show scrollbar
+
+F11: will make terminator go fullscreen.
+
+\end{verbatim}
+
+Search
+\begin{verbatim}
+Ctrl-Shift-F : search within terminal scrollback
+
+\end{verbatim}
+
+Move around
+\begin{verbatim}
+Ctrl-Shift-P: move focus to the previous view.
+Ctrl-Shift-N: move focus to the next view.
+
+Ctrl-tab     : move around to the next
+Ctrl-Shift-N : move around ..
+
+Ctrl-Shift-tab: move to the previous
+Ctrl-Shift-P :  move to the previous
+
+Alt-Up       : move to the terminal up to the current one
+Alt-Down  
+Alt-Left
+Alt-Right
+\end{verbatim}
+
+Copy/paste
+\begin{verbatim}
+Ctrl-Shift-C   : copy selected text to clipboard
+Ctrl-Shift-V   : paste clippboard text
+\end{verbatim}
+
+
+Exit:
+\begin{verbatim}
+Ctrl-Shift-Q: will exit terminator.
+
+Ctrl-Shift-W : close the current view
+\end{verbatim}
+
+configuration file:
+\verb!/.config/terminator/config!.
+\begin{verbatim}
+[global_config]
+[keybindings]
+[profiles]
+  [[default]]
+[layouts]
+  [[default]]
+    [[[child1]]]
+      type = Terminal
+      parent = window0
+    [[[window0]]]
+      type = Window
+      parent = ""
+[plugins]
+\end{verbatim}
+
+
+\section{iTerm2 (on Mac O/S)}
+\label{sec:iTerm2}
+
+iTerm2 is a replacement for Terminal and the successor to iTerm. It works on
+Macs with macOS 10.10 or newer. iTerm2 brings the terminal into the modern age
+with features you never knew you always wanted.
+
+The great thing about iTerm2 is that you can have normal, non-dropdown terminal
+windows positioned freely on the screen and still bring those up using the
+global hotkey.
+
+\begin{verbatim}
+iTerm2 3.3.1
+
+New Features
+- Support binary control characters (aka C1
+  control codes) when the text encoding is ASCII
+  or Latin-1.
+- Show the window size in an overlay during live
+  resizing when there is no title bar.
+
+Improvements
+- Improve readability of advanced prefs.
+
+Bug Fixes
+- Fix a bug where closing a full screen window
+  would cause another window to appear.
+- Fix a crash when switching from Dark/Light theme
+  to Minimal or Compact.
+- Fix a bug where automatic logging created files
+  with the wrong tab number.
+- Fix a bug where floating hotkey windows did not
+  overlap the menu bar.
+- Fix a bug where opening the Open Quickly window
+  would hide a hotkey window.
+- Fix a bug where an alert box could cause a
+  hotkey window to hide.
+- Fix a bug where the git status bar component
+  would fail to update.
+- Fix a crash when setting the badge height to 0.
+- Fix a bug where adjusting the badge size didn't
+  always work right away.
+- Improve the accuracy of the badge preview when
+  editing its size and position.
+
+For the full release notes for version 3.3, please
+see:
+https://iterm2.com/downloads/stable/iTerm2-3_3_0.changelog
+\end{verbatim}
+
+
+\subsection{write Python API: v 3.3.0+}
+
+Since iTerm2 v3.3.0, it supports writing Python script to control iTerm2,
+a replacement for the AppleScript API that preceded it.
+
+\url{https://iterm2.com/python-api/}
+
+“Simple” scripts that perform a series of actions, such as creating windows, and
+then terminate.
+
+“Long-running daemons” that stay running indefinitely while observing
+notifications or performing some action periodically.
+
+\subsection{Themes: Minimal Theme (v 3.3.0+)}
+
+\subsection{Status bar (v3.3.0+)}
+
+
+\subsection{Tiles (v3.3.0+)}
+
+Titles can now show icon of the running app.
+
+\begin{verbatim}
+iTerm2 3.3.0
+
+This is a major release that contains a number of
+new features.
+
+Major New Features
+
+- A Python scripting API has been added to enable
+  extensive configuration and customization. See
+  https://iterm2.com/python-api for details.
+- A scriptable status bar has been added with 13
+  built-in configurable components.
+- Two new themes:
+    Minimal: Reduces visual clutter. Modernist.
+    Compact: Moves tabs into the title bar to save
+      space, while preserving the general
+      appearance of a macOS app.
+
+Other New Features
+
+- Session, tab, and window titles have been
+  revamped to be more flexible and comprehensible.
+  You can now configure them separately and select
+  what information is shown per profile. They are
+  integrated with the new Python scripting API.
+- Tabs may now have icons: either an icon
+  indicating the running app, or a fixed icon per
+  profile.
+- The display of Sixel images is now supported.
+- Add menu item to arrange split panes evenly. In
+  tmux, this uses the tiled layout.
+- Greatly improved support for background images:
+  they may now span split panes and you can adjust
+  how they are scaled to avoid stretching.
+- Add support for reporting keystrokes with CSI u.
+- New type of trigger added that turns text into a
+  hyperlink.
+- New type of trigger added that adds annotations
+  to the matching text.
+- You can now export a recording of your screen
+  from the Instant Replay panel.
+- A new toolbelt tool, Actions, provides shortcuts
+  to frequent actions like sending a snippet of
+  text.
+- You can now search preferences. There's a search
+  bar in the top right of the window.
+- Add a new utility, "it2git", which allows the
+  git status bar component to show git state on a
+  remote host. Install the utilities and then view
+  ~/.iterm2/it2git for further instructions.
+- Add touch bar mitigations: haptic feedback, key
+  click, and blink cursor when touching esc.
+- Replace the system font picker with an easier-
+  to-use custom one.
+- Search now remembers your 10 most recent queries
+  and offers them as suggestions.
+- Adds support for crossed-out text (SGR 9)
+- Add support for automatically restarting a
+  session when it ends.
+
+
+Other Improvements
+
+- Numerous visual improvements.
+- Update app icon.
+- You can now change the color preset from the
+  Open Quickly window.
+- Added an advanced pref for the height of the
+  underline cursor.
+- The state of various terminal emulation flags is
+  now exposed in Session > Terminal State.
+- Remove the bell icon from tabs more
+  aggressively.
+- Various pages of preferences have been
+  rearranged to make more sense or be more
+  visually pleasing.
+- A new menu item lets you configure cmd-+ and
+  cmd-- to adjust the underlying profile rather
+  than only the current session.
+- By default the tab bar now stretches to fill the
+  available width so it looks more like a native
+  tab bar. You can change this in Prefs >
+  Appearance.
+- Add a new proprietary control sequence to bounce
+  the app icon only one time.
+- Add support for setting the proxy icon by
+  control sequence.
+- Add support for broadcasting passwords to
+  multiple sessions from the password manager. Off
+  by default.
+- Update "Terminal.app Compatibility" key mapping
+  for option left and right arrows.
+- Add support for natively drawn Powerline glyphs,
+  allowing you to use any font and still get the
+  fancy arrows. They also align properly with
+  other elements, which the Powerline fonts do not
+  always do.
+- Cmd-clicking on filename[line,column] will now
+  open the file to the specified line and column.
+- Add "use transparency" as a profile setting for
+  newly created windows.
+- Adjust how underlines are drawn to have a more
+  correct baseline offset.
+- Add an advanced pref to swap find next/find
+  previous behavior (since the default does not
+  conform to macOS norms)
+- The default scheme for URLs when you cmd-click
+  is now https rather than http. You can change it
+  with an advanced pref.
+- Sparkle updates now use EdDSA signatures. DSA
+  signatures will be phased out soon.
+- Add an advanced preference to show a hint with
+  split pane direction in menu items.
+- Add an option to preserve window size when tab
+  bar shows or hides
+- You can now use the password manager when
+  entering a password for secure copy.
+- Adds support for the DECRQM control sequence.
+- Performance improvements for long scrollback
+  history.
+- iTerm reports itself as a VT200 supporting
+  Sixel in response to DA1.
+- Doesn't block the main thread when checking if the
+  text under the cursor is an existing file.
+- Avoid blocking the main thread when creating a
+  new session.
+- Performance improvements for box drawing
+  characters when not using GPU renderer.
+- Performance improvements for opening long lists
+  of color presets.
+- Change natural text editing keyboard preset to
+  include cmd-left and cmd-right.
+- Work around a bug in tmux 2.9 that would crash
+  the tmux server when changing panes.
+- When the current tab is closed select the one to
+  its right, like standard macOS tabs.
+- Work around a macOS quirk where the equals sign
+  on the numeric keypad is not treated as a
+  numeric keypad key.
+- When tabs are very narrow, prefer to show the
+  tab label over the new-output/bell icon.
+- Add an advanced setting to handle spacing
+  combining marks properly ("Detect base unicode
+  characters with lookup table").
+- Respect System "Prefs>Dock>Prefer tabs when
+  opening documents".
+- Reduce default fast paste speed.
+- Revamp titles in tmux integration mode. Pane
+  titles and window names are now distinct when
+  using tmux 2.6 or later. set-titles and
+  set-titles-string is now respected. 
+- Allow Highlight triggers with "Instant" enabled
+  to fire more than once per line.
+- Add a profile preference to disable paste
+  bracketing.
+- When semantic history is configured to run a
+  command and the command fails, you can now see
+  the output.
+- Add an option to log Automatic Profile Switching
+  messages to the scripting console.
+- Use Menlo in advanced paste and in the notes
+  tool.
+
+
+\end{verbatim}
+
+\section{Guake}
+\label{sec:guake}
+
+
+\section{Terminology}
+\label{sec:Terminology-terminal-emulator}
+
+Terminology is designed to emulate Xterm as closely as possible in most
+respects; and is based on EFL (Enlightenment Foundation Libraries) - the set of
+graphics libraries that grew out of the development of Enlightenment, a window
+manager and Wayland compositor.
+
+
+
+
+
+

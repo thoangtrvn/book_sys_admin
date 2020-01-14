@@ -1,0 +1,2980 @@
+\chapter{Shell script}
+\label{chap:shell_and_shell_scripting}
+
+There are situations that you want to automate your tasks using
+scripting language via shell programming. Shell programming is convenient to
+automate many processes, but not aimed to solve heavy computational tasks.
+There's a nice tool to convert script form one language to another
+\url{http://sourceforge.net/projects/env2/}.
+
+The beginning of a shell script is sha-bang (\verb.#!.) which is a two-byte
+magic number (type ``man magic'' for further information). After that, on the
+same line, is the path to the command interpreter. Some examples are:
+\begin{verbatim}
+#!/bin/sh
+#!/bin/bash
+#!/usr/bin/perl
+#!/usr/bin/tcl
+#!/bin/sed -f
+#!/bin/awk -f 
+\end{verbatim}
+
+A common initial structure
+\begin{verbatim}
+E_WRONG_ARGS=85
+script_parameters="-a -h -m -z"
+#                  -a = all, -h = help, etc.
+
+if [ $# -ne $Number_of_expected_args ]
+then
+  echo "Usage: `basename $0` $script_parameters"
+  # `basename $0` is the script's filename.
+  exit $E_WRONG_ARGS
+fi
+\end{verbatim}
+
+\section{.bashrc}
+\label{sec:bashrc}
+
+An example of \verb!~/.bashrc!
+{\small
+\begin{verbatim}
+# ~/.bashrc: executed by bash(1) for non-login shells.
+# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
+# for examples
+
+# If not running interactively, don't do anything
+[ -z "$PS1" ] && return
+
+#########################
+###  SECTION 1 ##########
+# don't put duplicate lines in the history. See bash(1) for more options
+# don't overwrite GNU Midnight Commander's setting of `ignorespace'.
+#export HISTCONTROL=$HISTCONTROL${HISTCONTROL+,}ignoredups
+# ... or force ignoredups and ignorespace
+#export HISTCONTROL=ignoreboth
+
+# append to the history file, don't overwrite it
+# This is good, if you have multiple-session, and you don't want only the last
+# session commands are saved
+shopt -s histappend
+
+## HISTIGNORE:
+#    & = special pattern (suppress duplicate entries)
+#   '( *)'  = ignore command starts with space    
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+export HISTSIZE=1000
+export HISTFILESIZE=3000
+export HISTCONTROL=ignorespace:ignoredups
+export HISTIGNORE='ls:bg:fg:history:&'
+export HISTTIMEFORMAT='%F %T '
+
+  # to avoid crashed session, which you may loose the history 
+  # NOTE: you don't need to worry if you're using byobu. 
+export PROMPT_COMMAND='history -a'
+
+  ### rebind terminal flow control to Ctrl-X
+  ### so that we can use Ctrl-S for forward search
+stty stop ^X
+ 
+  ## make sure command that you entered on multiple lines are fit into a single
+  # line. This allows you to parse the history file easier
+shopt -s cmdhist
+
+
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+# make less more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm*) color_prompt=yes;;
+    screen*) color_prompt=yes;;
+esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+#force_color_prompt=yes
+
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+ # We have color support; assume it's compliant with Ecma-48
+ # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+ # a case would tend to support setf rather than setaf.)
+ color_prompt=yes
+    else
+ color_prompt=
+    fi
+fi
+if [[ "$color_prompt" = yes && "$USER" = root ]]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]: \[\033[01;34m\]\w\[\033[00m\] \$ '
+elif [[ "$color_prompt" = yes ]]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[00;33m\]\u@\h\[\033[00m\]: \[\033[01;34m\]\w\[\033[00m\] \$ '
+else
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w \$ '
+fi
+unset color_prompt force_color_prompt
+
+# If this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*|screen*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*)
+    ;;
+esac
+
+# Alias definitions.
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+if [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+fi
+
+export EDITOR='vim'
+export GREP_COLOR=';33'
+#export PATH=$PATH:/usr/local/mysql/bin:/usr/local/mysql/sbin
+\end{verbatim}
+
+When you make some changes, a quickly refresh the session without logout is to
+run
+\begin{verbatim}
+source ~/.bashrc
+
+// or
+
+. ~/.bashrc
+\end{verbatim}
+}
+
+\textcolor{red}{Control history commands}: The list of typed commands is stored
+in \verb!~/.bash_history! file. You can control what to put in here, how many
+commands to store for each session, and for all sessions using the following
+environment variables
+
+\begin{itemize}
+  \item HISTZIE = number of lines (commands) saved in the memory during the bash
+  session
+  \item HISTFILESIZE = number of lines (commands) saved in the file 
+  \verb!~/.bash_history! (which is used to save all the commands during the
+  session that can be reused next time)
+\end{itemize}
+To avoid storing duplicate commands we use HISTCONTROL (ignorespace,
+ignoredups, ignoreboth)
+\begin{verbatim}
+export HISTCONTROL=ignorespace:ignoredups
+\end{verbatim}
+This is used as to run commands that you don't want to record in the history,
+add one or more spaces in the front, and enable \verb!ignorespace!. Also, it's
+useful to ignore duplicated commands.
+
+
+You can add a number of commands that should not be added to the history file
+\begin{verbatim}
+export HISTIGNORE='ls:bg:fg:history'
+\end{verbatim}
+
+Put the data-time in format, that you can sort easily with \verb!cut! and
+\verb!awk!
+\begin{verbatim}
+export HISTTIMEFORMAT='%F %T '
+\end{verbatim}
+
+
+\subsection{History of commands}
+
+You don't have to retype the commands every time, but can reuse the one you type
+in the past via \verb!history! command. Each command is saved in a buffer (a
+array of string), with an integer to refer to the index of the command in the
+buffer. To revoke the command at a given index \verb!<number>!, we use the
+exclamation mark (!)
+\begin{verbatim}
+!<number>
+\end{verbatim}
+
+To search a command, use \verb!Ctrl-r! (reverse-search) and \verb!Ctrl-s!
+(forward-search). However, the forward-search key-binding is shadowed by
+terminal flow control key binding (XON/XOFF flow control, e.g. in Konsole),
+which freeze or 'hang' the terminal session (and need to press \verb!Ctrl-c! to
+unfreeze it). 
+
+To be able to use \verb!Ctrl-s! for forward-search, we can 
+\begin{itemize}
+  \item Disable terminal flow control: \verb!stty -ixon!
+  \item Keep terminal flow control, and re-bind the terminal flow control to
+  another key, e.g. Ctrl-X
+  \begin{verbatim}
+  stty stop ^X 
+  \end{verbatim}
+  
+  \item Keep terminal flow control, and re-bind the forward-search to another
+  key, e.g. 
+  
+  \begin{enumerate}
+    \item Alt-S
+  \begin{verbatim}
+  bind '"es":forward-search-history'
+  \end{verbatim}
+  or put in the file \verb!~/.inputrc!. This option, however, doesn't work
+  nicely with
+  Ctrl-R.\footnote{\url{http://ruslanspivak.com/2010/11/25/bash-history-incremental-search-forward/}}
+  
+     \item Use \verb!pgup! and \verb!pgdown! for reverse- and forward-search
+  \begin{verbatim}
+"\e[5~": history-search-forward
+"\e[6~": history-search-backward
+  \end{verbatim}
+NOTE: Ctrl-R search all lines containing words, while history-search-forward
+only searches lines beginning with words
+    \end{enumerate}
+\end{itemize}
+
+\begin{mdframed}
+
+To list the current key binding, we run \verb!stty -a! 
+
+{\tiny
+\begin{verbatim}
+>>> stty -a
+speed 38400 baud; rows 86; columns 319; line = 0;
+intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = M-^?; eol2 = M-^?; 
+swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W; 
+lnext = ^V; flush = ^O; min = 1; time = 0;
+
+-parenb -parodd cs8 -hupcl -cstopb cread -clocal -crtscts
+-ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl ixon -ixoff 
+-iuclc -ixany -imaxbel -iutf8
+
+opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
+isig icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop -echoprt echoctl echoke
+\end{verbatim}
+}
+
+\end{mdframed}
+
+To increase the buffer size, we use HISTSIZE and HISTFILESIZE (default: 500) - Sect.\ref{sec:bashrc}.
+
+
+\section{Shell}
+\label{sec:shell}
+
+A {\bf shell} is a window manager providing a single text-based terminal.
+It takes your commands from the keyboard and gives them to the operating system
+to perform. We have
+\begin{enumerate}
+  \item terminal shell (i.e. command-line interfaces): This is the only user
+  interface available on a Unix computer. - Sect.\ref{sec:shells-CLI}.
+
+NOTE: Even though the shell is a command line interface, you can still use the
+mouse for several things: scroll backwards and forwards through the output of
+the terminal window.
+  
+  \item GUI shell: Sect.\ref{sec:shell-GUI}
+\end{enumerate}
+
+Also, there are programs called "terminal emulators" -
+Sect.\ref{chap:terminal-emulator}. They are programs that put a window up and
+let you interact with the terminal shell.
+
+
+\subsection{GUI shells}
+\label{sec:shell-GUI}
+
+%Read Chap.\ref{chap:GUI-shells}.
+\begin{enumerate}
+  \item GNOME shell (written in C, Javascript): %- Sect.\ref{sec:gnome-terminal} 
+  
+  It provides basic functions like launching applications, switching between
+  windows and is also a widget engine.
+  
+  \item 
+\end{enumerate}
+
+
+\subsection{CLI shells (terminal shell): bash, zsh, fish, csh, tcsh, ksh}
+\label{sec:shells-CLI}
+
+A terminal shell (or command-line interface) is a shell program
+(Sect.\ref{sec:shell}) that provides a simple UI environment, in that a user can
+type in command, and the shell will launch the given command so that the user
+can interact with the system via these commands.
+
+There are different terminal shell programs in a Linux-based system:
+BASH, CSH, KSH, TCSH.  Remeber that a process is created by launching a
+particular terminal shell programm (Sect.\ref{sec:shell-process}).
+
+As all terminal shell program provides a command-line environment,
+to know which shell environment is currently being used, type (and hit ENTER)
+\begin{verbatim}
+echo $0
+\end{verbatim}
+
+An important aspect of using terminal shell is that each shell program comes
+with a built-in support of scripting language so that the user can write a batch
+file or script file which can be used as a regular executable file to automate
+or perform certain task (as needed). Depending on the shell program being used,
+you may have different level of complexity of the supported scripting language.
+
+REMINDER: The wording like "shell" or "default shell", it should refer to the
+system's default shell in that the system can be Ubuntu, RedHat Linux, MacOS,
+etc.
+
+\textcolor{red}{The first Unix shell is named Thompson shell - with the
+executable file is {\it sh}} (introduced in 1971, first version of Unix; and
+become obsolete since Unix version 6). Thompson shell was simple, and was not
+designed for scripting. It supports feature like:
+\begin{itemize}
+  \item redirect output from one command (as input) to the next command
+  
+  Use \verb!<! for input; and \verb!>! for output. 
+  
+  \item pipe syntax is added to also support redirect output, as the syntax
+  above is considered too ambiguous (as it is not clear if command2 refers to
+  the text filename or binary program)
+  
+\begin{verbatim}
+command1  | command2
+command1  ^ command2
+
+command1 > file1
+\end{verbatim}
+
+  \item no support for control statements like \verb!if! or \verb!goto!
+\end{itemize}
+Thompson shell is replaced by {\bf Bourne shell}, also name \verb!/bin/sh! as
+excutable.
+
+\textcolor{red}{Bourne shell is used in Unix version 7}; and \textcolor{red}{C
+shell (csh) is used in 2BSD O/S} [both were released in 1979].
+
+\begin{enumerate}
+  \item BASH - Sect.\ref{sec:bash}
+
+BASH is the most common shell; but many people like using C-style programming
+language of CSH and TCSH.
+
+  \item CSH, TCSH (Sect.\ref{sec:csh-shell}): it has many C-style functions to
+  do shell-scripting.
+  
+Of course, we can use other shell terminal to do shell-scripting as well
+(Sect.\ref{sec:shell_scripting}). TCSH is an enhanced version of CSH.
+
+  \item ZSH - Sect.\ref{sec:zsh}
+  
+  \item FISH - Sect.\ref{sec:fish}
+  
+  \item DOS:
+
+NOTE: MS-DOS is a very limited shell environment in Windows.
+
+\end{enumerate}
+
+Each shell also support different levels of search capability, e.g. search
+previous commands
+\begin{enumerate}
+  \item BASH - Ctrl-R (backward search), TAB (for auto-completion), support
+  syntax rule, e.g. using wildcard (asterisk), variables, or brackets
+  
+  
+  \item ZSH: use oh-my-zsh (Sect.\ref{sec:oh-my-zsh})
+  
+ 
+  
+  \item FISH: built-in 'search-as-you-type' (with automatic suggestions)
+  
+Fish has few syntactic rules, preferring features as commands rather than syntax. 
+
+The only problem with Fish is that it's not entirely POSIX-compliant. So
+sometimes my one-liner bash commands just brake
+
+\end{enumerate}
+
+To run more than one command on one line, we use semi-colon (;) to combine them.
+
+To run a script in background, we typically add an ampersand (\&) to the end,
+and the control is returned back to the shell program.
+However, the backgrounded program will terminate when the terminal emulator
+(Sect.\ref{sec:terminal-emulators}) is closed. This is because the operating
+system sends SIGHUP (hang up) signal to background jobs when a terminal close;
+and most programs terminate when receiving this signal. To prevent the signal
+being sent, we add \verb!nohup! (Sect.\ref{sec:nohup}).
+
+\begin{verbatim}
+nohup <command  args > & 
+\end{verbatim}
+
+\subsection{-- FISH shell}
+\label{sec:fish}
+
+\url{https://en.wikipedia.org/wiki/Friendly_interactive_shell}
+
+\subsection{-- Bash shell}
+\label{sec:bash}
+
+There are so many different files — .bashrc, .bash_profile, .bash_login,
+.profile etc.
+The issue is that Bash sources from a different file based on what kind of shell
+it thinks it is in.
+\begin{enumerate}
+  \item interactive non-login shell:
+  
+  if \verb!--rcfile <file>! option is used: then only load that file
+  
+  otherwise, check if \verb!--norc! option is used: if yes, then loads nothing
+  
+  otherwise, load \verb!/etc/bash.bashrc! file, then load \verb!~/.bashrc! file.
+  
+  \item interactive login shell:
+  
+  if \verb!--noprofile! option is used: not loading any file
+  
+  otherwise, load \verb!/etc/profile! file
+  
+  \item non-interactive non-login shell
+  
+  only load \verb!$BASH_ENV! 
+  
+  \item non-interactive login shell, i.e. \verb!--login! option is used
+  
+  if \verb!--noprofile! is used, then the same order as in interactive login shell
+  
+\end{enumerate}
+
+\label{sec:bash-loading-order-of-files}
+\textcolor{red}{\bf When you open an interactive non-login shell}, the order of resouce files to be
+read-in when booting a terminal BASH shell is
+\begin{verbatim}
+/etc/environment -> 
+	[if using --rcfile <file> option]
+		-> load that given file only
+		
+	[if not using --rcfile <file> option]
+		[if --norc option is used]
+			load nothing
+		[else]
+         -> /etc/bash.bashrc   ... (next line) 
+         -> ~/.bashrc
+\end{verbatim}
+
+\textcolor{red}{For interactive login shell} (i.e. shell created by ssh login
+session), it does not read \verb!.bashrc!, but read \verb!.bash_profile!.
+\begin{verbatim}
+/etc/environment -> 
+	[if not using --noprofile option]
+		 /etc/profile 
+         -> ~/.bash_profile 
+         -> ~/.bash_login 
+         -> ~/.profile 
+         [these files may actually load -> /home/<user>/.bashrc]
+
+\end{verbatim}
+However, the default content of \verb!.bash_profile! calls to load
+\verb!.bashrc!. Example:
+\begin{verbatim}
+if [ -f ~/.bashrc ]; then
+   source ~/.bashrc
+fi
+\end{verbatim}
+
+The reason to have two files is that there are some information 
+you only want to see it on login (e.g. load average, memory usage, current
+users, etc.), so you only want to place this in your \verb!.bash_profile!.
+
+\begin{mdframed}
+EXCEPTION: Mac O/S X terminal window always call \verb!.bash_profile!
+\end{mdframed}
+
+\begin{verbatim}
+/bin/bash
+       The bash executable
+/etc/profile
+       The systemwide initialization file, executed for login shells
+~/.bash_profile
+       The personal initialization file, executed for login shells
+~/.bashrc
+       The individual per-interactive-shell startup file
+~/.bash_logout
+       The individual login shell cleanup file, executed when a login shell exits
+~/.inputrc
+       Individual readline initialization file
+\end{verbatim}
+
+
+Now, the location of these files are, by default, under the \verb!$HOME! folder. 
+You can use the file in a different folder, and even in a different name.
+\begin{enumerate}
+  \item from \verb!.bash_profile! to load \verb!.bashrc!
+  
+\begin{verbatim}
+BASHRC_CONFIG_DIR=~/config/bash
+
+if [ -f "$BASHRC_CONFIG_DIR/.bashrc" ]; then
+    . "$BASHRC_CONFIG_DIR/.bashrc"
+fi
+\end{verbatim}
+
+
+  \item load \verb!.bashrc! 
+  
+  As \verb!bash! shell reads \verb!/etc/bash.bashrc! which is a system-wide
+  bashrc, we can modify this file at the end
+
+\begin{verbatim}
+ if [ -s "${XDG_CONFIG_HOME:-$HOME/.config}/bash/bashrc" ]; then
+    . "${XDG_CONFIG_HOME:-$HOME/.config}/bash/bashrc"
+ fi
+\end{verbatim}
+
+\end{enumerate}
+
+\subsection{--** bash 4.4 (2016)}
+\label{sec:bash-4.4}
+
+\url{https://lwn.net/Articles/700982/}
+
+\url{http://sourcedigit.com/20892-bash-4-4-released-install-bash-shell-ubuntu/}
+
+New 
+\begin{enumerate}
+  \item \verb.$!.  : represent the most recent process  PID
+  
+  
+  \item \verb!BASH_SUBSHELL!
+  
+  
+  \item 
+\end{enumerate}
+
+Remove feature to be the same as other shells
+\begin{enumerate}
+  \item \verb!set -i! 	: no longer valid
+  
+  
+  \item 
+\end{enumerate}
+
+
+New behavior:
+\begin{enumerate}
+  \item bash checks \verb!$INSIDE_EMACS! as well as \verb!$EMACS!
+  to know  whether or not bash is being run in a GNU Emacs shell window.
+  
+  
+   
+\end{enumerate}
+
+\subsection{-- C shell: csh or tcsh}
+\label{sec:csh-shell}
+\label{sec:tcsh-shell}
+
+C shell (csh or the improved version, tcsh) is a terminal program developped by
+Bill Joy (a graduate student at UC Berkeley) in 1979, and was first used in 2BSD
+O/S. 
+\begin{enumerate}
+  \item filename wildcard
+  
+  \item pipe
+  
+  \item here document 
+  
+  \item command substitution 
+  
+  \item variables
+  
+  \item control statements for condition-testing and iteration, using C-like
+  syntax. 
+  
+  \item (since tcsh): add  filename and command completion and command line
+  editing concepts
+\end{enumerate}
+
+NOTE: tcsh is now the main branch for ongoing development.
+
+\subsection{Bourne shell: sh, zsh}
+\label{sec:bourne-shell}
+\label{sec:zsh-shell}
+
+Bourne shell (also /bin/sh) is a replacement for the first Thompson shell
+(/bin/sh); and was created by Stephen Bourne at AT\&T Bell Labs in 1979.
+\begin{itemize}
+  \item PWB shell (Mashey shell) is an extended version of Thompson shell; and
+  was developped by  John Mashey.
+  
+  PWB shell is soon superceded by Bourne shell.
+  \begin{itemize}
+    \item \verb!if! and \verb!goto! command is part of the shell.
+    
+    \item \verb!if-then-else-endif! command
+    
+    \item \verb!switch! 
+    
+    \item \verb!while! statement
+    
+    \item \verb!onint! statement to ignore interrupts, or catch them to perform
+    cleanup
+    
+    \item variable: is supported, but only one character is allowed; with some
+    is reserved for special purpose
+    
+ \begin{verbatim}
+ $s      the ancestor of $HOME
+ $p      the ancestor of $PATH
+ \end{verbatim}
+ 
+    \item  if a non-binary file marked executable, it would fork another shell
+    instance to read that file as a shell script.
+ 
+\begin{verbatim}
+//previously (a shell is forked explicitly)
+sh excutable_script_file arguments
+
+// now (the shell is implicitly forked)
+// this is done by 'pexec' function of the shell
+excutable_script_file arguments
+\end{verbatim}
+This makes use of the system call \verb!pexec()! which is replaced by
+\verb!execvp()! function.
+\url{http://www.csl.mtu.edu/cs4411.ck/www/NOTES/process/fork/exec.html}
+
+   \item 
+  \end{itemize}
+  
+    \item 
+\end{itemize}
+
+Most Unix-like systems continue to
+have /bin/sh - which will be the Bourne shell.
+
+
+\subsection{-- zsh shell script}
+\label{sec:zsh}
+
+As we cannot use \verb!source! command on zsh, it is hard to load initialization
+file at log-on or ssh log-in shell. 
+
+If we can't have a proper login session, Ubuntu will keeps logging you out of
+the session. To get \verb!zsh! works in Ubuntu
+\begin{verbatim}
+apt-get install zsh
+apt-get install git-core
+
+wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh
+//docker Debian based
+bash -c "$(wget
+https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh -O -)"
+
+
+// chsh: PAM authentication failed
+chsh $USER -s $(which zsh); 
+
+sudo shutdown -r 0
+\end{verbatim}
+
+\url{https://github.com/robbyrussell/oh-my-zsh/issues/227#issuecomment-825773}
+\url{https://gist.github.com/tsabat/1498393}
+\url{https://github.com/robbyrussell/oh-my-zsh/issues/1224}
+
+\url{https://github.com/robbyrussell/oh-my-zsh/issues/3061}
+
+Use \verb!~/.zshrc! from oh-my-zsh 
+\begin{verbatim}
+bindkey "\033[1~" beginning-of-line
+bindkey "\033[4~" end-of-line
+bindkey '^[[3~' delete-char
+\end{verbatim}
+
+To backward delete, use Ctrl-w 
+
+\subsection{--** zsh 5.5}
+
+\url{http://zsh.sourceforge.net/releases.html}
+
+\subsection{--** zsh 5.1.1 }
+
+\subsection{--** oh-my-zsh}
+\label{sec:oh-my-zsh}
+
+  Oh-my-zsh is community-driven framework for managing zsh configuration. It
+  includes 200+ optional plugins (rails, git, OSX, hub, capistrano, brew, ant,
+  php, python, etc), over 140 themes to spice up your morning, and an
+  auto-update tool so that makes it easy to keep up with the latest updates from
+  the community. Oh-my-zsh framework will give you auto-completion, tab
+  completion, several cool themes, programming language integration and like
+  bash shell, ZSH is POSIX-compliant.
+
+  
+
+\section{Script overview}
+\label{sec:shell_scripting}
+
+Commands can be combined into a single plain-text file to run on shell, known as
+{\it shell script}. It can automate tasks by avoiding retyping the same
+commands, or using different parameters for the same commands.
+
+\begin{enumerate}
+\item Comment line: start with \#
+ 
+\item Define a variable: \verb!varname=value! (no space on either
+  side of the equal sign), value can be a number of a string,
+  \verb!varname! is case sensitive.
+
+  To access a variable, we add dollar sign (\$) in front. 
+
+\item To perform arithmetic operations, we use \verb!expr! statement
+\begin{verbatim}
+expr op1 math-operator op2
+\end{verbatim}
+E.g.
+\begin{verbatim}
+expr 10 \* 3
+
+echo `expr 10 + 3
+\end{verbatim}
+NOTE: When we pass a shell statement to echo, the shell statement need
+to have a back quote (\verb!`! sign) in front and end with another
+back quote. Otherwise, if we use single quotes or double quotes, it
+will interpret as a regular string. 
+
+\item Useful variables
+\begin{verbatim}
+$#	Number of command line arguments. Useful to test no. of 
+        command line args in shell script.
+$*	All arguments to shell
+$@	Same as above
+$-	Option supplied to shell
+$$	PID of shell
+$!	PID of last started background process (started with &)
+\end{verbatim}
+To access each argument, we use \verb!$0, $1, $2...!
+\begin{verbatim}
+echo "Total number of command line argument are $#"
+echo "$0 is script name"
+echo "$1 is first argument"
+echo "$2 is second argument"
+echo "All of them are :- $* or $@"
+\end{verbatim}
+
+
+\item Logical operators
+\begin{verbatim}
+>
+<
+!=
+==
+\end{verbatim}
+
+\item Bitwise operator
+\begin{verbatim}
+! expression	Logical NOT
+expression1  -a  expression2	Logical AND
+expression1  -o  expression2	Logical OR
+\end{verbatim}
+
+
+\item \verb!test! command
+\begin{verbatim}
+if test $1 -gt 0
+then
+echo "$1 number is positive"
+fi
+\end{verbatim}
+
+NOTE: \verb!test expr! is equivalent to \verb! [ expr ] ! (there is
+space after [ and before ])
+
+
+\item Testing:
+
+In shell script, we often use the following mathematical operators
+\begin{verbatim}
+-eq	is equal to	5 == 6	if test 5 -eq 6	if [ 5 -eq 6 ]
+-ne	is not equal to	5 != 6	if test 5 -ne 6	if [ 5 -ne 6 ]
+-lt	is less than	5 < 6	if test 5 -lt 6	if [ 5 -lt 6 ]
+-le	is less than or equal to	5 <= 6	if test 5 -le 6	if [ 5 -le 6 ]
+-gt	is greater than	5 > 6	if test 5 -gt 6	if [ 5 -gt 6 ]
+-ge	is greater than or equal to
+\end{verbatim}
+
+For string, we can use
+\begin{verbatim}
+string1 = string2	string1 is equal to string2
+string1 != string2	string1 is NOT equal to string2
+string1	string1 is NOT NULL or not defined 
+-n string1	string1 is NOT NULL and does exist
+-z string1	string1 is NULL and does exist
+\end{verbatim}
+
+For file, we can use
+\begin{verbatim}
+-s file   	Non empty file
+-f file   	Is File exist or normal file and not a directory 
+-d dir    	Is Directory exist and not a file
+-w file  	Is writeable file
+-r file   	Is read-only file
+-x file   	Is file is executable
+\end{verbatim}
+
+\end{enumerate}
+
+\section{Script examples}
+
+A script is a plain text file. To make a script executable, we do
+\begin{verbatim}
+chmod +x <script_name>
+\end{verbatim}
+We can use any editor to edit the script file, e.g. VIM, Emacs, PICO, etc. The
+end of the script, should be 
+\begin{verbatim}
+exit 0
+\end{verbatim}
+to indicate that the script run successfully.
+
+A script can receive arguments through using 
+\begin{verbatim}
+$0 = script name itself
+$1 = first argument
+$2 = second argument
+\end{verbatim}
+
+A script or any shell command return two type of values: zero (success),
+non-zero (failure). To check the error status of the last command, we do
+\begin{verbatim}
+echo $?
+\end{verbatim}
+
+\subsection{Automate answer}
+
+If you need to type in the answer to the command line, you can automate the
+process by using \verb!echo! command and pipeline.
+
+Example:
+\begin{verbatim}
+(echo n; echo p; echo 1; echo 1; echo 200; echo w) | fdisk /dev/sdc
+\end{verbatim}
+to create a 200MB partition.
+
+
+
+\subsection{System Variables}
+
+We can test the values of the following system variables, if these settings
+affect how the script behaves
+\begin{verbatim}
+BASH=/bin/bash	Our shell name
+BASH_VERSION=1.14.7(1)	Our shell version name
+COLUMNS=80	No. of columns for our screen
+HOME=/home/vivek	Our home directory
+LINES=25	No. of columns for our screen
+LOGNAME=students	students Our logging name
+OSTYPE=Linux	Our Os type
+PATH=/usr/bin:/sbin:/bin:/usr/sbin	Our path settings
+PS1=[\u@\h \W]\$	Our prompt settings
+PWD=/home/students/Common	Our current working directory
+SHELL=/bin/bash	Our shell name
+USERNAME=vivek
+\end{verbatim}
+
+\subsection{Special variables}
+
+\begin{verbatim}
+$?  = the last error code
+$#  = the number of argument passed to the script
+$*  = all arguments passed to the script
+$@  = $*
+$0  = zero-th argument (the script name)
+$1  = first argument 
+\end{verbatim}
+
+\begin{verbatim}
+# Check for proper number of command line args.
+
+EXPECTED_ARGS=1
+E_BADARGS=65
+
+if [ $# -ne $EXPECTED_ARGS ]
+then
+  echo "Usage: `basename $0` {arg}"
+  exit $E_BADARGS
+fi
+\end{verbatim}
+
+
+\subsection{User-defined Variables}
+
+A script is like a small program, we can define variables which can receive
+either numeric or character string
+\begin{verbatim}
+no=10
+
+vech=Bus
+\end{verbatim}
+NOTE: There is NO space in front and after the equal sign (=).
+
+A variable is case-sensitive. We can also define a NULL variable, which has no
+value at the time of definition.
+\begin{verbatim}
+vech=
+
+vech=""
+\end{verbatim}
+
+\subsection{-- Value of a variable}
+
+To check the value of one variable (user-defined or system) in the script, we
+need to add dollar sign (\$) in the front.
+\begin{verbatim}
+echo $BASH
+
+yourname=Tuan
+echo "Hello, $yourname"
+\end{verbatim}
+
+\subsection{Script input (command-line argument)}
+
+For the shell script, to pass input  
+\begin{enumerate}
+  \item as command-line argument: then we can access using macros
+  \verb!$1, $2!
+  
+
+\verb!$@! refer to all arguments.
+
+To get the last command-line argument:
+\begin{verbatim}
+// bash-only
+echo "${@: -1}"
+
+echo ${@:${#@}} 
+echo ${@:$#}
+
+// all shelles
+for last; do true; done
+echo $last
+\end{verbatim}
+
+  \item From the content of another file: use \verb!<!
+  \begin{verbatim}
+  script < file
+  \end{verbatim}
+  
+  \item We can read value from the terminal
+\begin{verbatim}
+read var1, var2, ..., varN
+\end{verbatim}
+
+Example:
+\begin{verbatim}
+echo "Your first name please:"
+read fname
+echo "Hello $fname, Lets be friend!"
+\end{verbatim}
+\end{enumerate}
+
+
+%\subsection{-- Command-line argument}
+
+\begin{verbatim}
+$1 is the first argument.
+
+$2 is the first argument.
+
+..
+
+$@ is all of them.
+\end{verbatim}
+
+Get the last argument:
+\begin{enumerate}
+  \item  This one is also pretty portable (again, should work with bash, ksh and
+  sh) and it doesn't shift the arguments, which could be nice.
+\begin{verbatim}
+for last; do true; done
+echo $last
+\end{verbatim}
+
+It uses the fact that for implicitly loops over the arguments if you don't tell
+it what to loop over. 
+Also,  for loop variables aren't scoped, i.e. they keep the last value they were
+set to, which is \verb!$last! in this case.
+\end{enumerate}
+
+\subsection{-- short argument without a value}
+
+\verb!getopts! is a bash built-in, but there is also an external \verb!getopt!
+program that should work with any POSIX-compatible shell.
+However, the external command getopt(1) is never safe to use, unless you know it
+is GNU getopt, you call it in a GNU-specific way.
+\url{http://wiki.bash-hackers.org/howto/getopts_tutorial}
+
+IMPORTANT: It can only parse short option (e.g. -c); but not for long option
+(e.g. --myoption).
+
+You use \verb!getopts! but don't put the colon at the end of the character
+repsenting the option.
+\begin{verbatim}
+optspect = ":abc"
+while getopts "$optspec" opt; do
+...
+\end{verbatim}
+
+\url{http://stackoverflow.com/questions/16483119/example-of-how-to-use-getopts-in-bash}
+
+\subsection{-- short argument with value}
+
+IMPORTANT: It can only parse short option (e.g. -c); but not for long option
+(e.g. --myoption).
+
+To indicate the an option as an associated value to be passed in with it, put a
+colon after the character representing the option.
+
+Example: 'a', 'b' have no values; 'c' and 'd' have the values
+\begin{verbatim}
+#!/bin/bash
+optspec=":ab:c:d:"
+while getopts ":a:" opt; do
+  case $opt in
+    a)
+      echo "-a was triggered, Parameter: $OPTARG" >&2
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+\end{verbatim}
+
+
+\subsection{-- long argument with value}
+
+There is a trick; first we use \verb!-! as the character option, and then
+continue parsing it.
+
+\begin{verbatim}
+optspec=":hv-:"
+while getopts "$optspec" optchar; do
+    case "${optchar}" in
+        -)
+            case "${OPTARG}" in
+                loglevel)
+                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+                    echo "Parsing option: '--${OPTARG}', value: '${val}'" >&2;
+                    ;;
+                loglevel=*)
+                    val=${OPTARG#*=}
+                    opt=${OPTARG%=$val}
+                    echo "Parsing option: '--${opt}', value: '${val}'" >&2
+                    ;;
+                *)
+                    if [ "$OPTERR" = 1 ] && [ "${optspec:0:1}" != ":" ]; then
+                        echo "Unknown option --${OPTARG}" >&2
+                    fi
+                    ;;
+            esac;;
+       h)
+            echo "usage: $0 [-v] [--loglevel[=]<value>]" >&2
+            exit 2
+            ;;
+    esac
+done
+\end{verbatim}
+\url{http://stackoverflow.com/questions/402377/using-getopts-in-bash-shell-script-to-get-long-and-short-command-line-options/7680682#7680682}
+\subsection{-- number of arguments}
+
+\verb!$#! returns the number of command-line input arguments passed to the
+script.
+
+\begin{verbatim}
+if [ $# -eq 0 ]
+  then
+    echo "No arguments supplied"
+fi
+
+ // or equivalent: 
+ // The -z switch will test if the expansion of "$1" is a null string or not. 
+if [ -z "$1" ]
+  then
+    echo "No argument supplied"
+fi
+\end{verbatim}
+
+
+\subsection{Integer arithmetic operations}
+
+There are different ways of doing this:
+\begin{enumerate}
+  \item We can do arithmetic operation using \verb!expr! command.
+
+\begin{verbatim}
+expr op1 math-operator op2
+\end{verbatim}
+With math-operator can be \verb!\*! (multiply), /, +, -, \% (modulus: the
+remainder).
+
+Example:
+\begin{verbatim}
+sum = $(expr 6 + 3)
+\end{verbatim}
+
+Example: we use the back-quote (found under the tilde (\~) key) to execute a
+command
+\begin{verbatim}
+x = `expr 6 + 3`
+\end{verbatim}
+
+
+   \item Put them in \verb!$(( ))!
+
+\begin{verbatim}
+x = $(( 4 + 3 ))
+
+NPROCS=4
+x = $(( $(NPROCS) + 3 ))
+\end{verbatim}
+
+Becareful, as \verb!((  ))! expects numbers, and it treats all string as 0, and
+it can happen that NPROCS gets a string value.
+
+   \item Use \verb!let! command
+\begin{verbatim}
+let x = 4 + 3
+\end{verbatim}
+\end{enumerate}
+
+
+\subsection{Boolean operations}
+
+To use in conditionals, put the expression inside \verb!(( ))!, which returns 
+0 for true (non-zero) and 1 for false
+\begin{verbatim}
+(( 4 + 3))
+\end{verbatim}
+
+
+\subsection{Float arithmetic operations}
+
+ If you need more maths power, use tools like bc/awk/dc
+
+\begin{verbatim}
+var=$(echo "scale=2;3.4+43.1" | bc)
+var=$(awk 'BEGIN{print 3.4*43.1}')
+
+awk '{printf "%.2f\n",$0/59.5}' ball_dropping_times >bull_velocities
+\end{verbatim}
+
+Example: we use pipe to direct the expression to \verb!bc! utility
+\begin{verbatim}
+echo 3 + 4 | bc
+\end{verbatim}
+
+Example:
+\begin{verbatim}
+
+#!/bin/bash
+
+for i in `cat ball_dropping_times`
+do
+echo "scale=20; $i / 59.5" | bc 
+done > ball_velocities
+\end{verbatim}
+
+\url{http://stackoverflow.com/questions/2552130/bash-evaluate-a-mathematical-term}
+\subsection{Parameter substitution}
+
+To substitute the value of a variable, and concatenate it into a given string,
+we use \verb!$(var-name)!
+\begin{verbatim}
+x = "the string $($ echo 'expr 6 + 3')"
+\end{verbatim}
+to print out ``the string 9''.
+
+
+
+
+\subsection{Loops}
+
+In BASH, we can have {\it for loop} and {\it while loop}.
+
+\begin{verbatim}
+for { variable name } in { list }
+do
+         execute one for each item in the list until the list is
+         not finished (And repeat all statement between do and done)
+done
+
+for (( expr1; expr2; expr3 ))
+do
+      .....
+			   ...
+      repeat all statements between do and 
+      done until expr2 is TRUE
+done
+\end{verbatim}
+
+E.g.:
+\begin{verbatim}
+for i in 1 2 3 4 5
+do
+echo "Welcome $i times"
+done
+\end{verbatim}
+
+E.g.:
+\begin{verbatim}
+for ((  i = 0 ;  i <= 5;  i++  ))
+do
+  echo "Welcome $i times"
+done
+\end{verbatim}
+
+
+Example:
+\begin{verbatim}
+for ((  i = 0 ;  i <= 5;  i++  ))
+do
+  echo "Welcome $i times"
+done
+\end{verbatim}
+
+NOTE: It's important to have space before and after parantheses, operator;
+semicolon. 
+
+\begin{verbatim}
+   while [ condition ]
+   do
+         command1
+         command2
+         command3
+         ..
+         ....
+   done
+\end{verbatim}
+
+E.g.:
+\begin{verbatim}
+n=$1
+i=1
+while [ $i -le 10 ]
+do
+  echo "$n * $i = `expr $i \* $n`"
+  i=`expr $i + 1`
+done
+\end{verbatim}
+
+\begin{verbatim}
+fun ()
+{ # A somewhat more complex function.
+  i=0
+  REPEATS=30
+
+  echo
+  echo "And now the fun really begins."
+  echo
+
+  sleep $JUST_A_SECOND    # Hey, wait a second!
+  while [ $i -lt $REPEATS ]
+  do
+    echo "----------FUNCTIONS---------->"
+    echo "<------------ARE-------------"
+    echo "<------------FUN------------>"
+    echo
+    let "i+=1"
+  done
+}
+\end{verbatim}
+
+\subsection{Conditional statements}
+
+\subsection{-- CASE}
+
+CASE
+\begin{verbatim}
+case  $variable-name  in
+     pattern1)   command
+          ...
+          ..
+          command;;
+     pattern2)   command
+          ...
+          ..
+          command;;
+     patternN)   command
+          ...
+          ..
+          command;;
+     *)  command
+          ...
+          ..
+          command;;
+esac
+\end{verbatim}
+
+\subsection{-- IF}
+
+It is important to understand the use of single bracket and double bracket
+(Sect.\ref{sec:single-bracket}). 
+ 
+EXAMPLE:  IF
+\begin{verbatim}
+if [ expression ]
+then
+   statement;
+fi
+
+if [ condition ] 
+then
+	statement;
+else
+	statement;
+fi
+
+if [ cond1 ]
+then
+	statement;
+elif [ cond2 ]
+then
+	statement;
+elif [ cond3 ]
+	statement;
+else
+	statement;
+fi
+\end{verbatim}
+
+For negative we use !
+\begin{verbatim}
+if ! expression
+then
+  statement
+fi
+
+if [ ! expression ]
+then
+  statement
+fi
+
+if test ! condition
+then
+   statement
+fi
+
+if [ ! condition ]
+then
+  statement
+fi
+\end{verbatim}
+
+
+If we want to put on the same line we need to use semi-colon (;)
+\begin{verbatim}
+if [ expression ]; then
+   statement;
+fi
+\end{verbatim}
+
+To deal with complicated logical expressions, we need to use \verb!(  )! or
+\verb!{ }!.
+\begin{verbatim}
+
+# we can use &&, || 
+if [ expr1 ] && [ expr2 ]
+then
+   statement;
+fi
+
+//negative of two 
+if ! ([ expr1 ] || [ expr2 ])
+then
+   statement;
+fi
+
+# more complex conditional evaluation
+if [ $a -eq 1 ] || { [ $b -eq 5 ] && [ "$c" = c ];}; then ...
+
+
+if [ "$a" = a ] || { [ "$b" = b ] && [ "$c" = c ];}; then ...
+
+\end{verbatim}
+
+
+E.g.:
+\begin{verbatim}
+if cat $1
+then
+echo -e "\n\nFile $1, found and successfully echoed"
+fi
+\end{verbatim}
+the \verb!cat! command return 0 on exit if success. 
+\begin{verbatim}
+if rm $1
+then
+echo "$1 file deleted"
+fi
+\end{verbatim}
+
+\begin{verbatim}
+if test $1 -gt 0
+then
+echo "$1 number is positive"
+fi
+
+if [ $1 -gt 0 ]
+then
+echo "$1 number is positive"
+fi
+\end{verbatim}
+
+
+\subsection{single bracket [] vs. double bracket [[ ]]}
+\label{sec:single-bracket}
+
+Bash supports either using single bracket 
+\begin{verbatim}
+[ expression ]
+\end{verbatim}
+ or double bracket 
+ \begin{verbatim}
+[[ expression(s) ]]
+ \end{verbatim}
+to represent an expression. NOTE: double bracket is an enhancement that is not
+available to all shell scripts, e.g. \verb!sh!-compatible shell. 
+
+We can also use the double brackets version [IMPORTANT: Even though [[ ]] is a
+new, improved version of [], only a few shells (bash, ksh, zsh) support. POSIX
+doesn't specify what it does]. 
+So make sure add shebang like at the beginning of the script 
+\verb-#!/bin/bash-.
+
+There are 2 main enhancements
+\begin{enumerate}
+  
+  \item we can use logical operator (\verb!&& (AND), ||! (OR) and \verb.!.
+  (NOT)) for boolean tests, and \verb!<! or \verb!>! for string comparison, such as 
+\begin{verbatim}
+
+[[ expression ]]
+
+[[ expression1 && expression2 ]]
+
+[[ expression1 || expression2 ]]
+
+\end{verbatim}
+
+NOTE: single bracket only accept operator such as \verb!-o! (OR), 
+\verb!-a! (AND).
+% Other changes are conditional evaluation (NOT recommend to use conditional
+% evaluation with [[]])
+\begin{verbatim}
+   [ ]            [[ ]]
+   &&            -a(**)
+   ||            -o(**)
+\end{verbatim}
+
+  \item  we don't have to quote the variable in double quote, i.e.
+  \verb!''$FILE''! in double brackets.
+The reason for putting the variable name inside double quote, to ensure bash can
+handle empty string, i.e. there is no value in the variable \verb!$FILE!.
+\begin{verbatim}
+// old syntax
+if [ -f "$FILE" ] ; then
+  //something
+fi
+
+// new syntax
+if [[ -f $FILE ]] ; then
+  //something
+fi
+
+if [[ -d ${DIRECTORY} && ! -L ${DIRECTORY} ]] ; then
+    echo "It's a bona-fide directory"
+fi
+
+\end{verbatim}
+
+  \item support regular expression using \verb!=~! operator, along with operators in
+C-language.\footnote{\url{http://mywiki.wooledge.org/BashFAQ/031}} 
+  
+\begin{verbatim}
+if [[ $ANSWER =~ ^y(es)?$ ]]
+
+
+// old syntax
+if [ "$ANSWER" = y -o "$ANSWER" = yes ]
+
+\end{verbatim}
+
+It has \verb!BASH_REMATCH! , which if we type \verb!yes!, then
+\begin{verbatim}
+${BASH_REMATCH[1]} would be "es" if you typed a full "yes" above
+\end{verbatim}
+
+Example: more relaxed criteria for 'yes'
+\begin{verbatim}
+if [[ $ANSWER = y* ]]
+
+
+
+[[ $name = a* ]]  // a $name starts with 'a'
+
+[[ $(date) =~ ^Fri\ ...\ 13 ]] // string start with 'Fri' and 
+\end{verbatim}
+
+\end{enumerate}
+
+
+% The main difference is that with [ ] we have to quote
+% \verb!$b!, i.e. \verb!''$b''!, while we don't have to with [[ ]]. 
+% \begin{verbatim}
+% if [[ -d "${DIRECTORY}" && ! -L "${DIRECTORY}" ]] ; then
+%     echo "It's a bona-fide directory"
+% fi
+% 
+% if [[ -e "$file" ]]; then
+%    do_something
+% fi
+% \end{verbatim}
+% [[ ]] also has some nice features, e.g. regular expression matching by using
+% \verb!=~!, along with operators in
+% C-language.\footnote{\url{http://mywiki.wooledge.org/BashFAQ/031}} Pattern
+% matching is available with [[ ]].
+% \begin{verbatim}
+% [[ $name = a* ]]  // a $name starts with 'a'
+% 
+% [[ $(date) =~ ^Fri\ ...\ 13 ]] // string start with 'Fri' and 
+% \end{verbatim}
+
+
+\subsection{parentheses () vs. curly braces (\{ \})}
+
+
+\begin{verbatim}
+()
+
+( list )
+Placing a list of commands between parentheses causes a subshell environment to be created, 
+and each of the commands in list to be executed in that subshell. 
+Since the list is executed in a subshell, variable assignments do not remain in effect after the subshell completes.
+
+
+{}
+
+{ list; }
+Placing a list of commands between curly braces causes the list to be executed in the current shell context. 
+No subshell is created. The semicolon (or newline) following list is required.
+\end{verbatim}
+
+So, code in \verb!'{}'! is executed in the current thread/process/environment
+and changes are preserved, so any modification of the variable will affect the
+global context of the same variable name.
+
+We often use curly brace to define the funciton's body; but again, we can also
+use the parentheses as well.
+\begin{verbatim}
+// context 1
+count_tmp() { cd /tmp; files=(*); echo "${#files[@]}"; }
+
+// context 2 (though un-usual, as any change disappears after the completion of
+//           function)
+count_tmp() (cd /tmp; files=(*); echo "${#files[@]}")
+\end{verbatim}
+
+
+\subsection{Ternary operator}
+
+Suppose you want something like
+\begin{verbatim}
+int a = (b == 5) ? c : d;
+\end{verbatim}
+
+Just for numeric comparison and assignment, you can do
+\begin{verbatim}
+(( a = b==5 ? c : d )) # string + numeric
+\end{verbatim}
+If will gives unpredictable result if we use it for string comparison, as the 
+\verb!(( ))! treats any/all strings as zero.
+
+In bash, you can do
+\begin{verbatim}
+a=$([ "$b" == 5 ] && echo "$c" || echo "$d")
+
+// or  
+  // yet watch out this construct, as the part after ||
+  // also runs when part between && and || fails.
+[[ $b = 5 ]] && a="$c" || a="$d"
+\end{verbatim}
+
+
+\url{http://stackoverflow.com/questions/3953645/ternary-operator-in-bash}
+
+\subsection{Comparisons}
+
+\subsection{-- Integer comparison}
+
+NOTE: white-space is important before and after the operator, and for variable
+substition we need to put them between double quotes (``'').
+
+\begin{verbatim}
+if [ "$a" -eq "$b" ]
+
+-ne
+-gt
+-ge
+-lt
+-le
+\end{verbatim}
+or use within double parentheses
+\begin{verbatim}
+(("$a" < "$b"))
+
+<
+<=
+>
+>=
+\end{verbatim}
+
+\subsection{-- compare 2 string (igore trailing blank spaces)}
+
+\begin{verbatim}
+[[ $list =~ (^|[[:space:]])"$x"($|[[:space:]]) ]] && echo 'yes' || echo 'no' 
+\end{verbatim}
+
+\url{http://stackoverflow.com/questions/8063228/how-do-i-check-if-a-variable-exists-in-a-list-in-bash}
+
+\subsection{String comparison}
+
+We use ==, \verb.!=., <, > to compare two string. 
+Read Sect.\ref{sec:single-bracket} to understand if single bracket or double
+bracket is used, which may affect the way we do string comparison.
+
+IMPORTANT: In single bracket, we need to put the user-defined variable within
+double quotes (`` '').
+
+\begin{verbatim}
+[[ $a == z* ]]   # True if $a starts with an "z" (pattern matching).
+[[ $a == "z*" ]] # True if $a is equal to z* (literal matching).
+
+[ $a == z* ]     # File globbing and word splitting take place.
+[ "$a" == "z*" ] # True if $a is equal to z* (literal matching).
+\end{verbatim}
+
+
+NOTE: white-space is important before and after the operator in single bracket
+\begin{verbatim}
+if [ "$a" == "$b" ]
+
+== 
+!=
+\end{verbatim}
+and check for null string (zero-length) with \verb!-z!. 
+\begin{verbatim}
+String=''   # Zero-length ("null") string variable.
+
+if [ -z "$String" ]
+then
+  echo "\$String is null."
+else
+  echo "\$String is NOT null."
+fi     # $String is null.
+\end{verbatim}
+and not null with \verb!-n!
+\begin{verbatim}
+
+\end{verbatim}
+
+Special cases: for < and >
+\begin{verbatim}
+<   (using ASCII alphabetical order)
+if [[ "$a" < "$b" ]]
+if [ "$a" \< "$b" ]
+
+if [[ "$a" > "$b" ]]
+
+if [ "$a" \> "$b" ]
+\end{verbatim}
+
+
+
+
+\subsection{Exit a script}
+
+
+We use \verb!exit! command, with a return-code.
+\begin{verbatim}
+# success
+exit 0
+
+# failure -> return a non-zero value
+status_code = 3
+exit status_code
+
+# [default] exit using status code of the last command
+exit $?
+\end{verbatim}
+
+NOTE: \verb!$?! contains the error code of the last command, including the
+called script.
+
+\subsection{Output}
+
+The default output is to the terminal. To check the output later, we can
+redirect it to a file. There are two options: (1) append to the end of the file,
+(2) clean the file and add data to it. 
+\begin{enumerate}
+  \item Use \verb!>!
+  \item Use \verb!>>!
+\end{enumerate}
+
+We can also pipeline the output to another command using \verb!|!
+\begin{verbatim}
+command_1  |   command_2
+\end{verbatim}
+
+If we don't want the output to be printed out, we can redirect it to the NULL
+device.
+\begin{verbatim}
+command > /dev/null
+\end{verbatim}
+
+\section{-- Function}
+\label{sec:bash_function}
+
+\begin{verbatim}
+function function_name { 
+command... 
+} 
+\end{verbatim}
+or
+\begin{verbatim}
+function_name () { 
+command... 
+} 
+\end{verbatim}
+
+To write a single-line function, we need to end each statement, including
+the last one, with a semi-colon.
+\begin{verbatim}
+fun () { echo "This is a function"; echo; }
+\end{verbatim}
+
+NOTE: The function definition must precede the first call to it. A function
+cannot be empty, even if it has some comments.
+
+\subsection{Function inside function}
+
+A function can be defined inside another one. We can also call it from outside,
+after it has been evoked. However, using function-enclosing is not a good way.
+\begin{verbatim}
+f1 ()
+{
+
+  f2 () # nested
+  {
+    echo "Function \"f2\", inside \"f1\"."
+  }
+
+}  
+
+f2  #  Gives an error message.
+    #  Even a preceding "declare -f f2" wouldn't help.
+
+echo    
+
+f1  #  Does nothing, since calling "f1" does not automatically call "f2".
+f2  #  Now, it's all right to call "f2",
+    #+ since its definition has been made visible by calling "f1".
+
+    # Thanks, S.C.
+\end{verbatim}
+
+\subsection{Parameters}
+
+The parameters passed to a function is detected as \verb.$1., \verb.$2.
+
+When calling a function, we pass argument without using parentheses
+\begin{verbatim}
+//wrong
+func_name("arg1")
+
+
+//correct
+func_name "arg1"
+\end{verbatim}
+
+\subsection{Zero length parameters}
+
+\begin{verbatim}
+#!/bin/bash
+# Functions and parameters
+
+DEFAULT=default                             # Default param value.
+
+func2 () {
+   if [ -z "$1" ]                           # Is parameter #1 zero length?
+   then
+     echo "-Parameter #1 is zero length.-"  # Or no parameter passed.
+   else
+     echo "-Param #1 is \"$1\".-"
+   fi
+
+   variable=${1-$DEFAULT}                   #  What does
+   echo "variable = $variable"              #+ parameter substitution show?
+                                            #  ---------------------------
+                                            #  It distinguishes between
+                                            #+ no param and a null param.
+
+   if [ "$2" ]
+   then
+     echo "-Parameter #2 is \"$2\".-"
+   fi
+
+   return 0
+}
+
+echo
+   
+echo "Nothing passed."   
+func2                          # Called with no params
+echo
+
+
+echo "Zero-length parameter passed."
+func2 ""                       # Called with zero-length param
+echo
+
+echo "Null parameter passed."
+func2 "$uninitialized_param"   # Called with uninitialized param
+echo
+
+echo "One parameter passed."   
+func2 first           # Called with one param
+echo
+
+echo "Two parameters passed."   
+func2 first second    # Called with two params
+echo
+
+echo "\"\" \"second\" passed."
+func2 "" second       # Called with zero-length first parameter
+echo                  # and ASCII string as a second one.
+
+exit 0
+\end{verbatim}
+
+\section{-- Script power}
+
+\subsection{Wait 4 User-input}
+\label{sec:User_input}
+
+We can
+read-in one
+or a few
+``word" input
+using\url{http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_08_02.html}
+\begin{verbatim}
+read [options] NAME1 NAME2 ... NAMEN
+\end{verbatim}
+Typically, the delimiter for input data is a new line. However, we can change to
+using comma, semi-colon, or whatever it is using -d DELIM option
+
+
+\begin{verbatim}
+#!/bin/bash
+# This script will test if you have given a leap year or not.
+
+echo "Type the year that you want to check (4 digits), followed by [ENTER]:"
+
+read year
+
+if (( ("$year" % 400) == "0" )) || (( ("$year" % 4 == "0") && ("$year" % 100 !=
+"0") )); then
+  echo "$year is a leap year."
+else
+  echo "This is not a leap year."
+fi
+
+michel ~/test> leaptest.sh
+Type the year that you want to check (4 digits), followed by [ENTER]:
+2000
+2000 is a leap year.
+\end{verbatim}
+
+
+
+
+\subsection{Using wildcard in script argument}
+
+We cannot use wildcard (*) in passing to script as argument, e.g.
+\begin{verbatim}
+myscript path/to/data*
+\end{verbatim}
+The reason is that when the script is launched, the bash shell has already
+expanded the wildcard, i.e. using the first item in the list of data returned by
+expanding the wildcard.
+
+To avoid expansion of characters (\verb.*, ?,. and \verb.[.), we can run bash
+with the -f switch
+\begin{verbatim}
+bash -f -c 'ls *'
+\end{verbatim}
+However, this is inconvenient. A work-around solution is to quote parameters
+with ' and '. 
+\begin{verbatim}
+
+\end{verbatim}
+
+
+
+\section{-- String - Numbers}
+
+\subsection{Read a number}
+
+To make sure an input string is digits
+\begin{verbatim}
+while [[ $(echo -n ${inputNo} | wc -c) -lt 2 ]] ; do inputNo="0${inputNo}"; done
+\end{verbatim}
+
+\subsection{Numerical string of given length}
+
+We can make a string of number with a given length, by adding 0 in the front.
+\begin{verbatim}
+export inputNo=5   ; inputNo=$(printf "%02d" $inputNo) ; echo $inputNo
+05
+\end{verbatim}
+
+\url{http://stackoverflow.com/questions/1898712/make-sure-int-variable-is-2-digits-long-else-add-0-in-front-to-make-it-2-digits}
+
+
+\subsection{Trim a string}
+
+We can use the command \verb!sed -e 's/^ *//g' -e 's/!
+\begin{verbatim}
+machinename=`hostname`; machiname=`echo $machinename | sed -e 's/^ *//g' -e 's/
+          *$//g'` ; echo $machinename ; IF [ $machiname == 'leak' ];; then 
+          echo "machine detected; else echo "machine not detected"; fi
+\end{verbatim}
+
+\section{-- File/Folder}
+
+Each file (folder) has three information about time
+\begin{verbatim}
+    atime - the time the file was last accessed (e.g. read)
+    mtime - the time the file contents were last modified (e.g. appended to)
+    ctime - time of last change to the file contents or the file meta-data (e.g. permissions change).
+\end{verbatim}
+The \verb!ls -l! command gives the mtime information. 
+
+
+\subsection{Check file/folder existence}
+
+IMPORTANT: The variable name must be wrapped by double quotes 
+
+To check the existence of a folder
+\begin{verbatim}
+//folder
+if [ -d "$DIRNAME" ]
+then
+	//do something
+fi
+
+
+//file
+if [ -f $FILENAME ]
+then
+	//do something
+fi
+\end{verbatim}
+
+If you want to check for the present of a binary file, e.g. executable file in a
+given PATH, use one of this
+\begin{verbatim}
+$ command -v foo >/dev/null 2>&1 || { echo >&2 "I require foo but it's not installed.  Aborting."; exit 1; }
+$ type foo >/dev/null 2>&1 || { echo >&2 "I require foo but it's not installed.  Aborting."; exit 1; }
+$ hash foo 2>/dev/null || { echo >&2 "I require foo but it's not installed.  Aborting."; exit 1; }
+
+
+Example:
+    if hash gdate 2>/dev/null; then
+        gdate "$@"
+    else
+        date "$@"
+    fi
+\end{verbatim}
+IMPORTANT: DO NOT use \verb!which! command, as many operating systems have a
+which that doesn't even set an exit status.
+\url{http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script}
+
+But if it's a symbolic link, then you may consider
+\begin{verbatim}
+if [ -d "$LINK_OR_DIR" ]; then 
+  if [ -L "$LINK_OR_DIR" ]; then
+    # It is a symlink!
+    # Symbolic link specific commands go here.
+    rm "$LINK_OR_DIR"
+  else
+    # It's a directory!
+    # Directory command goes here.
+    rmdir "$LINK_OR_DIR"
+  fi
+fi
+\end{verbatim}
+
+\subsection{Get the creation time}
+
+We use \verb!stat! command
+\begin{verbatim}
+stat -c %y filename
+\end{verbatim}
+
+\subsection{Get the folder with latest update}
+
+Suppose that you have multiple folders, and you want to return the folder that
+has the lastest change from its content, then you should do
+
+\begin{verbatim}
+NOTE: Here we only check folder 
+ls Atrial_GPU_rogueRyR_0.* -d | xargs -I{} find {} -printf "%T+ %p\n" | sort -nr | head -n 1
+
+
+
+NOTE: This is better as we check all the files
+
+find Atrial_GPU_rogueRyR_0.* -type f 
+    | xargs -I{} find {} -printf "%T+ %p\n" | sort -nr | head -n 1
+    
+    
+    
+NOTE: If we want full filepath, we use
+
+find Atrial_GPU_rogueRyR_0.* -type f | xargs -I{} readlink -f {} |
+    | xargs -I{} find {} -printf "%T+ %p\n" | sort -nr | head -n 1
+          
+\end{verbatim}
+The first part list all folders you want to check, and then using 
+\verb!xargs! to pass each line (containing the folder name) to the next
+commands. The command \verb!find {}! find all the files/folders inside this
+folder, and then extract the associated properties of the files/folders. 
+The command \verb!-printf! can extract many useful information from
+the file (Sect.\ref{sec:extract_information_printf}). What we need here is the
+date of latest change (\verb!%T+!) and the full path (\verb!%p!).
+
+\subsection{Get file/folder associated properties (find -printf)}
+\label{sec:extract_information_printf}
+
+
+There are many informations associated with a file/folder (e.g. creation date,
+date of latest change, fullpath, \ldots), then we need to use the \verb!-printf!
+option of the \verb!find! command
+
+\begin{verbatim}
+find <filename> -printf "%T+ %p %f \n"
+\end{verbatim}
+We use \verb!-printf! to print out the information we extract (NOTE: It
+interpret \verb!\! as escape and \verb!%! as directives). The precision is used
+the same  as \verb!printf! C function.
+Below are some
+directives and escape characters:
+
+\begin{itemize}
+  \item \verb!%c!: the creation time
+  \item \verb!%T+!: the time of last modified (\verb!%Tk! with $k$ is the
+   format)
+  \item \verb!%f!: the filename
+  \item \verb!%p!: the fullpath
+  \item \verb!%F!: display filesystem (e.g. nfs, fat32)
+  \item \verb!%s!: display filesize
+  \item \verb!\n!: add NEWLINE to the end
+\end{itemize}
+More information: \url{http://linux.about.com/od/commands/l/blcmdl1_find.htm}
+
+\subsection{Rename multiple files}
+
+We use \verb!rename! command.
+\begin{verbatim}
+rename 's/ABC/XYZ/' *.dat
+\end{verbatim}
+
+Pad a number in filename to a fixed length
+\begin{verbatim}
+file.1.png
+file.2.png
+...
+file.10.png
+...
+file.1000.png
+file.1001.png
+\end{verbatim}
+to
+\begin{verbatim}
+file.0001.png
+file.0002.png
+...
+file.0010.png
+...
+file.1000.png
+file.1001.png
+\end{verbatim}
+We do
+\begin{enumerate}
+  
+  \item The basic thing
+\begin{verbatim}
+rename 'file.' 'file.000' file.?.png
+rename 'file.' 'file.00' file.??.png
+rename 'file.' 'file.0' file.???.png
+\end{verbatim}
+
+  \item Check for existence before rename file as well 
+\begin{verbatim}
+for f in *.png; do
+    int=`basename $f .png | cut -d '.' -f 2`
+    new_name=`printf "file.%0.4i.png\n" $int`
+    [ ! -f $new_name ] && mv $f $new_name
+done
+\end{verbatim}
+
+  \item No check for file existence
+\begin{verbatim}
+for f in *.png
+do
+   foo='0000'${f#file.} #remove "file." and prepend 0000
+   foo=${foo:(-8)} #last eight characters
+   echo mv $f file.$foo   
+done
+\end{verbatim}
+
+  \item A simple trick is start counting at 10001 
+\begin{verbatim}
+for x in file.*.png; do
+  n=${x%.*}; n=${n##*.}
+  n=$((n + 10000))
+  mv "$x" "${x%.*.*}.${n#1}.${x##*.}"
+done
+\end{verbatim}
+
+ \item In zsh, we can use \verb!zmv!
+\begin{verbatim}
+setopt extended_glob
+autoload zmv
+zmv '(file).([0-9]##).(png)' '$1.${(l:4::0:)2}.$3'
+\end{verbatim}
+
+  \item User Perl
+\begin{verbatim}
+ls -1 file.*.png | perl -ne
+'chomp;($n=$_)=~s/(\d+)/sprintf"%04d",$1/ge;rename$_,$n'
+\end{verbatim}
+
+More complicate is to avoid renaming file if there is existing one
+\begin{verbatim}
+ls -1 | perl -ne 'chomp;($n=$_)=~s/(\d+)/sprintf"%04d",$1/ge;
+  rename$_,$n if$_% ne$n&&!-f$n'
+\end{verbatim}
+
+Or we can avoid using loop, and substitute with \verb!sed! command
+\begin{verbatim}
+ls -1 file.*.png | sed -r
+'/[0-9]{4}/d;h;:p;/[0-9]{4}/!s/([0-9]{1,3})/0\1/;tp;G;s/(.+)\n(.+)/mv \2 \1/' | sh
+\end{verbatim}
+\end{enumerate}
+\url{http://unix.stackexchange.com/questions/21425/padding-a-number-in-a-filename-to-a-fixed-length}
+\subsection{Extract column from a file}
+
+Here we work with individual characters
+\begin{enumerate}
+  \item Extract a single character at a given column, at each line
+\begin{verbatim}
+cut -c2 file.txt //column 2nd
+\end{verbatim}
+   \item Extract a number of characters in a column-range, at each line
+\begin{verbatim}
+cut -c2-5 file.txt
+\end{verbatim}   
+
+If column 5-th to end of line
+\begin{verbatim}
+cut -c5- file.txt
+\end{verbatim}
+
+If begining of line to column 5-th
+\begin{verbatim}
+cut -c-5 file.txt
+\end{verbatim} 
+\end{enumerate}
+
+Here, we work with fields, we combine option \verb!-f! (field index) and
+\verb!-d! (field delimiter).
+\begin{enumerate}
+   \item Extract a specific field
+\begin{verbatim}
+cut -d':' -f1 file.txt
+\end{verbatim}   
+
+   Extract fields (1st-6th) from lines containing ``/bin/bash''
+\begin{verbatim}
+grep "/bin/bash" /etc/passwd | cut -d':' -f1,6
+\end{verbatim}   
+
+The problem is that if the line doesn't contain the delimiter, then it just
+print out the whole line. To avoid that, we need to pass \verb!-s! option (to
+filter out only lines containing the delimiter)
+\begin{verbatim}
+grep "/bin/bash" /etc/passwd | cut -d'|' -s -f1
+\end{verbatim}
+
+   \item Extract the compliment field, e.g. extract all fields except some of
+   given fields, we use \verb!--complement! option
+\begin{verbatim}
+grep "/bin/bash" /etc/passwd | cut -d':' --complement -s -f7
+\end{verbatim}   
+
+
+   \item If we extract multiple fields, the delimiter is still the same as the
+   input. However, if we want to use a different delimiter for the output, we
+   use \verb!--output-delimiter! option
+\begin{verbatim}
+grep "/bin/bash" /etc/passwd | cut -d':'  -s -f1,6,7 --output-delimiter='#'
+
+//use newline
+grep bala /etc/passwd | cut -d':' -f1,6,7 --output-delimiter=$'\n'
+\end{verbatim}   
+
+\end{enumerate}
+
+Example:
+\begin{verbatim}
+ps axu | grep python | sed 's/\s\+/ /g' | cut -d' ' -f2,11-
+\end{verbatim}
+
+
+NOTE: If you want to use space as delimiter, and there can be multiple
+whitespaces between field, then we can squeeze them by removing duplicated
+whitespace first using \verb!tr! command
+\begin{verbatim}
+ps | egrep 11383 | tr -s ' ' | cut -d ' ' -f 4
+\end{verbatim}
+
+
+Other than using \verb!cut! command, we can use \verb!awk! command
+\begin{verbatim}
+echo "11383 pts/1    00:00:00 bash" | awk '{ print $4; }'
+//print 'bash' out
+
+var=`awk '{getline;print $1;exit}' file`
+
+vari=`awk -F"," 'NR==2{print $1}' filename` 
+\end{verbatim}
+
+If we check \verb!ps! command
+\begin{verbatim}
+  PID TTY          TIME CMD
+11383 pts/1    00:00:00 bash
+11771 pts/1    00:00:00 ps
+\end{verbatim}
+
+We want to extract the command line of a given PID
+\begin{verbatim}
+ps | awk "\$1==$PID{print\$4}"
+
+ps | awk -v"PID=$PID" '$1=PID{print$4}'
+
+readlink /proc/$PID/exe
+
+xargs -0n1 </proc/$PID/cmdline | head -n1
+
+set $(ps | egrep "^11383 "); echo $4
+
+A=( $(ps | egrep "^11383 ") ) ; echo ${A[3]}
+
+ps |&
+while read -p first second third fourth etc ; do
+   if [[ $first == '11383' ]]
+   then
+       echo got: $fourth
+   fi       
+done
+\end{verbatim}
+
+\subsection{Extract a line}
+\label{sec:extract_line}
+
+We can extract the first few lines using \verb!head -n!
+
+\begin{verbatim}
+line1=`head -n 1`
+section=`head -n 10` #10 lines
+\end{verbatim}
+
+We can extract the last few lines using \verb!tail -n!
+
+\begin{verbatim}
+line1=`tail -n 1`
+\end{verbatim}
+
+Extract lines within a range of row indices, e.g. from line number 14 to 25.
+Here 1-indexed based system
+\begin{verbatim}
+;; it scans still the end of file, which is not good for VERY large file
+sed -n 14,25p filename > output
+
+;; work BETTER for VERY large file: add a quit command on the next line
+sed -n '14,25p;26q' filename > output
+\end{verbatim}
+\verb!-n! option to suppresses echoing the input as output. The command \verb!p!
+prints out the relevant lines. We can also use
+\begin{verbatim}
+awk 'NR>=14&&NR<=25' filename > output
+\end{verbatim}
+with \verb!NR! means row index.
+
+Extract lines matching a pattern, e.g. pattern is 'GAIN'
+\begin{verbatim}
+grep 'GAIN' filename > output
+\end{verbatim}
+
+\subsection{Extract columns}
+
+After extracting lines (Sect.\ref{sec:extract_line}), you can extract the column
+(1st, 2nd, etc.). The default delimiter is space \verb!' '!
+\begin{verbatim}
+;; <tab> is the delimiter
+awk -F"\t" '{if ($1) print $1}' input.txt
+
+;; extract the 
+ls -l | awk '{ print $9; }' 
+\end{verbatim}
+
+\subsection{Size of a string/file}
+\label{sec:size_in_bytes}
+
+
+To know the size in bytes of a given string, or a few lines in a file, we can
+use  \verb!wc -c!
+\begin{verbatim}
+tail -n 2 file1 | wc -c
+
+\end{verbatim}
+
+NOTE: To use word count, \verb!wc -w!. To use line count \verb!wc -l!. To detect
+the length of the longest line among the lines \verb!wc -L!.
+
+\subsection{Sort based on values in columns}
+
+The \verb!sort! command can sort any field (white-space is the delimiter by
+default, we can use a different one by specifying \verb!-t! option). By default
+it use string comparison, but we can specify number comparison with \verb!-n!
+option. Example: a file, each line with 8 fields, with semi-colon (;) as
+delimiter, we want to sort based on first 4 fields (using number comparison) in
+the order first-field then second then third then fourth
+\begin{verbatim}
+sort -t\; -k 1,1n -k 2,2n -k 3,3n -k 4,4n test.txt
+\end{verbatim}
+The option \verb!-k=POS1[,POS2]! defines the starting and end position. NOTE:
+The semi-colon need to be escaped, i.e. \verb!\;! to avoid end-of-line
+interpration by the shell.
+
+Example: sort the first field, then sort on the fourth field (use
+\verb!-s! (or --stable) to tell that ties on the fourth field are determined by
+the initial position)
+\begin{verbatim}
+sort -k1,1 bigfile | sort --stable -n -k4,4
+\end{verbatim}
+
+\begin{framed}
+NOTE: \verb!sort! doesn't need to put everything into memory, but Perl needs to
+put the data into memory. So, using \verb!sort! is faster for very large input
+files.
+\end{framed}
+
+Sort the last field
+\begin{enumerate}
+  \item  We can use Perl, just pipe the list of lines into this.
+\begin{verbatim}
+perl -e "print sort {(split '/', $a)[-1] <=> (split '/', $b)[-1]} <>"
+\end{verbatim}
+  
+  \item AWK
+\begin{verbatim}
+awk '{print $NF"|"$0}' file | sort -t"|" -k1 | awk -F"|" '{print $NF }'
+\end{verbatim}
+
+  \item We can reverse the order of the last and first field, sort the 'new'
+  first field, and then reverse the first and last field again
+\begin{verbatim}
+//reverse first and last field
+perl -lne 'print join " ", reverse split / /'
+\end{verbatim}
+We can use \verb!/ +/! instead of \verb!/ /! so it squeezes spaces
+
+  \item copy the last field to the beginging, separated with whitespace
+  (default), sort with the new first field, and then remove this first field
+\begin{verbatim}
+awk '{print $NF,$0}' file | sort | cut -f2- -d' '
+\end{verbatim}
+or
+\begin{verbatim}
+find "$@" -maxdepth 1 -name "[0-9]*" -printf '%f/%p\n' | sort -t / | 
+       cut -f2-% -d/
+\end{verbatim}
+
+  \item Use Ruby
+\begin{verbatim}
+#!/usr/bin/ruby
+
+f = ARGF.read
+lines = f.lines
+
+broken = lines.map {|l| l.split(/:/) }
+
+sorted = broken.sort {|a, b|
+    a[-1] <=> b[-1]
+}
+
+fixed = sorted.map {|s| s.join(":") }
+
+puts fixed
+\end{verbatim}
+\end{enumerate}
+
+\subsection{String with special characters}
+
+We can print out the string that contain special characters, and can recognize
+them
+\begin{verbatim}
+LINE1="abc"
+LINE2="cdf"
+LINE3="fdg"
+
+MYSTRING = ${LINE1}'\n'${LINE2}'\n'${LINE3}
+
+echo -e ${MYSTRING}
+\end{verbatim}
+The special characters that can be recognized are
+\begin{itemize}
+  \item \verb!\ONNN! the character whose ASCII code is NNN (octal)
+  \item \verb!\\!  backslash
+  \item \verb!\a! alert
+  \item \verb!\b! backspace
+  \item \verb!\c! suppress trailing newline
+  \item \verb!\n! newline  (move the cursor down - LF)
+  \item \verb!\r! carriage return  (move the cursor to the begining of the line
+  - CR)
+  
+NOTE: move the cursor down/to the left is the mechanism of printer in text mode.
+Most printers (PCL or Postscripts) still respect CR and LF. 
+In Java, best practice, to use native line ending, it is suggested to call
+\verb!System.getProperty("line.separator")! which is OS-independent.
+
+  \item \verb!\t! horizontal tab
+  \item \verb!\v! vertical tab
+\end{itemize}
+
+\subsection{Symbolic link}
+
+\begin{enumerate}
+  \item \verb!readlink <arg>! return the names of the symbolic link linking to <arg>
+  \item \verb!-L! to test if a file is symbolic link 
+\end{enumerate}
+
+\begin{verbatim}
+if [[ -L a.c ]] && [[ "$(readlink a.c)" = "b.c" ]] ; then 
+ echo "a.c is a link to b.c";
+fi
+\end{verbatim}
+
+\subsection{Delete}
+
+If you want to delete all, except one or a few files, you do
+\begin{verbatim}
+ls * | grep -v file_not_delete | xargs rm -rf
+
+// or enable external feature (bash)
+shopt -s extglob
+rm !(f1)
+
+// in ksh
+rm !(f1)
+
+// in zsh
+rm ^f1
+\end{verbatim}
+with \verb!f1! is the name of file NOT to delete.
+
+\subsection{Replace/substitute characters in a file/string}
+
+To do character substitution, we can either use \verb!tr! or \verb!sed!
+(Sect.\ref{sec:sed}) utilitites.
+\begin{verbatim}
+// replace '+' with white-space
+echo This+is+test+for+tr+and+sed |tr '+' ' '
+
+echo This+is+test+for+tr+and+sed |sed 's/\+/ /g'
+\end{verbatim}
+
+\verb!tr! utility translate/squeeze/delete characters from input, i.e.
+character-based transformation.
+\verb!sed! is a stream editor that performa basic text transformations on the
+input stream, i.e. string-based transformation.
+
+\begin{verbatim}
+// if you put 2 strings (of the same length)
+// tr will do one-by-one substitution
+// e.g. g -> t, o -> e, o->s, d->t
+
+echo I am a good boy | tr 'good' 'test'
+
+I am a tsst bsy
+\end{verbatim}
+
+
+
+\subsection{Remove the last few lines in an EXTREMELY LARGE file}
+
+SIMPLEST: We just extract the first (N-2) lines with N is the
+total number of lines and redirect to another file
+\begin{verbatim}
+head -n -2 file1 > file2
+\end{verbatim}
+However, if the file size is EXTREMELY LARGE, e.g. can be 400 GB, the entire
+file to be fed through a pipe and rewriting all data to a new location.
+
+FATEST AND NEED ASSUMPTION: You need to know how many bytes to be removed
+(Sect.\ref{sec:size_in_bytes}), given the number of characters in the last 2
+lines, for example 160 bytes, then this is the fastest as it modifies the file in-place
+\begin{verbatim}
+truncate --size=-160 file1
+\end{verbatim}
+NOTE: \verb!truncate! shrinks or extends the file size to the specified size. By
+default (unit is byte), but you can use suffixes: KB (1000), K (1024), MB
+(1000*1000), M (1024*1024), and similarly for G, T, P, E, Z, Y. The prefixes:
+(-) reduce by, (+) extend by, (<) at most, (>) at least, (/) round down to
+multiple of, (\%) round up to multiple of. 
+
+BETTER: A Python code can do it
+\begin{verbatim}
+./shorten.py 2 large_file.txt
+\end{verbatim}
+\url{http://superuser.com/questions/127786/how-to-remove-the-last-2-lines-of-a-very-large-file}
+
+The code:\textcolor{red}{Python 2.4}
+\begin{verbatim}
+#!/usr/bin/env python2.4
+
+import sys
+
+if len(sys.argv) != 3:
+    print sys.argv[0] + ": Invalid number of arguments."
+    print "Usage: " + sys.argv[0] + " linecount filename"
+    print "to remove linecount lines from the end of the file"
+    sys.exit(2)
+
+number = int(sys.argv[1])
+file = sys.argv[2]
+count = 0
+SEEK_CUR = 1
+SEEK_END = 2
+
+f = open(file,'r+b')
+f.seek(0, SEEK_END)
+end = f.tell()
+
+while f.tell() > 0:
+    f.seek(-1, SEEK_CUR)
+    char = f.read(1)
+    if char != '\n' and f.tell() == end:
+        print "No change: file does not end with a newline"
+        f.close()
+        sys.exit(1)
+    if char == '\n':
+        count += 1
+    if count == number + 1:
+        f.truncate()
+        print "Removed " + str(number) + " lines from end of file"
+        f.close()
+        sys.exit(0)
+    f.seek(-1, SEEK_CUR)
+
+if count < number + 1:
+    print "No change: requested removal would leave empty file"
+    f.close()
+    sys.exit(3)
+\end{verbatim}
+
+
+The code:\textcolor{red}{Python 2.5/2.6}
+\begin{verbatim}
+#!/usr/bin/env python2.5
+from __future__ import with_statement
+# also tested with Python 2.6
+
+import os, sys
+
+if len(sys.argv) != 3:
+    print sys.argv[0] + ": Invalid number of arguments."
+    print "Usage: " + sys.argv[0] + " linecount filename"
+    print "to remove linecount lines from the end of the file"
+    exit(2)
+
+number = int(sys.argv[1])
+file = sys.argv[2]
+count = 0
+
+with open(file,'r+b') as f:
+    f.seek(0, os.SEEK_END)
+    end = f.tell()
+    while f.tell() > 0:
+        f.seek(-1, os.SEEK_CUR)
+        char = f.read(1)
+        if char != '\n' and f.tell() == end:
+            print "No change: file does not end with a newline"
+            exit(1)
+        if char == '\n':
+            count += 1
+        if count == number + 1:
+            f.truncate()
+            print "Removed " + str(number) + " lines from end of file"
+            exit(0)
+        f.seek(-1, os.SEEK_CUR)
+
+if count < number + 1:
+    print "No change: requested removal would leave empty file"
+    exit(3)
+\end{verbatim}
+
+\textcolor{red}{Python 3.0}
+\begin{verbatim}
+#!/usr/bin/env python3.0
+
+import os, sys
+
+if len(sys.argv) != 3:
+    print(sys.argv[0] + ": Invalid number of arguments.")
+    print ("Usage: " + sys.argv[0] + " linecount filename")
+    print ("to remove linecount lines from the end of the file")
+    exit(2)
+
+number = int(sys.argv[1])
+file = sys.argv[2]
+count = 0
+
+with open(file,'r+b', buffering=0) as f:
+    f.seek(0, os.SEEK_END)
+    end = f.tell()
+    while f.tell() > 0:
+        f.seek(-1, os.SEEK_CUR)
+        print(f.tell())
+        char = f.read(1)
+        if char != b'\n' and f.tell() == end:
+            print ("No change: file does not end with a newline")
+            exit(1)
+        if char == b'\n':
+            count += 1
+        if count == number + 1:
+            f.truncate()
+            print ("Removed " + str(number) + " lines from end of file")
+            exit(0)
+        f.seek(-1, os.SEEK_CUR)
+
+if count < number + 1:
+    print("No change: requested removal would leave empty file")
+    exit(3)
+\end{verbatim}
+
+\subsection{Look for 'n' largest files}
+
+Here we look for the first 200 largest files, with size over 1,000,000 bytes
+\begin{verbatim}
+find /usr/pcapps/ -mount -type f -size +1000000c | perl -lpe ' s{ }{\\ }g ' |
+   xargs ls -l | sort +4nr | head -200
+\end{verbatim}
+NOTE: \verb!head -200! is first 200 files, and \verb!-size +1000000c! is the
+minimum size.
+
+\subsection{List folders only}
+
+\begin{verbatim}
+ls -al | grep '^d'
+\end{verbatim}
+The above method display in the following format and includes both the
+\verb!.! and \verb!..! folder
+\begin{verbatim}
+drwxr-xr-x 24 hadoop hadoop   4096 Dec  5 13:19 .
+drwxr-xr-x 31 hadoop hadoop   4096 Dec  5 13:16 ..
+drwxr-xr-x  4 hadoop hadoop   4096 Nov 14 15:58 bin
+drwxr-xr-x  2 hadoop hadoop   4096 Nov 14 15:58 conf
+drwxr-xr-x  4 hadoop hadoop   4096 Nov 14 15:58 dev-support
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:52 hbase-annotations
+drwxr-xr-x  3 hadoop hadoop   4096 Dec  5 13:19 hbase-assembly
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:52 hbase-checkstyle
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:52 hbase-client
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:52 hbase-common
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:41 hbase-examples
+drwxr-xr-x  3 hadoop hadoop   4096 Nov 14 19:00 hbase-hadoop1-compat
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:52 hbase-hadoop2-compat
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:52 hbase-hadoop-compat
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  4 14:23 hbase-it
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:52 hbase-prefix-tree
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:52 hbase-protocol
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:41 hbase-rest
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  5 10:43 hbase-server
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:52 hbase-shell
+drwxr-xr-x  3 hadoop hadoop   4096 Dec  3 16:52 hbase-testing-util
+drwxr-xr-x  4 hadoop hadoop   4096 Dec  3 16:41 hbase-thrift
+drwxr-xr-x  3 hadoop hadoop   4096 Dec  2 20:05 src
+drwxr-xr-x  3 root   root     4096 Dec  3 16:54 target
+\end{verbatim}
+To extract only the folder name, use column-extraction. 
+
+\begin{verbatim}
+ls -d */
+\end{verbatim}
+The above method displays only folders (no \verb!.! and \verb!..!) but ends with
+a slash
+\begin{verbatim}
+bin/
+conf/
+dev-support/
+hbase-annotations/
+hbase-assembly/
+hbase-checkstyle/
+hbase-client/
+hbase-common/
+hbase-examples/
+hbase-hadoop1-compat/
+hbase-hadoop2-compat/
+hbase-hadoop-compat/
+hbase-it/
+hbase-prefix-tree/
+hbase-protocol/
+hbase-rest/
+hbase-server/
+hbase-shell/
+hbase-testing-util/
+hbase-thrift/
+src/
+target/
+\end{verbatim}
+
+
+\begin{verbatim}
+ find . -maxdepth 0 -type d
+\end{verbatim}
+The above method returns include the \verb!.! folder and the folder has
+\verb!./! prefix
+\begin{verbatim}
+bin
+conf
+dev-support
+hbase-annotations
+hbase-assembly
+hbase-checkstyle
+hbase-client
+hbase-common
+hbase-examples
+hbase-hadoop1-compat
+hbase-hadoop2-compat
+hbase-hadoop-compat
+hbase-it
+hbase-prefix-tree
+hbase-protocol
+hbase-rest
+hbase-server
+hbase-shell
+hbase-testing-util
+hbase-thrift
+src
+target
+\end{verbatim}
+
+Another option
+\begin{verbatim}
+find . -maxdepth 1 -type d -name [^\.]\* | sed 's:^\./::'
+\end{verbatim}
+which also only returns the folder name.
+
+\url{http://stackoverflow.com/questions/3667329/listing-only-directories-in-unix}
+
+\section{Common statements}
+\label{sec:common-statements}
+
+\begin{itemize}
+\item \verb!clear! : clear the screen
+\item \verb!echo "This string"!: print out the given string, we can
+  use C format style in which we can get the result from a shell statement
+\begin{verbatim}
+echo "Today is \c"; date
+echo "Number of login users: \c"; who | wc -l
+echo "Calendar"
+cal
+\end{verbatim}
+We can also print out system variable
+\begin{verbatim}
+echo $HOME
+\end{verbatim}
+
+There are some options we can use with \verb!echo!\footnote{\url{http://www.freeos.com/guides/lsst/ch02sec06.html}}
+\begin{verbatim}
+-n Do not output the trailing new line.
+-e Enable interpretation of the following backslash escaped characters in the strings:
+\a alert (bell)
+\b backspace
+\c suppress trailing new line
+\n new line
+\r carriage return
+\t horizontal tab
+\\ backslash
+\end{verbatim}
+
+E.g.:
+\begin{verbatim}
+echo -e "An apple a day keeps away \a\t\tdoctor\n"
+\end{verbatim}
+
+
+
+\item \verb!exit 0!: End of the script
+
+
+\end{itemize}
+
+\section{Colors in text output}
+
+
+\begin{verbatim}
+#!/bin/bash
+
+# Escape code
+esc=`echo -en "\033"`
+
+# Set colors
+cc_red="${esc}[0;31m"
+cc_green="${esc}[0;32m"
+cc_yellow="${esc}[0;33m"
+cc_blue="${esc}[0;34m"
+cc_normal=`echo -en "${esc}[m\017"`
+
+echo "Here's ${cc_green}some green text${cc_normal} for you."
+echo "Here's ${cc_blue}some green text${cc_normal} for you."
+\end{verbatim}
+
+The color codes (0;31 etc) are like those used in \verb!dir_colors!:
+
+\begin{verbatim}
+# Attribute codes:
+# 00=none 01=bold 04=underscore 05=blink 07=reverse 08=concealed
+# Text color codes:
+# 30=black 31=red 32=green 33=yellow 34=blue 35=magenta 36=cyan 37=white
+# Background color codes:
+# 40=black 41=red 42=green 43=yellow 44=blue 45=magenta 46=cyan 47=white
+
+\end{verbatim}
+
+
+\section{xargs}
+\label{sec:xargs}
+
+What \verb!xargs! does is to extract each line from the input and pass it to the
+command. By default, it's assumed that each line has one field.
+\begin{verbatim}
+ls | xargs rm
+\end{verbatim}
+
+If you want to explicitly control the field name because you want to wrap it
+into a double quotes or you may have to deal with more than one field, then you
+use \verb!-I! and field name, e.g. \verb!{}! as the field name
+\begin{verbatim}
+ls | xargs -I{} cp "{}" ~/foo/bar
+ls xargs -0 -I{} cp "{}" ~/foo/bar
+\end{verbatim}
+NOTE: In BSD, by default, quotes are special to xargs unless you use \verb!-0!
+
+If we have \verb!find! command, we can combine with \verb!exec!
+\begin{verbatim}
+find . -iname "*foobar*" -exec cp "{}" ~/foo/bar \;
+\end{verbatim}
+NOTE: The solution doesn't work if a filename begin with \verb!-! (a hyphen).
+
+
+\section{XDG}
+\label{sec:XDG}
+
+freedesktop.org was created to help  designing cross-platform APIs to ease the
+portability of application software between desktop environments and kernels. It
+was first called {\bf Portland Project} (as hosted by Portland State
+University).  The project goal is to let software developers worry less about
+the desktop environment a distribution is using.
+\begin{itemize}
+  \item Portland 1.0 - Sect.\ref{sec:xdg-utils} in 2006
+\end{itemize}
+
+freedesktop.org was formerly known as X Desktop Group (XDG).
+
+\subsection{XDG environment variables: XDG Base Directory Specification }
+\label{sec:XDG-environment-variables}
+
+{\bf XDG\_DATA\_HOME}: it gives the location relative to which user-specific
+data files should be written. E.g.
+\begin{verbatim}
+      //nvim plugins installed by user
+$XDG_DATA_HOME/nvim/site
+\end{verbatim}
+
+
+{\bf XDG\_CONFIG\_HOME}: it gives the location relative to which user-specific
+configuration files should be written (default: \verb!$HOME/.config!).
+
+{\bf XDG\_CONFIG\_DIRS[1]}: contain configuration files according to XDG,
+including preferences from system administrator (default: \verb!/etc/xdg!)
+{\bf XDG\_CONFIG\_DIRS[2]}
+
+{\bf XDG\_DATA\_DIRS}: and we can access one particular folder using
+{\bf XDG\_DATA\_DIRS[1]}, {\bf XDG\_DATA\_DIRS[2]} 
+\begin{verbatim}
+// default: 
+//   XDG_DATA_DIRS = /usr/local/share/:/usr/share/
+\end{verbatim}
+
+
+\subsection{xdg-utils (released 2006, Portland 1.0)}
+\label{sec:xdg-utils}
+\label{sec:Portland-1.0}
+
+
+
+xdg-utils is a set of tools (a set of common interfaces for desktop
+environments) that allows applications to easily integrate with the desktop
+environment of the user, regardless of the specific desktop environment that the
+user runs.
+
+\begin{itemize}
+  \item xdg-desktop-menu 
+  
+  \item 
+\end{itemize}
+
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "fortran_manual"
+%%% End: 
+
+

@@ -1,0 +1,253 @@
+\chapter{Build a HPC cluster}
+
+
+You need
+\begin{enumerate}
+  \item a server node (head node - Sect.\ref{sec:node-master}): which serves as
+  (1) login node; (2) job management (launch job)
+  
+  
+For small cluster, it can be used as: (3) file server; (4) computation node
+  
+  \item many computation nodes:
+  
+  
+  \item data server (optional): don't run applications; rather, they store and
+  serve data to the rest of the cluster. 
+  
+For small cluster, it is part of the server node.
+  
+  \item visualization node: provides data visualization capabilities within the
+  cluster (usually remote visualization), 
+  
+  \item monitoring node: (very large clusters might need) nodes dedicated to
+  monitoring the cluster or to logging in users to the cluster and running
+  applications.
+   
+  
+\end{enumerate}
+
+\section{Power 8}
+
+Power 8 machines needs Hardware Management Console (HMC) version 8 release
+8.1.0 (Sect.\ref{sec:HMC}).  
+
+
+\subsection{Hardware Management Console (HMC)}
+\label{sec:Hardware-Management-Console}
+\label{sec:HMC}
+
+
+An HMC is necessary only to manage Power Systems servers.
+
+An HMC appliance runs a heavily customized version of Linux provided by IBM.
+Access to the \verb!root! userid is disabled by default. The \verb!hscroot!
+userid has all the necessary privileges to manage and use the HMC.
+
+
+
+
+
+\url{https://www.ibm.com/developerworks/community/wikis/home?lang=en#!/wiki/Power Systems/page/Hardware Management Console}
+
+\section{Hardware connection}
+
+This steps discuss how to put all nodes into a full rack of equipment, neatly
+wired and plugged into power.
+
+\begin{enumerate}
+  \item Power 8:
+  \url{https://www.ibm.com/support/knowledgecenter/POWER8/p8hdx/p8_cif_8247_21l.htm}
+  
+  
+  \item Intel x86: 
+\end{enumerate}
+\section{IP configuration (static or dynamic)}
+
+
+\begin{enumerate}
+  \item Microsoft Windows server cluster: static IP is recommended as best
+  practice
+  
+  \url{https://technet.microsoft.com/en-us/library/aa997724(v=exchg.80).aspx}
+  
+  
+  \item 
+\end{enumerate}
+
+\section{Storages}
+
+
+\begin{itemize}
+  \item shared-disk cluster filesystem:
+  many instances of one filesystem, each instance is distributed on one compute
+  node
+  
+  
+  \item parallel filesystem:  only one instance of the filesystem, and site on
+  the same node of storage devices. Only thin client of the filesystem 
+  
+  
+  \item
+\end{itemize}
+
+
+\subsection{shared-disk cluster filesystem}
+\label{sec:shared-disk-cluster-filesystem}
+
+There is a common pool of storage, in a dedicated node, that is shared among the
+servers hosting the distributed application with an instance of the file
+system running on each processor and a side band communication channel between
+file system instances used for distributed lock management.
+
+By creating a series of independent channels, each instance of the distributed
+file system is given direct access to the shared disk storage system.
+
+The file system places a certain load on the storage system which is equal to
+the sum of the loads placed by each instance of the file system. This load  is
+equally distributed through the independent channels.
+At one time, one instance of the file system get the lock, to do write to the
+storage.
+The performance of a shared disk file system and hence the overall system is
+dependent on the speed with which locks can be exchanged between file system
+instances.
+
+
+
+\subsection{parallel filesystem (e.g. Lustre, pfgs)}
+\label{sec:parallel-filesystem}
+
+A parallel file system such as the Lustre file system is similar in some ways 
+to a shared disk file system in that it is designed to satisfy storage demand 
+from a number of clients in parallel, but with several distinct differences. 
+
+Within the storage system, the control plane ({\bf file system metadata}), is
+often separated from the data plane ({\bf object servers}) containing user data.
+This promotes parallelism by reducing bottlenecks associated with accessing file
+system metadata, and it permits user data to be distributed across a number of
+storage servers which are devoted to strictly serving user data.
+
+The file system however, is sited together with the storage 
+devices rather than being distributed; and thin filesystem-clients 
+co-located with the distributed applications will create the connection to the
+metadata server(s) and the object servers.
+
+Each thin filesystem-client creates a unique channel to the file system
+metadata. This accelerates the metadata look-up process and allows the metadata
+server to service a fairly large number of accesses in parallel, which is
+better than the distributed lock system in shared-disk cluster filesystem
+(Sect.\ref{sec:shared-disk-cluster-filesystem}).
+
+
+\subsection{network-attached storage (NAS) filesystem}
+
+\section{Server Virtualization}
+
+It is not uncommon for data center servers to consume less than 15-20 percent of
+the available CPU cycles. As many data center servers today operate at very low
+levels of CPU utilization, it is a better strategy to host multiple virtual
+machines (VM) on the same physical machine (server).
+
+\section{Install master node or admin node or log-in node (on-site)}
+\label{sec:node-master}
+
+The admin node will also act as a storage and Kickstart installation server
+for the cluster. 
+
+Before you go to the server room, the first step is to download and burn the
+\begin{itemize}
+  \item CentOS install DVD media for 64-bit
+  
+  
+  \item Ubuntu server install DVD 64-bit 
+\end{itemize}
+This acts as a kickstart installation server to automate the install of all the
+compute nodes that fill out the rest of the cluster.
+
+The admin/storage node and the head/login node both have multiple Ethernet
+interfaces, e.g. 2 NIC cards:
+\begin{itemize}
+  \item one (eth0) to private cluster: to private, internal gigabit switch of
+  192.168.1.0 network.
+
+NOTE:  baseboard management controller (BMC/DRAC) boards, which are controllable
+via IPMI [7], are configured to share the first Ethernet port. This means you
+might see two different MAC addresses and two different IPs on the eth0 port;
+you want both facing internally.
+
+
+  \item one (eth1) connects to public network (remote user and admin login)
+
+Only the master node should have the public IP address, because there is no
+reason for compute nodes to have two addresses.
+  
+\end{itemize}
+public IPs: 72.x.x.x and the private address something like 10.x.x.x. 
+
+\subsection{O/S install}
+
+Hook keyboard-video-mouse (KVM) switch to the admin node and powering on.
+\begin{itemize}
+  \item  Check BIOS settings, set a password, and choose the boot order. 
+  
+  \item Configure the BMC, setting an admin username and password and
+  configuring an internal IP address for the device.
+\end{itemize} 
+
+
+After full RAID initialization, power off the node and unplug the external RAID
+enclosure before the OS install because the OS install partitioner can have
+difficulty with very big disks.
+
+
+Insert the CentOS installation DVD into the system that will act as the admin
+node. Boot the installer and select mostly all defaults. The only steps that
+differ from the defaults are setting a bootloader password, configuring the two
+network interfaces, and switching SELinux to permissive mode.
+
+
+
+Shared directory across the nodes: NFS (Sect.\ref{sec:NFS}).
+\begin{itemize}
+  \item classic approach: to export a directory from the master node to the
+  compute nodes
+  
+E.g.: mount '/shared' as '/home' on all machines, including master node.
+
+  \item
+\end{itemize}
+
+Shared name information, e.g. NIS (Sect.\ref{sec:NIS}):  you need the same users
+and groups on the nodes
+
+
+Configure libraries on shared too, i.e. make a partition as /libraries, and
+mounted as '/devops' on on machines
+\begin{itemize}
+  \item MPI libraries: openMPI, MPICH
+  
+  \item SSH
+\end{itemize}
+
+
+\section{Install computation node (remotely)}
+
+A computation node runs the bare minimum OS - meaning that unneeded daemons are
+turned off and unneeded packages are not installed - and have the bare minimum
+hardware.
+
+The servers must be capable of booting from the network with PXE [6]. PXE (which
+stands for Preboot eXecution Environment") lets you install and configure the
+compute nodes without having to stop and boot each one from a CD.
+
+\section{Storage node}
+
+For a small to medium-sized cluster, it is okay to combine what is often called
+the storage node with the admin node.
+
+
+\section{N-rack system}
+
+The process needs to be replicated N times for a larger cluster of $N$ racks.
+
+

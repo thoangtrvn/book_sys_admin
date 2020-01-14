@@ -1,0 +1,192 @@
+\chapter{Operating Systems for the Cloud Environment}
+
+
+\section{Ubuntu Cloud}
+
+Ubuntu Enterprise Cloud (UEC) is a software product that you can install on your
+own servers to create your own cloud computing environment.
+
+\section{IBM Cloud Private}
+
+IBM Cloud Private is an application platform for developing and managing
+on-premises, containerized applications.
+It is an integrated environment for managing containers that includes the
+container orchestrator Kubernetes, a private image repository, a management
+console, and monitoring frameworks.
+
+3.1.1-ce 
+\begin{verbatim}
+Linux on POWR 64-bit (ppc64le):  https://hub.docker.com/r/ibmcom/icp-inception-ppc64le
+
+Linux 64-bit: https://hub.docker.com/r/ibmcom/icp-inception
+\end{verbatim} 
+
+2.1.0.3 ce edition
+\begin{verbatim}
+Ubuntu 16.04 LTS
+
+
+Linux on POWER 64-bit Little Endian (LE) - https://hub.docker.com/r/ibmcom/icp-inception-ppc64le
+
+Linux 64-bit - https://hub.docker.com/r/ibmcom/icp-inception/   
+\end{verbatim}
+\url{https://www.ibm.com/developerworks/community/wikis/home?lang=en#!/wiki/W1559b1be149d_43b0_881e_9783f38faaff/page/Overview of IBM Cloud Private}
+
+\section{Google Container-Optimized OS}
+
+Container-Optimized OS is maintained by Google and is based on the open source
+Chromium OS project. Container-Optimized OS is an operating system image for
+your Compute Engine VMs that is optimized for running Docker containers.
+
+\url{https://cloud.google.com/container-optimized-os/docs/concepts/features-and-benefits}
+
+Container-Optimized OS is the default node OS Image in Kubernetes Engine and other Kubernetes deployments on Google Cloud Platform
+
+
+\section{Amazon Linux}
+\label{sec:Amazon-Linux}
+
+\url{https://docs.amazonaws.cn/en_us/AWSEC2/latest/UserGuide/amazon-linux-ami-basics.html}
+
+
+Amazon Linux is a customized Linux provided by Amazon, it comes with 
+\begin{itemize}
+  \item  a number of packages that enable easy integration with AWS, including launch configuration tools and many popular AWS libraries and tools
+  \item  ongoing security and maintenance updates
+  
+  \item Amazon Linux does not allow remote root SSH by default
+
+By default, the only account that can log in remotely using SSH is ec2-user;
+this account also has sudo privileges.
+
+To enable SSH logins to an Amazon Linux instance, you must provide your key pair
+to the instance at launch. You must also set the security group used to launch
+your instance to allow SSH access.
+
+   \item it uses \verb!/etc/image-id! file
+   
+\begin{verbatim}
+image_name="amzn2-ami-hvm"
+image_version="2"
+image_arch="x86_64"
+image_file="amzn2-ami-hvm-2.0.20180810-x86_64.xfs.gpt"
+image_stamp="8008-2abd"
+image_date="20180811020321"
+recipe_name="amzn2 ami"
+recipe_id="c652686a-2415-9819-65fb-4dee-9792-289d-1e2846bd"
+\end{verbatim}
+\end{itemize}
+
+\begin{verbatim}
+>> cat /etc/system-release
+Amazon Linux 2
+
+>> cat /etc/os-release
+NAME="Amazon Linux"
+VERSION="2"
+ID="amzn"
+ID_LIKE="centos rhel fedora"
+VERSION_ID="2"
+PRETTY_NAME="Amazon Linux 2"
+ANSI_COLOR="0;33"
+CPE_NAME="cpe:2.3:o:amazon:amazon_linux:2"
+HOME_URL="https://amazonlinux.com/"
+\end{verbatim}
+
+
+
+Amazon Linux 2 and the Amazon Linux AMI. 
+
+There are also  Amazon Linux Docker container images:
+\url{https://hub.docker.com/_/amazonlinux/}
+
+\subsection{Amazon Linux}
+
+Amazon Linux 2018.03 is the last release for the current generation of Amazon
+Linux and will be supported until June 30, 2020.
+
+\begin{verbatim}
+yum update 
+\end{verbatim}
+always moves your system to the latest Amazon Linux version.
+There were no versions of Amazon Linux available, only snapshots.
+
+
+Amazon Linux uses SysVinit to bootstrap the Linux user space and to manage
+system processes after booting. This procedure is usually called init
+(Sect.\ref{sec:init}).
+
+
+\subsection{Amazon Linux 2 (from Dec, 2017)}
+
+In late December 2017, AWS announced the successor of Amazon Linux: Amazon Linux 2.
+It  adds some new capabilities:
+\begin{verbatim}
+
+long-term support: Amazon Linux 2 supports each LTS release for five years
+
+on-premises support: virtual machine images for on-premises development and testing are available
+
+systemd: replacing SystemVinit
+
+extras library: provides up-to-date versions of software bundles such as nginx
+\end{verbatim}
+\url{https://cloudonaut.io/migrating-to-amazon-linux-2/}
+
+The cloud-init package is an open-source application built by Canonical that is
+used to bootstrap Linux images in a cloud computing environment, such as Amazon
+EC2. Amazon Linux contains a customized version of cloud-init.
+
+Amazon Linux uses the cloud-init actions found in /etc/cloud/cloud.cfg.d and
+/etc/cloud/cloud.cfg. You can create your own cloud-init action files in
+/etc/cloud/cloud.cfg.d. All files in this directory are read by cloud-init. They
+are read in lexical order, and later files overwrite values in earlier files.
+
+
+
+Extras Library to install application and software updates on your instances.
+These software updates are known as topics.
+ 
+\begin{verbatim}
+>> amazon-linux-extras list
+
+
+>> sudo amazon-linux-extras install <topic>
+
+>> sudo amazon-linux-extras install <topic>=version <topic>=version
+
+// to install source for a package
+yumdownloader --source bash
+
+
+\end{verbatim}
+
+\subsection{Amazon Linux AMI}
+
+Amazon Linux AMI is a supported and maintained Linux image provided by Amazon
+Web Services for use on Amazon Elastic Compute Cloud (Amazon EC2). It is
+designed to provide a stable, secure, and high performance execution environment
+for applications running on Amazon EC2.
+
+
+The image includes packages that enable easy integration with AWS services, such
+as the AWS CLI, Amazon EC2 API and AMI tools, the Boto library for Python, and
+the Elastic Load Balancing tools.
+
+\url{https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html#amazon-linux}
+
+
+\begin{verbatim}
+cat /etc/image-id
+image_name="amzn-ami-hvm"
+image_version="2018.03"
+image_arch="x86_64"
+image_file="amzn-ami-hvm-2018.03.0.20180811-x86_64.ext4.gpt"
+image_stamp="cc81-f2f3"
+image_date="20180811012746"
+recipe_name="amzn ami"
+recipe_id="5b283820-dc60-a7ea-d436-39fa-439f-02ea-5c802dbd"
+
+cat /etc/system-release
+Amazon Linux AMI release 2018.03
+\end{verbatim}

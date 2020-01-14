@@ -1,0 +1,29 @@
+\chapter{Wifi}
+\label{chap:wifi}
+
+
+How long to crack a password: \url{https://www.grc.com/haystack.htm}
+
+\section{WPS}
+\label{sec:WPS}
+
+WPS was introduced in 2006 by Wifi Alliance.
+\footnote{\url{https://scotthelme.co.uk/wifi-insecurity-wps/}}
+
+WPS (Wifi Protected Setup) protocol allows you to connect your machine to a
+protected wifi network using an 8-digit numbers. This only works when the 'WPS'
+button is pressed on the router, and the router then enable, any device, for a
+short period of time (e.g. 2 minutes) to connect to the network, without
+using the long password set by the router. 
+
+The WPS is vulnerable to attack due to the flaw in the design. Even though the
+8-digit PIN can gives $10^8$ combination, the way the protocol was designed see
+the number in 2 groups (first 4 digits and last 4 digits). These separate halves
+are then verified independently. With 4 digits and 1-second to guess, it takes
+2.7 hours to guess all possible combinations. The second half, due to checksum
+value, only has $10^3$ combinations, and thus takes only 16 minutes to guess all
+possible combinations. 
+
+There is a tool, {\bf Reaver} can be used to crack WPS.
+
+

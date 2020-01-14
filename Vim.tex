@@ -1,0 +1,3856 @@
+\chapter{Vim}
+\label{chap:Vim}
+
+\section{To read}
+
+\url{http://tech.myemma.com/textmates-features-vim/}
+
+
+
+\section{History}
+\label{sec:vim-history}
+\label{sec:ed-text-editor}
+\label{sec:ex-text-editor}
+\label{sec:vi-text-editor}
+
+TIMELINE:
+\begin{verbatim}
+ed  -->   ex   --> vi   -->  vim
+1969                         1991
+\end{verbatim}
+
+NOTE: \verb!ed! is a line editor for Unix O/S, one of the first part of Unix O/S
+developed in 1969.
+
+NOTE: \verb!ex! is an editor, the name means \verb!extended ed!.
+
+The name \verb!vi! means \verb!visual ex!, which is a GUI part of the historical
+editor called \verb!ex!. 
+
+\verb!vim! means \verb!Vi IMproved! (initially it means Vi IMitation), a clone
+of \verb!vi! editor started since 1988, and was first released in 1991.
+To add more features to VIM, plugins are used (Sect.\ref{sec:vimm-plugins}).
+
+
+The major revision starts with vim 8.0 (Sect.\ref{sec:vim-8.0})
+\begin{verbatim}
+
+vim 7    ---->  vim 8.x
+2007             09/12/2016
+\end{verbatim}
+
+
+
+\subsection{vim's vanilla plugins}
+\label{sec:vim-plugins}
+\label{sec:vim-autoload}
+\label{sec:vim-colors}
+\label{sec:vim-indent}
+
+
+A plugin for \verb!vim! can be written Vim script (Sect.\ref{sec:vim-script}).
+Vanilla vim (Sect.\ref{sec:vim-vanilla}), i.e. the original vim source, supports
+splitting a single plugin into multiple files.
+Vim has a more specific meaning of "plugin", which is "a file in
+\verb!~/.vim/plugin/!".
+
+In vim vanilla, there are a number of different directories you can create under
+\verb!~/.vim! that mean various things. The logic of handling a file of a given
+type is plit into 3 folders:
+\verb!ftdetect!, \verb!ftplugin! and \verb!indect!.
+\footnote{\url{http://learnvimscriptthehardway.stevelosh.com/chapters/42.html}}
+
+\begin{enumerate}
+  \item \verb!~/.vim/colors!: any file in this folder is treated as color scheme
+  (Sect.\ref{sec:vim-colorscheme})
+  
+  \item \verb!~/.vim/plugin/!: any file in this folder is automatically loaded
+  at vim starts
+  
+  \item \verb!~/.vim/ftdetect!: a single or two line that detect and set the
+  filetype of a file. The file in this folder are automatically loaded
+  at vim starts - Sect.\ref{sec:vim-ftdetect}.
+    
+  \item \verb!~/.vim/autoload!  - Sect.\ref{sec:vim-autoload}: 
+  any file in this folder is loaded once a certain condition is met, e.g. for
+  a given filetype. 
+  It's important as it provides a way to delay the loading of your plugin's code
+  until it's actually needed.
+  
+  \item \verb!~/.vim/ftplugin!: each subfolder represents the name of a given
+  filetype.
+  
+If we run
+\begin{verbatim}
+set filetype=derp
+\end{verbatim}  
+then, vim will load all (*.vim) files in \verb!~/.vim/ftplugin/derp/!.
+  
+NOTEL These files are run every time a buffer's filetype is set they must only
+set buffer-local options! If they set options globally they would overwrite them for
+all open buffers!
+  
+  \item \verb!~/.vim/indent!:
+  
+The files here set options related to indentation for their filetypes, and those
+options should be buffer-local.
+   
+  \item \verb!~/.vim/after!: 
+  
+  Files in this directory will be loaded every time Vim starts, but after the
+  files in \verb!~/.vim/plugin/!.
+  
+  This allows you to override Vim's internal files. 
+  
+  \item \verb!~/.vim/doc! - Sect.\ref{sec:vim-doc}
+  
+  \item \verb!~/.vim/compiler! - Sect.\ref{sec:vim-compiler}: set
+  compiler-related options if the current buffer is of a given filetype
+  
+  
+\end{enumerate}
+
+User needs to configure \verb!vim! to know the location of these plugins.
+Vim's vanilla assumed those directories are inside \verb!~/.vim! which is part
+of the \verb!runtimepath! variable. However, you can add any location to this so
+that vim can search - Sect.\ref{sec:vim-runtimepath}.
+
+There are also several problems with managing plugins using these folders.
+\footnote{\url{http://learnvimscriptthehardway.stevelosh.com/chapters/43.html}}
+ Thus, different plugin managers have been developed
+\begin{enumerate}
+  \item pathogen - Sect.\ref{sec:pathogen}
+\end{enumerate}
+
+
+
+\subsection{-- compiler}
+\label{sec:vim-compiler}
+
+The files in \verb!~/.vim/compiler/! work exactly like \verb!indent! files. They
+should set compiler-related options in the current buffer based on their names.
+
+
+\subsection{-- doc}
+\label{sec:vim-doc}
+
+In \verb!~/.vim/doc! folder, where you can add documentation for your plugin,
+and thus you can call
+\begin{verbatim}
+:help <command,name,...>
+\end{verbatim}
+
+
+\subsection{-- colorscheme}
+\label{sec:vim-colorscheme}  
+
+A color scheme is a file that should contain all the Vimscript commands
+necessary to generate your color scheme. The file is put inside
+\begin{verbatim}
+~/.vim/colors
+\end{verbatim}
+
+To enable a color scheme
+\begin{verbatim}
+:color mycolor
+\end{verbatim}
+it will use \verb!~/.vim/colors/mycolor.vim!. 
+
+If you want to create your own you should copy an existing scheme and modify
+it.
+
+
+
+\subsection{-- plugin}
+
+Any files inside \verb!~/.vim/plugin/! will each be run once every time Vim
+starts. These files are meant to contain code that you always want loaded
+whenever you start Vim.
+
+To load on-demand, i.e. delay the loading, we should put these files into
+\verb!~/.vim/autoload! - Sect.\ref{sec:vim-autoload}.
+
+\subsection{-- autoload (\~/.vim/autoload)}
+\label{sec:vim-autoload}
+
+\verb!autoload! is a way to delay the loading of your plugin's code until it's
+actually needed; by putting the plugin in this folder.
+\begin{verbatim}
+  //vim
+~/.vim/autoload
+
+  //nvim-spacevim
+~/.SpaceVim/autoload
+\end{verbatim} 
+\url{http://learnvimscriptthehardway.stevelosh.com/chapters/42.html#vimautoload}
+
+
+\subsection{-- ftdetect}
+\label{sec:vim-ftdetect}
+  
+  \verb!ftdetect! stands for "filetype detection". The files in this directory
+  should set up autocommands that detect and set the filetype of files, and
+  nothing else. This means they should never be more than one or two lines long.  
+
+
+
+\subsection{-- after}
+\label{sec:vim-after}
+
+
+\subsection{vim: get help with commands}
+\label{sec:vim-help}
+
+\verb!vim! provides \verb!:help! command to get help for commands and features.
+To get help for a command, e.g. \verb!laststatus!, run
+\begin{verbatim}
+:help laststatus
+\end{verbatim}
+
+\subsection{vim version}
+\label{sec:vim-version}
+
+To check version and see what vim support
+\begin{verbatim}
+# inside vim
+:version
+
+# command-line
+vim --version
+\end{verbatim}
+
+\subsection{Variants of vim}
+\label{sec:vim_variants}
+
+Besides the vim package, there appear to be at least six "vim-variants".
+\verb!vim.tiny! is the trim-down version of \verb!vim.basic! editor.
+
+A GUI version of vim is called \verb!gvim!. 
+
+Ubuntu usually offers
+\begin{itemize}
+  \item \verb!vim-basic! (or vim): the classic vim (support Python) -
+  Sect.\ref{sec:vim-vanilla}
+  
+  \item \verb!vim-tiny! - Sect.\ref{sec:vim-tiny}
+  
+  \item \verb!vim-nox! :  a classic Non-GUI vim with support for extra scripting
+  languages (TCL, Ruby, Lua, Perl, Python) - Sect.\ref{sec:vim-nox}
+    
+  \item \verb!vim-athena!: enhanced vim (using Athena GUI; but not GTK) -
+  Sect.\ref{sec:vim-athena}
+
+  \item \verb!vim-gnome! : enhanced vim (using GNOME2 GUI, e.g. GNOME, Unity,
+  Cinnamon)
+   
+  \item \verb!vim-gtk! : enhanced vim (using GTK2 GUI, i.e. non-GNOME such as
+  XFCE, LXDE) - Sect.\ref{sec:vim-gtk}
+  
+  Vim-gtk is important only to people who use Kubuntu (or some lightweight
+  desktop environment) and don't want to install GNOME libraries
+  
+  \item \verb!jvim-canna! : japanese version of vim (you can type Kanji from the console)
+  
+  
+\end{itemize}
+\url{http://askubuntu.com/questions/281886/what-is-the-difference-between-the-different-vim-packages-available-in-ubuntu}
+
+NOTE: Enhanced vim supports Perl, Python, Ruby and TCL scriptting.
+
+\url{http://vi.stackexchange.com/questions/4873/is-there-a-difference-between-sudo-apt-get-vim-and-configure-with-feature}
+
+\subsection{-- vanilla vim}
+\label{sec:vim-vanilla}
+
+Vanilla vim refers to the original vim source, which use \verb!vim.basic!
+configuration (Sect.\ref{sec:vim.basic}).
+
+\subsection{-- vim.tiny vs. vim.basic vs. vim.full}
+\label{sec:vim.basic}
+\label{sec:vim.full}
+\label{sec:vim.tiny}
+
+In Debian distro, it uses \verb!vim.tiny! by default (by vanilla vim) -
+Sect.\ref{sec:vim-tiny}.
+
+You can change to a different configuration by running
+\begin{verbatim}
+sudo update-alternatives --config vi
+
+// which shows
+Selection   Path     Priority      Status
+0      /usr/bin/vim.gtk  50    auto mode
+1     /usr/bin/vim.gtk   50    manual mode
+2     /usr/bin/vim.tiny  10    manual mode
+3     /usr/bin/vim.basic 30    auto mode
+\end{verbatim}
+
+You can also configure the default editor
+\begin{verbatim}
+sudo update-alternatives --config editor
+
+// which shows
+Selection   Path     Priority      Status
+0      /usr/bin/vim.gtk  50    auto mode
+1     /bin/ed           -100   manual mode
+2     /bin/nano          40    manual mode
+3    /usr/bin/emacs24    0     manual model
+\end{verbatim}
+
+\url{https://2buntu.com/articles/1507/installing-vimbasic-making-vi-normal-again/}
+
+
+
+\subsection{-- vim-tiny}
+\label{sec:vim-tiny}
+
+
+\verb!vim-tiny! is the trimmed-down version of vanilla vim
+(Sect.\ref{sec:vim-vanilla}). Ubuntu has vim in 
+\verb!vim.tiny! configuration installed by default.
+
+In this configuration, in the \verb!insert! mode, when you press the arrow keys,
+you end up with inserting characters - A, B, C and D.
+
+
+On Ubuntu 11.10, vim.tiny has 12 features enabled
+(Sect.\ref{sec:vim-build-from-source})
+\begin{verbatim}
+vim.tiny --version
+\end{verbatim}
+\url{http://askubuntu.com/questions/104138/what-features-does-vim-tiny-have}
+
+
+Commands
+\begin{verbatim}
+// go between buffers
+:n  
+:N
+
+// split screen
+:split
+// jump between buffers in split
+Ctrl-W-W
+
+:close 
+\end{verbatim}
+
+
+
+
+\subsection{-- vim-nox}
+\label{sec:vim-nox}
+
+If you'd like all the features that the packaging allows, but don't want GUI
+(and the dependencies of a GUI, e.g. gtk package), pick vim-nox.
+
+
+\subsection{-- vim-athena}
+\label{sec:vim-athena}
+
+If you'd like a GUI, and but don't want anything to do with GTK, pick
+vim-athena.
+
+\subsection{-- vim-gtk}
+\label{sec:vim-gtk}
+
+\verb!vim-gtk! is a separate source of \verb!vim! with many features selected as
+default in the build system. To build form source -
+Sect.\ref{sec:vim-gtk-build}.
+
+Make sure you install vim-gtk which has many features compiled with it.
+\begin{verbatim}
++clipboard
++python 
+-python3
++windows
++folding
+...
+\end{verbatim}
+
+\subsection{---- VIM-gtk Ubuntu 14.04}
+
+{\tiny 
+\begin{verbatim}
+VIM - Vi IMproved 7.4 (2013 Aug 10, compiled Jan  2 2014 19:39:59)
+Included patches: 1-52
+Modified by pkg-vim-maintainers@lists.alioth.debian.org
+Compiled by buildd@
+Huge version with GTK2 GUI.  Features included (+) or not (-):
++acl +farsi   +mouse_netterm   +syntax
++arabic  +file_in_path+mouse_sgr   +tag_binary
++autocmd +find_in_path-mouse_sysmouse  +tag_old_static
++balloon_eval+float   +mouse_urxvt -tag_any_white
++browse  +folding +mouse_xterm +tcl
+++builtin_terms  -footer  +multi_byte  +terminfo
++byte_offset +fork()  +multi_lang  +termresponse
++cindent +gettext -mzscheme+textobjects
++clientserver-hangul_input+netbeans_intg   +title
++clipboard   +iconv   +path_extra  +toolbar
++cmdline_compl   +insert_expand   +perl+user_commands
++cmdline_hist+jumplist+persistent_undo +vertsplit
++cmdline_info+keymap  +postscript  +virtualedit
++comments+langmap +printer +visual
++conceal +libcall +profile +visualextra
++cryptv  +linebreak   +python  +viminfo
++cscope  +lispindent  -python3 +vreplace
++cursorbind  +listcmds+quickfix+wildignore
++cursorshape +localmap+reltime +wildmenu
++dialog_con_gui  +lua +rightleft   +windows
++diff+menu+ruby+writebackup
++digraphs+mksession   +scrollbind  +X11
++dnd +modify_fname+signs   -xfontset
+-ebcdic  +mouse   +smartindent +xim
++emacs_tags  +mouseshape  -sniff   +xsmp_interact
++eval+mouse_dec   +startuptime +xterm_clipboard
++ex_extra+mouse_gpm   +statusline  -xterm_save
++extra_search-mouse_jsbterm   -sun_workshop+xpm
+   system vimrc file: "$VIM/vimrc"
+ user vimrc file: "$HOME/.vimrc"
+ 2nd user vimrc file: "~/.vim/vimrc"
+  user exrc file: "$HOME/.exrc"
+  system gvimrc file: "$VIM/gvimrc"
+user gvimrc file: "$HOME/.gvimrc"
+2nd user gvimrc file: "~/.vim/gvimrc"
+system menu file: "$VIMRUNTIME/menu.vim"
+  fall-back for $VIM: "/usr/share/vim"
+Compilation: gcc -c -I. -Iproto -DHAVE_CONFIG_H -DFEAT_GUI_GTK  -pthread -I/usr/include/gtk-2.0 -I/usr/lib/x86_64-linux-gnu/gtk-2.0/include -I/usr/include/atk-1.0 -I/usr/include/cairo -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/pango-1.0 -I/usr/include/gio-unix-2.0/ -I/usr/include/freetype2 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/pixman-1 -I/usr/include/libpng12 -I/usr/include/harfbuzz -g -O2 -fstack-protector --param=ssp-buffer-size=4 -Wformat -Werror=format-security -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1 -I/usr/include/tcl8.6  -D_REENTRANT=1  -D_THREAD_SAFE=1  -D_LARGEFILE64_SOURCE=1  
+Linking: gcc   -L. -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic -Wl,-E  -Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,--as-needed -o vim   -lgtk-x11-2.0 -lgdk-x11-2.0 -latk-1.0 -lgio-2.0 -lpangoft2-1.0 -lpangocairo-1.0 -lgdk_pixbuf-2.0 -lcairo -lpango-1.0 -lfontconfig -lgobject-2.0 -lglib-2.0 -lfreetype   -lSM -lICE -lXpm -lXt -lX11 -lXdmcp -lSM -lICE  -lm -ltinfo -lnsl  -lselinux  -lacl -lattr -lgpm -ldl  -L/usr/lib -llua5.2 -Wl,-E  -fstack-protector -L/usr/local/lib  -L/usr/lib/perl/5.18/CORE -lperl -ldl -lm -lpthread -lcrypt -L/usr/lib/python2.7/config-x86_64-linux-gnu -lpython2.7 -lpthread -ldl -lutil -lm -Xlinker -export-dynamic -Wl,-O1 -Wl,-Bsymbolic-functions  -L/usr/lib/x86_64-linux-gnu -ltcl8.6 -ldl -lz -lpthread -lieee -lm -lruby-1.9.1 -lpthread -lrt -ldl -lcrypt -lm  -L/usr/lib   
+
+\end{verbatim}}
+
+
+\section{vim 8.0}
+\label{sec:vim-8.0}
+
+Vim 8.0 is released in Dec-2016, with many changes. Again, there are many variants of vim - Sect.\ref{sec:vim_variants}.
+
+New features
+\begin{enumerate}
+  \item asynchronous I/O, with channels, JSON 
+  
+  plugins to interact without interfering the GUI.
+  
+  The communication protocol used for this supports JSON, which means you can
+  write servers in practically any language as long as you can read and write JSON.
+  The functions to use are \verb!json_encode()! and \verb|json_decode()|.
+  
+  \item supports packages. 
+  
+  Packages can contain multiple Vim plugins, and can be a version control
+  repository, like Git. The package system scans packpath for plugins under
+  \verb!pack/*/*start! during startup, and then adds those paths to runtimepath.
+  In that sense it reminds me of how Pathogen works. You can also optionally load
+  plugins with \verb!:packadd!
+  
+  \verb!:help package-create! with details on how to write packages.
+  
+  the manual recommends using version control instead of archives to distribute
+  packages so it's easier for users to update them
+  
+  \item lambdas look nice for Vim script authors 
+  
+  \verb!:call filter(mylist, {idx, val -> val > 20})!, and there are some new
+  Visual and Insert mode commands.
+  
+  \item jobs
+  
+  \item timers
+  
+  \item Partials, Lambdas and Closures
+  
+  \item New style testing 
+  
+  \item Viminfo merged by timestamp 
+  
+  \item GTK+ 3 support 
+  
+  \item MS-Windows DirectX support 
+  
+\end{enumerate}
+
+\subsection{in Ubuntu}
+
+
+For Ubuntu 16.04, Ubuntu 14.04, Linux Mint 18/17, and their derivatives, Vim 8.0
+has been made into this backport PPA
+\begin{verbatim}
+
+sudo add-apt-repository ppa:jonathonf/vim
+
+sudo apt update
+
+# vim-nox or vim-nox-py2 for Python 3 or 2 support
+sudo apt install vim-nox
+
+# Downgrade to the stock version
+sudo apt install ppa-purge && sudo ppa-purge ppa:jonathonf/vim
+
+
+\end{verbatim}
+
+\section{Introduction}
+
+\subsection{Build vim from source}
+\label{sec:vim-build-from-source}
+
+It is recommended to learn about vim history (Sect.\ref{sec:vim-history}).
+Before deciding to build vim yourself, check a number of pre-built options -
+Sect.\ref{sec:vim_variants}. All vim packages except vim-tiny
+(Sect.\ref{sec:vim-tiny}) gets built with \verb!--with-features=huge!.
+
+\subsection{-- build automately}
+
+
+\url{https://gist.github.com/shaypal5/4decf299db737dc66de0647a5d58f96a}
+\begin{verbatim}
+       # 1. install dependencies
+       sudo apt install libncurses5-dev libgnome2-dev libgnomeui-dev \
+               libgtk2.0-dev libatk1.0-dev libbonoboui2-dev \
+               libcairo2-dev libx11-dev libxpm-dev libxt-dev python-dev \
+               python3-dev ruby-dev lua5.1 lua5.1-dev libperl-dev git
+
+       # 2. remove vim
+       sudo apt remove vim vim-runtime gvim
+       sudo apt remove vim-tiny vim-common vim-gui-common vim-nox
+
+
+       # if pyenv is installed, set the python command to point at the system python with:
+       # pyenv shell system
+
+       # 3. configure
+       cd ~
+       git clone https://github.com/vim/vim.git
+       cd vim
+       ./configure --with-features=huge \
+               --enable-multibyte \
+               --with-x \
+               --enable-python3interp=yes \
+               --with-python3-config-dir=/usr/lib/python3.5/config-3.5m-x86_64-linux-gnu \
+               --enable-rubyinterp \
+               --enable-gui=gtk2 \
+               --enable-cscope \
+               --prefix=/usr/local
+       make VIMRUNTIMEDIR=/usr/local/share/vim/vim81
+
+       # 4. use make to install
+       cd ~/vim
+       sudo make install
+
+       # 5. Set vim as your default editor with update-alternatives.
+       sudo update-alternatives --install /usr/bin/editor editor /usr/local/bin/vim 1
+       sudo update-alternatives --set editor /usr/local/bin/vim
+       sudo update-alternatives --install /usr/local/bin/vi vi /usr/local/bin/vim 1
+       sudo update-alternatives --set vi /usr/local/bin/vim
+
+\end{verbatim}
+
+\subsection{-- build vim-gtk}
+\label{sec:vim-Ruby}
+\label{sec:vim-gtk-build}
+\label{sec:install-vim}
+
+Example: \verb!vim-gtk! is built using HUGE features, Python (2.7+ and
+3.x) and Ruby supports.
+\begin{verbatim}
+//pre-req.
+sudo apt-get install ncurses-dev libx11-dev libxtst-dev python-dev python3-dev \ 
+    ruby ruby-dev xorg-dev -y
+
+//vim source
+wget http://archive.ubuntu.com/ubuntu/pool/main/v/vim/vim_7.3.429.orig.tar.gz
+tar -xvf vim_7.3.429.orig.tar.gz
+cd vim_7.3.429
+rm src/auto/config.cache
+./configure --enable-pythoninterp --enable-rubyinterp --enable-python3interp \
+ --with-features=huge --with-x --enable-cscope --enable-gui=auto \
+ --enable-gtk2-check --enable-gnome-check \
+ --with-python-config-dir=/usr/lib/python2.7/config-x86_64-linux-gnu/ \
+ --with-python3-config-dir=/usr/lib/python3.4/config-3.4m-x86_64-linux-gnu 
+ 
+make -j4 
+sudo -E -H make install 
+cd -
+\end{verbatim}
+
+
+\url{http://superuser.com/questions/708245/re-compile-vim-with-options}
+
+If you install Python 2.7+ in a custom folder, then
+\begin{verbatim}
+// Suppose Python is installed in $HOME/root
+LD_LIBRARY_PATH=$HOME/root/lib PATH=$HOME/root/bin:$PATH \
+./configure --enable-pythoninterp \ 
+--with-python-config-dir=$HOME/root/lib/python2.7/config \
+--enable-rubyinterp \
+--with-ruby-command=/path/to/ruby \
+--prefix=$HOME/vim27 
+% make -j4
+% make install
+% $HOME/bin/vim27
+\end{verbatim}
+\url{http://stackoverflow.com/questions/5872079/compiling-vim-with-specific-version-of-python}
+
+NOTE: For some reason if Ruby header files are not found, modify 
+\verb!./src/auto/configure! file the variable
+\begin{verbatim}
+rubyhdrdir=/gsa/yktgsa/home/t/m/tmhoangt/.rvm/rubies/ruby-2.2.1-dev/include/ruby-2.2.0
+
+rubylibdir=/gsa/yktgsa/home/t/m/tmhoangt/.rvm/rubies/ruby-2.2.1-dev/lib/
+\end{verbatim}
+then, when you compile the vim make sure you modify \verb!RUBY_CFLAGS! option
+
+\subsection{-- Build vim with static link to gcc}
+
+Add LDFLAGS="-static" 
+
+\begin{verbatim}
+rm src/auto/config.cache
+./configure LDFLAGS="-static -L/usr/lib/x86_64-linux-gnu/libncurses.a"
+--enable-pythoninterp --enable-rubyinterp --enable-python3interp \ 
+ --with-features=huge --with-x --enable-cscope --enable-gui=auto \
+ --enable-gtk2-check --enable-gnome-check \
+ --with-python-config-dir=/usr/lib/python2.7/config-x86_64-linux-gnu/ \
+ --with-python3-config-dir=/usr/lib/python3.4/config-3.4m-x86_64-linux-gnu 
+
+\end{verbatim}
+\url{https://github.com/ericpruitt/static-vim}
+
+
+\subsection{Status line:Display informations}
+
+To know what information that you can display on the status line, run
+\verb!help statusline! (Sect.\ref{sec:vim-statusline}).  
+
+%\subsection{ * Show file path}
+
+To show file path, press \verb!Ctrl-g!, or to set it permanently in
+\verb!~/.vimrc! file.
+
+\begin{verbatim}
+set statusline+=%F
+\end{verbatim}
+
+Other options
+\begin{verbatim}
+:f
+\end{verbatim}
+shows the path, line count, modified state, current cursor position, and more
+\url{http://stackoverflow.com/questions/10488717/how-can-i-permanently-display-the-path-of-the-current-file-in-vim}
+
+
+\subsection{Vim leader key}
+\label{sec:vim-leader-key}
+
+
+\url{http://usevim.com/2012/07/20/vim101-leader/}
+
+
+
+
+\subsection{Using Python as a scripting language for VIM}
+
+Make sure Python support is available
+\begin{verbatim}
+vim --version  //look for +python
+
+// or inside vim run
+:python import sys; print(sys.version)
+
+2.7.6 (default, Sep  9 2014, 15:04:36)
+[GCC 4.2.1 Compatible Apple LLVM 6.0 (clang-600.0.39)]
+
+\end{verbatim}
+
+\subsection{Make new directory}
+
+\begin{verbatim}
+:!mkdir "<path-to-new-dir>"
+\end{verbatim}
+or browse the folder and use \verb!d! command
+\begin{verbatim}
+:Explorer
+d 
+<path-to-new-directory>
+\end{verbatim}
+
+\subsection{Make new folder on save file at the same time}
+
+Suppose you edit the file \verb!~/myfolder/mypath/myfile.txt!, but you have not
+created the folder \verb!myfolder! and \verb!mypath! subfolder yet. You can do
+(1) create the folder first (using the above method), (2) create the folder
+without retyping the path if you are editing the file and then save the file
+\begin{verbatim}
+:mkdir -p %:h
+:w
+\end{verbatim}
+or (3) define a new command (say W) to do creating-saving at once. 
+\url{http://stackoverflow.com/questions/4292733/vim-creating-parent-directories-on-save}
+
+
+\subsection{Edit compressed files}
+
+\subsection{ * Zip files}
+\label{sec:zip_files}
+
+\subsection{ * Jar files}
+\label{sec:jar_files}
+
+Jar files are really just zip files, and you can browse them from within Vim
+simply by treating them the same as Vim treats zip files
+(Sect.\ref{sec:zip_files}).
+
+Modify \verb!~/.vim/ftdetect/jar.vim!
+and put
+\begin{verbatim}
+au BufRead,BufNewFile *.jar,*.war,*.ear,*.sar,*.rar set filetype=zip
+\end{verbatim}
+\url{http://vim.wikia.com/wiki/Edit_Java_jar_and_other_files}
+
+\subsection{Treat file of a given extension for another known filetype}
+
+Example:
+\begin{enumerate}
+  \item treat .jar files as .zip file: Sect.\ref{sec:jar_files}
+  
+  \item treat .h file as file in pure C language:
+
+By default: .h files are files in C++	
+\begin{verbatim}
+augroup project
+autocmd!
+autocmd BufRead,BufNewFile *.h,*.c set filetype=c.doxygen
+augroup END
+\end{verbatim}
+\end{enumerate}
+
+\section{Running vim}
+
+\subsection{5 basic modes}
+\label{sec:modes-in-vim}
+\label{sec:vim-modes}
+
+Vim has 5 BASIC modes
+\begin{enumerate}
+  \item {\bf normal mode} (command mode): where you can type in command
+  
+  
+  \item {\bf visual mode}: the movement commands (e.g. left/right/.. keys)
+  extend the highlighted area
+  
+  \item {\bf select mode}
+  
+  
+  \item {\bf insert mode}
+  
+  \item {\bf command-line mode} (CmdLine mode): then you can enter the one line
+  of text at the bottom of the window (and this is treated as a command)
+  
+  
+  \item {\bf Ex mode} (i.e. a persistent CmdLine mode): like CmdLine mode, yet
+  after entering the command, you remain in Ex mode
+  
+  To enter this mode, type \verb!Q! (upper-case). To exit, type 
+  \verb!:vi! 
+\end{enumerate}
+
+There are also other modes
+\begin{verbatim}
+:h Ex-mode
+
+\end{verbatim}
+
+\subsection{Configuration file}
+\label{sec:vim-configuration}
+
+Depending on the build (tiny, basic, full: Sect.\ref{sec:vim.tiny}), vim comes
+with a different set of features. If you want to extend its functionality,
+consider using configuration file
+
+If you run vim, and then type \verb!:version!, it will list the default location
+that vim will search for these configuration files.
+\begin{verbatim}
+   system vimrc file: "$VIM/vimrc"              
+     user vimrc file: "$HOME/.vimrc"                    
+ 2nd user vimrc file: "~/.vim/vimrc"
+      user exrc file: "$HOME/.exrc"
+  system gvimrc file: "$VIM/gvimrc"
+    user gvimrc file: "$HOME/.gvimrc"
+2nd user gvimrc file: "~/.vim/gvimrc"
+       defaults file: "$VIMRUNTIME/defaults.vim"
+    system menu file: "$VIMRUNTIME/menu.vim"
+  fall-back for $VIM: "/packages/vim/8.0/share/vim"
+\end{verbatim}
+
+\begin{itemize}
+  \item \verb!$MYVIMRC! environment variable: (if defined) it contains the
+  location of the file which is used as the configuration file
+
+Run vim and check
+\begin{verbatim}
+:echo $MYVIMRC
+\end{verbatim}
+  
+  \item user configuration file  (Sect.\ref{sec:.vimrc}), by default (if
+  \verb!$MYVIMRC! is NOT defined)
+  
+Once vim launches, it sets \verb!$MYVIMRC! to the above file. Inside vim, type
+\begin{verbatim}
+:h $MYVIMRC
+\end{verbatim}
+
+\end{itemize}
+
+Name: if you want to load a different file, pass the filename to \verb!-u!
+\begin{verbatim}
+vim -u othervimrc
+\end{verbatim}
+
+To skip loading the file
+\begin{verbatim}
+vim -u NORC   # skip vimrc only
+
+vim -u NONE   # skip both reading vimrc and loading plugins
+\end{verbatim}
+\url{http://vimdoc.sourceforge.net/htmldoc/starting.html}
+
+
+\subsection{-- .vimrc vs. .exrc}
+\label{sec:.vimrc}
+\label{sec:.exrc}
+
+\verb!$HOME/.vimrc! is the file that contains initialization commands, which
+\verb!vim! reads when launched (Sect.\ref{sec:vim-configuration}).
+
+\verb!.exrc! is similar to .vimrc, but is specific for \verb!vi! editor.
+
+Location:
+\begin{verbatim}
+Unix		$HOME/.vimrc
+OS/2		$HOME/.vimrc or $VIM/.vimrc (or _vimrc)
+MS-DOS and Win32		$HOME/_vimrc or $VIM/_vimrc
+Amigas:					$HOME/.vimrc or $VIM/.vimrc
+\end{verbatim}
+
+\begin{verbatim}
+"$HOME/.vimrc"      (for Unix and OS/2) (*)
+"$HOME/.vim/vimrc"      (for Unix and OS/2) (*)
+"s:.vimrc"      (for Amiga) (*)
+"home:.vimrc"      (for Amiga) (*)
+"home:vimfiles:vimrc"      (for Amiga) (*)
+"$VIM/.vimrc"      (for OS/2 and Amiga) (*)
+"$HOME/_vimrc"      (for MS-DOS and Win32) (*)
+"$HOME/vimfiles/vimrc"      (for MS-DOS and Win32) (*)
+"$VIM/_vimrc"      (for MS-DOS and Win32) (*)
+\end{verbatim}
+
+
+NOTE: If you use neovim (nvim), the configuration file is
+\verb!init.vim! and the location is different
+(Sect.\ref{sec:nvim-configuration}). However, you can symlink to 
+\verb!~/.vimrc! so that vim and neovim can share the same resource file. 
+
+If you use \verb!dotfiles! (Sect.\ref{sec:dotfiles}), then \verb!~/.vimrc! is a
+symbolic link to a base configuration file in \verb!~/dotfiles/vimrc! file. This
+file also loads to files
+\begin{verbatim}
+~/.vimrc.bundles            //default set of vim plugins
+~/.vimrc.local
+~/.vimrc.bundles.local
+\end{verbatim}
+Then, you can have your own customization in \verb!~/.vimrc.local!
+(Sect.\ref{sec:dotfiles-customized}), and for plugins use
+\verb!~/.vimrc.bundles.local! (Sect.\ref{sec:dotvimrc.bundles}).
+
+Example: \url{https://github.com/samlaudev/ConfigurationFiles/tree/master/vim}
+
+\subsection{.vimrc.bundles}
+\label{sec:dotvimrc.bundles}
+
+The  default set of vim plugins in .vimrc.bundles
+
+
+Customize with \verb!.vimrc.bundles.local! file
+
+\begin{enumerate}
+  \item If you don't wish to install a vim plugin from the default set 
+  
+\begin{verbatim}
+" Don't install vim-scripts/tComment
+UnPlug 'tComment'
+\end{verbatim}
+
+  \item 
+\end{enumerate}
+
+
+\subsection{configure vim's search path (runtime-path)}
+\label{sec:vim-search-path}
+\label{sec:vim-rtp}
+\label{sec:vim-runtimepath}
+
+% \begin{verbatim}
+% let &path.="src/include,/usr/include/AL,"
+% \end{verbatim}
+Example: add more path (can combine environment variable) to project specific
+\verb!.vimrc!
+\begin{verbatim}
+:set path+=$NTSROOT/mdl/include,$NTS/gsl/framework/dca/include,
+
+ //or overwrite everything
+:set runtimepath=/Users/sjl/Desktop
+\end{verbatim}
+\url{http://usevim.com/2013/01/04/vim101-jumping/}
+
+\section{Scripting language in VIM}
+\label{sec:vim-scripting-language}
+
+\subsection{define a function}
+
+To get support about using \verb!function! keyword
+\begin{verbatim}
+:h function
+\end{verbatim}
+
+The function name must start with an uppercase letter, to avoid confusion with
+builtin functions. We can use poud sign to indicate that a function belong to a
+given file
+
+Example: \verb!overrides.vim! should in in the folder as part of RTP
+(runtimepath)
+\begin{verbatim}
+"This should not work.
+"But it does as long as the function is in a file called 'overrides.vim'.
+function! overrides#name() abort
+  echo 'Test overrides\name'
+endfunction
+
+"This should not work either.
+"But it does as long as the file above is in a folder called 'plugin'.
+function! plugin#overrides#name() abort 
+  echo 'Test plugin\overrides\name'
+endfunction
+
+let stupid = {}
+"This should not work.
+"But it does aslong as the stupid Dictionary is defined.
+function! stupid.name() abort
+  echo 'Test stupidname'
+endfunction
+
+
+call overrides#name()
+call plugin#overrides#name()
+call stupid.name()
+\end{verbatim}
+
+If a function already exists with the same name as you want to 
+create, the "!" will tell it to overwrite the previously-existing 
+function
+\begin{verbatim}
+
+\end{verbatim}
+\url{http://vim.1045645.n5.nabble.com/why-quot-function-quot-instead-of-just-quot-function-quot-td5723708.html}
+
+Using exclaimation mark 
+\begin{verbatim}
+ :w! foo.txt 
+\end{verbatim}
+(overwrite an existing file).
+
+\subsection{let vs. set}
+\label{sec:vim-script-let}
+\label{sec:vim-script-set}
+\label{sec:vim-script-variable}
+\label{sec:vim-script-option}
+
+\begin{verbatim}
+:set is for setting options, 
+:let for assigning a value to a variable.
+
+:set  tw=40
+:let &tw=40
+
+if &compatible
+	set nocompatible
+endif
+\end{verbatim}
+
+The value of an option is linked to the name by using \verb!&! (ampersand), i.e.
+\verb!&option-name!.
+
+A global variable is prefixed with \verb!g:!
+\begin{verbatim}
+let g:foo=50
+\end{verbatim}
+NOTE: g:foo is a variable; so we cannot use \verb!set! command.
+
+Some options are boolean like. When setting these, no value is needed (as in
+\verb!:set noic! and the opposite \verb!:set ic!)
+
+\url{https://stackoverflow.com/questions/9990219/vim-whats-the-difference-between-let-and-set}
+
+\subsection{check O/S}
+\label{sec:vim-script-if-statement}
+\label{sec:vim-script-check-OS}
+
+\begin{verbatim}
+if has('win16') || has('win32') || has('win64')
+    let s:Psep = ';'
+    let s:Fsep = '\'
+else
+    let s:Psep = ':'
+    let s:Fsep = '/'
+endif
+\end{verbatim}
+
+\subsection{comparison}
+\label{sec:vim-script-comparison}
+
+\begin{verbatim}
+ if g:spacevim_plugin_manager ==# 'neobundle'
+ 
+ elseif  g:spacevim_plugin_manager ==# 'dein'
+ 
+ endif
+\end{verbatim}
+
+\subsection{expand, fnamemodify}
+\label{sec:vim-script-expand()}
+\label{sec:vim-script-fnamemodify()}
+
+\begin{verbatim} 
+  //display relative path of the current editing buffer
+  // % = means current file
+:echom expand('%')
+  // :p = display full, absolute path 
+:echom expand('%:p')
+  // fnamemodify = return the absolute path to the file 'foo.txt'
+  //     in the current directory, regardless of whether the file actually exist
+:echom fnamemodify('foo.txt', ':p')
+
+http://learnvimscriptthehardway.stevelosh.com/chapters/40.html
+
+https://stackoverflow.com/questions/4976776/how-to-get-path-to-the-current-vimscript-being-executed
+
+" Relative path of script file:
+let s:path = expand('<sfile>')
+
+" Absolute path of script file:
+let s:path = expand('<sfile>:p')
+
+" Absolute path of script file with symbolic links resolved:
+let s:path = resolve(expand('<sfile>:p'))
+
+" Folder in which script resides: (not safe for symlinks)
+let s:path = expand('<sfile>:p:h')
+
+" If you're using a symlink to your script, but your resources are in
+" the same directory as the actual script, you'll need to do this:
+"   1: Get the absolute path of the script
+"   2: Resolve all symbolic links
+"   3: Get the folder of the resolved absolute file
+let s:path = fnamemodify(resolve(expand('<sfile>:p')), ':h')
+\end{verbatim}
+To deal with symbolic link, we use fnamemodify
+\begin{verbatim}
+~/.vimrc is a symbolic link to a script in a git repository.
+\end{verbatim}
+
+\section{Extension to vim (i.e. Plugins)}
+
+
+Extensions in VIM are often referred to as bundles or plugins.
+
+\subsection{Plugin manager}
+
+
+Choose one plugin manager:
+\begin{enumerate}
+
+  \item Use pathogen to make it easier to install plugin - Sect.\ref{sec:pathogen}
+  
+  
+  \item Use vundle: - Sect.\ref{sec:vundle} : automatically handle cloning
+  plugins from github
+
+  \item Use neobundle: like vundle, plus the capability to specify which
+version of the plugin to use and handle plugins in Mercurial repos and sites
+besides Github - Sect.\ref{sec:neobundle}
+
+\url{https://github.com/Shougo/neobundle.vim}
+
+ \item dein.vim  - Sect.\ref{sec:dein.vim}: the neobundle with vim-plug's speed.
+ 
+ \item vim-plug - Sect.\ref{sec:vim-plug}: simple and speed
+ 
+  \item vim-addon-manager: 
+\url{http://www.vim.org/scripts/script.php?script_id=2905}
+
+\end{enumerate}
+
+\url{https://junegunn.kr/2013/09/writing-my-own-vim-plugin-manager/}
+\url{http://tilvim.com/2013/12/28/pathogen-for-vundle.html}
+\url{https://www.reddit.com/r/vim/comments/2tubi5/vundle_is_so_painless_compared_to_pathogen/}
+
+\subsection{-- vim-pathogen}
+\label{sec:pathogen}
+
+Pathogen is simple (once it is installed). Essentially it just add path each
+subfolder of \verb!~/.vim/bundle/! to vim's runtimepath
+(Sect.\ref{sec:vim-runtimepath}) automatically. So, this subfolder needs to
+contain other subfolders, which has some or all of the standard Vim plugin
+directories, like colors/ and syntax/.
+
+What pathogen does?
+\begin{verbatim}
+autoload plugins from a folder (e.g. ~/.vim/bundle)
+generate help tags for these plugins
+
+Pros:
+minimalist
+This makes it trivial to update plugins. You can simply blow away the old
+plugin's directory entirely and replace it with the new version.
+
+Cons:
+everything else done manually (installing, updating, removing, etc.)
+no lazy loading
+\end{verbatim}
+\url{https://github.com/tpope/vim-pathogen}
+
+REQUIREMENT: User has to manually download the plugin, i.e. cloning from
+git-repositories. This is relaxed in the new plugin manager - vundle
+(Sect.\ref{sec:vundle}).
+
+HOW TO: 
+\begin{itemize}
+  \item  put \verb!pathogen.vim! to \verb!~/.vim/autoload!
+  (Sect.\ref{sec:vim-autoload}). Basically, it manages vim's \verb!runtimepath!  
+  
+  \item (In Linux) put any new plugins into \verb!~/.vim/bundle! (default
+  location) and pathogen will automatically load them once vim is evoked.
+
+In Windows, the default location is
+\begin{verbatim}
+%USERPROFILE%\.vim\bundle
+\end{verbatim}
+
+To choose a diffferent location, e.g. \verb!myfold! folder, put into
+\verb!~/.vimrc! file.
+
+\begin{verbatim}  
+// 1 location called 'myfold' (relative path to ~/.vim/!)
+execute pathogen#infect('myfold/{}')
+
+// 2 different locations
+//  one relative path; and one absolute path
+execute pathogen#infect('bundle/{}', '~/src/vim/bundle/{}')
+\end{verbatim}
+NOTE: \verb!{}! indicate where the expansion should occur.
+
+Any plugin put into as a subfolder inside \verb!~/.vim/bundle! will be added to
+vim's \verb!runtimepath! automatically. 
+\end{itemize}  
+
+
+HOW TO Add a new plugin
+\begin{enumerate}
+  \item put the plugin folder to right location
+
+\begin{verbatim}
+cd ~/.vim/bundle
+
+//git clone <path-to-plugin-git>
+// which checkout code to a folder, e.g.
+// ~/.vim/bundle/command-t
+
+# later on, we can check out the latest version
+  cd ~/.vim/bundle/command-t
+  git pull
+
+# or a specific version
+  cd ~/.vim/bundle/command-t
+  git checkout 1.10
+\end{verbatim}
+
+  \item re-run vim, and generate documents
+  
+\begin{verbatim}
+:Helptags
+\end{verbatim}
+\end{enumerate}
+
+There are two ways to disable one or many plugins if Pathogen is used as plugin
+manager
+\begin{enumerate}
+  
+  \item disable all plugins
+\begin{verbatim}
+// then vim only loads ~/.vimrc file.
+vim --noplugin
+
+// load nothing
+vim -u NONE -N 
+\end{verbatim}
+
+To load one particular plugin, inside vim run \verb!source! command
+\begin{verbatim}
+source 'path-to-plugin'
+\end{verbatim}
+
+Or to load plugins for filetype
+\begin{verbatim}
+:filetype plugin on 
+\end{verbatim}
+
+  \item rename the plugin folder (you want to disable) with \verb!~! at the
+  suffix
+  
+  \item Pathogen uses an array \verb!g:pathogen_disabled[]! in which
+you can add the names of plugins that you don't want added to the runtimepath. 
+
+\begin{verbatim}
+" To disable a plugin, add it's bundle name to the following list
+let g:pathogen_disabled = []
+
+" for some reason the csscolor plugin is very slow when run on the terminal
+" but not in GVim, so disable it if no GUI is running
+if !has('gui_running')
+    call add(g:pathogen_disabled, 'csscolor')
+endif
+
+" Gundo requires at least vim 7.3
+if v:version < '703' || !has('python')
+    call add(g:pathogen_disabled, 'gundo')
+endif
+
+if v:version < '702'
+    call add(g:pathogen_disabled, 'autocomplpop')
+    call add(g:pathogen_disabled, 'fuzzyfinder')
+    call add(g:pathogen_disabled, 'l9')
+endif
+\end{verbatim}
+  \item Since Pathogen 2.4, use:  
+\begin{verbatim}
+g:pathogen_blacklist
+\end{verbatim}
+\end{enumerate} 
+\url{http://stackoverflow.com/questions/4261785/temporarily-disable-some-plugins-using-pathogen-in-vim}
+
+\subsection{-- vim-plug}
+\label{sec:vim-plug}
+
+vim-plug is a nice alternative to Vundle, with some technical differences that
+make it faster. It has most (or all?) of the features of Vundle.
+
+\subsection{-- vundle}
+\label{sec:vundle}
+
+\verb!vundle! is \verb!v!im b\verb!undle!.
+Better than pathogen (Sect.\ref{sec:pathogen}), vundle takes the process of
+cloning repositories (from github only) and manages it all for you.
+
+Think of it as pip for VIM (NOTE: Python use pip to install packages).
+
+\url{https://github.com/VundleVim/Vundle.vim}
+
+NOTE: Inside vim
+\begin{verbatim}
+ //install all plugins
+:PluginInstall
+ 
+ //update
+:PluginInstall!
+
+ //once a plugin is removed from your vimrc
+:PluginClean
+\end{verbatim}
+
+
+\subsection{-- neobundle}
+\label{sec:neobundle}
+
+\verb!neobundle! is like vundle (Sect.\ref{sec:vundle}), plus the capability to
+specify which version of the plugin to use.
+
+NOTE: NeoBundle has stopped active development now and will be replaced by
+dein.vim (Sect.\ref{sec:dein.vim}), which is Shougo's another brand new plugin
+manager.
+
+
+Neobundle is supposed to be better than vundle in
+\begin{enumerate}
+  \item not only Github, but also other repos
+  
+  \item  you can specify certain revisions or branches for used plugins.
+\begin{verbatim}
+NeoBundle 'tyru/open-browser.vim' , '30a558b', { 'name' : 'open-browser' }
+NeoBundle 'vim-ruby/vim-ruby' , { 'name' : 'ruby' }
+\end{verbatim}
+\end{enumerate}
+
+\subsection{-- dein.vim}
+\label{sec:dein.vim}
+
+{\bf dein.vim} is a replacement for neobundle (Sect.\ref{sec:neobundle}), i.e.
+it is a neobundle with vim-plug's speed, or a vim-plug with neobunle's feature
+(see vim-plug - Sect.\ref{sec:vim-plug}).
+ 
+\begin{itemize}
+  \item all features of neobundle.
+  \item faster than neobundle (Sect.\ref{sec:neobundle}), as it uses dark power.
+  
+  \item simpler
+%  \item No Vundle/NeoBundle compatibility
+%  \item Non github plugins support
+%  \item 
+\end{itemize}
+
+{\bf Install via SpaceVim}: NOTE: If you install dein.vim as part of SpaceVim
+(Sect.\ref{sec:SpaceVim}), it will be installed to
+\begin{verbatim}
+$HOME/.cache/vimfiles/repos/github.com/Shougo/dein.vim
+\end{verbatim}
+
+{\bf Install manually}: If you want to install dein.vim separately, specify the
+installation directory. IMPORTANT: DO NOT use
+\begin{verbatim}
+~/.vim/plugin
+~/.config/nvim/plugin
+\end{verbatim}
+accepted locations: \verb!~/.vim/bundles!, \verb!~/.cache/dein!,
+\verb!~/.local/share/dein!, or below. 
+\begin{verbatim}
+mkdir -p ~/.vim/dein/repos/github.com/Shougo/dein.vim #recommended path
+git clone https://github.com/Shougo/dein.vim.git \
+    ~/.vim/dein/repos/github.com/Shougo/dein.vim
+    
+    //or
+$ curl https://raw.githubusercontent.com/Shougo/dein.vim/master/bin/installer.sh > installer.sh
+$ sh ./installer.sh {specify the installation directory}
+\end{verbatim}
+\textcolor{red}{You notice that dein.vim's path so different. It is because dein
+uses a new approach to manage plugin's source.}
+
+\textcolor{red}{\bf Using}: You add a vim-plugin section to your \verb!~/.vimrc!
+(for vim) or \verb!~/.config/nvim/init.vim! (for neovim).
+\begin{verbatim}
+if &compatible
+	set nocompatible
+endif
+
+let dein_path="~/.cache/vimfiles/repos/github.com/Shougo/dein.vim"
+set runtimepath+=dein_path  "path to dein.vim directory
+
+if dein#load_state({path to plugin base path directory})
+  call dein#begin({path to plugin base path directory})
+
+  // list all plugins here
+  call dein#add({path to dein.vim directory})
+  call dein#add('Shougo/neocomplete.vim')
+  ...
+
+  call dein#end()
+  call dein#save_state()
+endif
+
+filetype plugin indent on
+syntax enable
+//call plug#begin()
+
+// finally, initialize the plugin system
+call plug#end()
+\end{verbatim}
+
+Install plugins via dein.vim
+\begin{verbatim}
+:call dein#install()
+\end{verbatim}
+\url{https://herringtondarkholme.github.io/2016/02/26/dein/}
+
+\subsection{-- zvim}
+\label{sec:zvim}
+
+
+\begin{verbatim}
+$VIM/autoload/zvim/zvim.vim
+
+$VIM/autoload/zvim/
+                  ./util.vim
+                  ./plugin.vim
+                  ./mpv.vim
+                  ./debug.vim
+
+\end{verbatim}
+
+The folder
+\begin{itemize}
+  \item \verb!./plugin.vim! handle installing the proper plugin manager for
+  spacevim, e.g. Shougo/neobundle, 
+\end{itemize}
+\url{https://github.com/monological/zvim}
+
+\subsection{-- unite}
+\label{sec:unite-vim-plugin}
+\label{sec:vim-plugin-unite}
+
+
+\begin{verbatim}
+:Unite file
+:Unite file_rec/async:!
+:Unite tag
+:Unite buffer
+\end{verbatim}
+
+\url{https://devhints.io/vim-unite}
+
+\url{http://bling.github.io/blog/2013/06/02/unite-dot-vim-the-plugin-you-didnt-know-you-need/}
+
+\url{https://github.com/Shougo/unite.vim}
+
+\subsection{-- write-your-own plugin manager}
+
+\url{https://junegunn.kr/2013/09/writing-my-own-vim-plugin-manager/}
+
+\subsection{Load packages depending on O/S}
+
+Put in \verb!~/.vimrc! file:
+\begin{verbatim}
+if has("unix")
+    Plugin 'Valloric/YouCompleteMe'
+elseif has("win64")
+    Plugin 'YouCompleteMe_win_64', {'pinned': 1}
+elseif has("win32")
+    Plugin 'YouCompleteMe_win_32', {'pinned': 1}
+endif
+\end{verbatim}
+
+
+\subsection{Syntastic}
+\label{sec:Syntastic}
+
+NOTE: Syntastics is recommended to be replaced by plugins supporting
+asycnrhnous: neomake (Sect.\ref{sec:neomake}), or ALE (Sect.\ref{sec:ALE}).
+Syntastic might eventually support async checking (once Vim's API for job
+control gets stable), and when / if that happens the async functionality will
+use Vim's API rather than Neovim's.  
+
+Syntastics helps to check your code, using a number of different checkers
+available on your system depending upon the language
+\begin{itemize}
+  \item python: use pylint, pyflake, 
+  
+  \item C/C++ : 
+
+lists of all checkers:
+\url{https://github.com/vim-syntastic/syntastic/tree/master/syntax_checkers}
+
+\end{itemize}
+
+You specify what checkers to use in \verb!.vimrc! file
+\begin{verbatim}
+" regardless of language, you call it using name as 
+" g:syntastic_<filetype>_checkers
+
+let g:syntastic_c_checkers=['make','splint']
+\end{verbatim}
+
+Once you install syntastics, you can have these commands
+
+\begin{enumerate}
+  \item \verb!:SyntasticInfo! : 
+
+{\tiny 
+\begin{verbatim}
+Syntastic version: 3.8.0-34 (Vim 800, Linux, GUI)
+Info for filetype: python
+Global mode: active
+Filetype python is active
+The current file will be checked automatically
+Available checkers: pyflakes pylint python
+Currently enabled checkers: python pylint
+The current file will not be checked (file not readable / not local)
+\end{verbatim}
+}  
+  
+  
+\end{enumerate}
+
+\section{Making vim the best tool}
+
+
+\subsection{for python}
+\begin{verbatim}
+
+" syntastic
+let g:syntastic_python_checkers=['pyflakes']
+let g:syntastic_python_checkers=['jshint']
+
+let g:syntastic_c_check_header = 1
+let g:syntastic_c_compiler = 'clang'
+
+" ctrl-p
+let g:ctrlp_working_path_mode=0
+" let g:ctrlp_map = 
+
+" pymode
+let g:pymode_python = 'python2'
+let g:pymode_lint_checkers = ['pyflakes', 'mccabe']
+let g:pymode_lint_ignore = "C0301,W0105,R0902,C0103,W0403,C901,R0903,W0142,R0201,R0904,E1103,W0703,W0221,C0323,E1101,R0914,E0611,F0401,R0915,E501,E203,W0232,W1001,W0122,W0511,W0104,R0912,W0621,W0223,W0201,W0612,C0302,I0011,R0901,W1201,W0622,R0913,E0702"
+let g:pymode_options_colorcolumn=0
+let g:pymode_folding=0
+let g:pymode_doc=0
+let g:pymode_rope=0
+
+
+" Delete whitespace for python and coffeescript
+func! DeleteTrailing()
+    exe "normal mz"
+    %s/\s\+$//ge
+    exe "normal `z"
+endfunc
+autocmd BufWrite *.py :call DeleteTrailing()
+autocmd BufWrite *.coffee :call DeleteTrailing()
+
+\end{verbatim}
+\url{https://github.com/monological/zvim/blob/master/vimrc}
+
+
+\subsection{Simple tweaks}
+
+
+\begin{itemize}
+  \item make vim show the current line
+  \item connect vim clipboard with X11 system: this requires using vim-gtk or
+  vim-gnome
+  
+  Also, in Ubuntu, make sure you add \verb!:set clipboard^=unnamedplus!
+  \url{http://vim.wikia.com/wiki/Accessing_the_system_clipboard}
+
+\end{itemize}
+
+
+\begin{verbatim}
+:set cursorline 
+execute pathogen#infect()
+syntax on
+filetype plugin indent on
+map <C-n>  :NERDTreeToggle<CR>
+:set clipboard^=unnamedplus
+\end{verbatim}
+
+\subsection{Project-specific .vimrc}
+
+One good feature of VI is allowing per-folder configuration, which requires user
+to simply put the \verb!.exrc! file in that folder, and all configuration in
+that file will be used for VI.
+This feature is disabled by default in VIM, unfortunately.
+
+To enable this feature, provide the \verb!.vimrc! in the folder, and then in the
+global (user-scope) \verb!.vimrc! file, add  these two lines 
+\begin{verbatim}
+set exrc
+set secure
+\end{verbatim}
+\url{http://www.ilker.de/specific-vim-settings-per-project.html}
+
+Project-specific .vimrc file: suppose when you run vim, and there is a
+\verb!.vimrc! file in the current folder, we want vim to use this file.
+Also for security, we want to limit the commands to use in this project-specific
+\verb!.vimrc! file, i.e. disable commands that write or execute shell commands.
+
+
+Example: project's scope \verb!.vimrc!
+\begin{verbatim}
+" Indentation rule
+set tabstop=4
+set softtabstop=4
+set shiftwidth=4
+set noexpandtab
+
+" Warning too long line
+set colorcolumn=110
+highlight ColorColumn ctermbg=darkgray
+
+" Default: .h is mapped to C++ files
+" Map .h to pure C (some projects)
+augroup project
+autocmd!
+autocmd BufRead,BufNewFile *.h,*.c set filetype=c.doxygen
+augroup END
+\end{verbatim}
+
+\subsection{Colorscheme: solarized}
+
+The quite popular color scheme named solarized can be used not only form vim
+(gvim, vimmac) but also other tools (e.g. terminator, xterm, Sublime 2).
+
+To download solarized colorscheme for vim: 
+\begin{itemize}
+  \item for vim: \url{http://ethanschoonover.com/solarized}
+  
+  \item for shell terminal, e.g. terminator:
+  
+  modify \verb!~/.config/terminator/config! file
+  
+  \url{http://www.webupd8.org/2011/04/solarized-must-have-color-paletter-for.html}
+\end{itemize}
+
+
+If you already configure the terminal to use solarized, then PLEASE don't enable
+it in the vim version, but only in gvim version
+\begin{verbatim}
+// so inside ~/.vimrc put
+
+if has('gui_running')
+   set background=dark
+   colorscheme solarized
+endif
+\end{verbatim}
+\url{http://stackoverflow.com/questions/9108713/solarized-theme-on-vim-terminator-ubuntu-11-10}
+
+Other colorschemes:
+\url{http://bytefluent.com/vivify/}
+
+\subsection{Folder/file explorer: NERDtree}	
+\label{sec:browse_folder}
+\label{sec:NERDtree}
+
+NERDtree is for browsing file/folder
+\begin{itemize}
+  \item in spacevim, we evoke with \verb!:NERDTreeToggle! 
+  
+  \item 
+\end{itemize}
+
+%\section{Browse the folder}
+\begin{enumerate}
+  \item NERDtree to enable opening folder tree inside Vim
+
+\verb!Ctrl-n! short-cut in command-mode.
+  
+ 
+  
+\url{http://www.vim.org/scripts/script.php?script_id=1658}  
+\url{https://github.com/scrooloose/nerdtree}
+  
+If you see \verb!V! in front of the folder
+\begin{verbatim}
+V folder1
+V folder2
+\end{verbatim}
+It means that you have a vim' version not compatible with the one you compiled
+NERDtree. 
+
+  \item Built-in feature:
+
+\begin{verbatim}
+:Explorer
+\end{verbatim}
+  
+\end{enumerate}
+
+
+
+
+\subsection{Folder/file explorer: vimfiler}	
+\label{sec:vim-plugin-vimfiler}
+\label{sec:vimfiler}
+
+
+Show/Toggle file tree
+\begin{verbatim}
+F3   - may not work in Tmux
+
+ // <LEADER> = Space key in spacevim
+<LEADER> f t
+<LEADER> f T  
+\end{verbatim}
+\url{https://spacevim.org/documentation/#file-tree}
+
+Vimfiler advantages are:
+\begin{verbatim}
+Integration with unite.vim.
+https://github.com/Shougo/unite.vim
+
+Integration with vimshell.
+https://github.com/Shougo/vimshell.vim
+
+More customization.
+External sources(for example, unite-ssh).
+https://github.com/Shougo/unite-ssh
+
+More options(see |vimfiler-options|)
+
+Fast(if you use |if_lua| enabled Vim).
+
+Column customization.
+
+Double screen file explorer.
+\end{verbatim}
+
+\url{https://github.com/Shougo/vimfiler.vim/issues/79}
+
+Ignore files
+\begin{verbatim}
+let g:vimfiler_ignore_filters = ['matcher_ignore_wildignore']
+\end{verbatim}
+\url{https://github.com/Shougo/vimfiler.vim/issues/261}
+
+Config
+\begin{verbatim}
+NeoBundle 'Shougo/vimfiler'
+    let s:hooks = neobundle#get_hooks("vimfiler")
+    function! s:hooks.on_source(bundle) abort
+        let g:vimfiler_as_default_explorer = 1
+        let g:vimfiler_restore_alternate_file = 1
+        let g:vimfiler_tree_indentation = 1
+        let g:vimfiler_tree_leaf_icon = '¦'
+        let g:vimfiler_tree_opened_icon = '▼'
+        let g:vimfiler_tree_closed_icon = '▷'
+        let g:vimfiler_file_icon = '-'
+        let g:vimfiler_readonly_file_icon = '*'
+        let g:vimfiler_marked_file_icon = '√'
+        "let g:vimfiler_preview_action = 'auto_preview'
+        let g:vimfiler_ignore_pattern =
+                    \ '^\%(\.git\|\.idea\|\.DS_Store\|\.vagrant\|.stversions'
+                    \ .'\|node_modules\|.*\.pyc\)$'
+
+        if has('mac')
+            let g:vimfiler_quick_look_command =
+                        \ '/Applications//Sublime\ Text.app/Contents/MacOS/Sublime\ Text'
+        else
+            let g:vimfiler_quick_look_command = 'gloobus-preview'
+        endif
+
+        call vimfiler#custom#profile('default', 'context', {
+                    \ 'explorer' : 1,
+                    \ 'winwidth' : 30,
+                    \ 'winminwidth' : 30,
+                    \ 'toggle' : 1,
+                    \ 'columns' : 'type',
+                    \ 'auto_expand': 1,
+                    \ 'direction' : 'rightbelow',
+                    \ 'parent': 0,
+                    \ 'explorer_columns' : 'type',
+                    \ 'status' : 1,
+                    \ 'safe' : 0,
+                    \ 'split' : 1,
+                    \ 'no_quit' : 1,
+                    \ 'force_hide' : 0,
+                    \ })
+        autocmd FileType vimfiler call s:vimfilerinit()
+        autocmd BufEnter * if (winnr('$') == 1 && &filetype ==# 'vimfiler') |
+                    \ q | endif
+        function! s:vimfilerinit()
+            set nonumber
+            set norelativenumber
+        endf
+\end{verbatim}
+
+
+\subsection{Quick file search and open}
+\label{sec:vim-file-search-and-open}
+
+\begin{enumerate}
+  \item Command-T: focus only on one thing (file navigation) -
+  Sect.\ref{sec:Command-T}
+
+
+  \item FuzzyFinder - Sect.\ref{sec:fzf}
+  
+  \item FuzzyFileFinder
+  \url{http://github.com/jamis/fuzzy_file_finder}
+  
+  \item FuzzyFinder:TextMate: 
+  \url{http://github.com/jamis/fuzzyfinder_textmate} 
+  
+  \item LustyExplorer: 
+  
+  \item Built-in feature:
+  
+  \verb!:find <filename>! which search for file under vim's search path
+  (Sect.\ref{sec:vim-search-path}). Short form: \verb!:fin <filename>!
+  
+  \verb!:2find <filename>! open the second match filen in the result
+  
+  \verb!:tabfind <filename>! open file in a new tab.
+  Short form:  \verb!:tabf <filename>!
+  
+\end{enumerate}
+
+\subsection{ctrlp.vim}
+\label{sec:ctrlp.vim}
+
+\subsection{fzf}
+\label{sec:fzf}
+
+
+In spacevim, we launch using
+\begin{verbatim}
+:FZF
+\end{verbatim}
+
+\subsection{-- Command-T}
+\label{sec:Command-T}
+
+Press 
+\begin{itemize}
+  \item  \verb!<leader>-t!  (providing this has not been used)
+  
+\begin{verbatim}
+nmap <silent><Leader>t  :CommandT<CR>
+\end{verbatim}
+
+  \item :CommandT
+  
+To rescan the path for newly added or deleted folders/files, run
+\begin{verbatim}
+:CommmandTFlush
+\end{verbatim}
+
+\end{itemize}
+to open file search (a prompt appear at the bottom of the screen), 
+\begin{itemize}
+  \item , showing all files in the current directory -  the directory as in returned by \verb!:pwd! command
+
+NOTE: Force to search file from a specific folder
+\begin{verbatim}
+:CommandT ../path/to/other/files
+\end{verbatim}
+
+  \item you can type in search string, and only files whose paths contains this string are shown.
+  
+NOTE: Letters do not need to appear consecutively in a path.
+
+  \item select the desired file: first by moving the highlighter up/down using C-j (move down matching list) or
+  C-k (move up matching list) keys, and open it using 
+  
+  \begin{verbatim}
+CR (Enter) key
+   open and show in the current buffer
+   
+C-CR (Ctrl-Enter or Command-Enter) 
+    open and show in a new split window
+    
+C-s  the same C-CR
+
+C-v   
+    open and show in a vertical split window
+
+C-t
+    open and show in new tab
+  
+  \end{verbatim}
+  
+  
+\end{itemize}
+
+press Ctrl-c to cancel.
+
+\url{https://wincent.com/products/command-t}
+
+Command-T is downloaded by adding to .vimrc file
+
+However, it needs to be compiled, as part of its tool is written in C, and it
+needs ruby.
+So, vim must support ruby, e.g. using vim-nox (Sect.\ref{sec:vim-nox}). Then,
+ruby header file, e.g. ruby.h, must also be available for the compilation
+\begin{verbatim}
+
+sudo apt-get install ruby-dev
+\end{verbatim}
+
+To compile
+\begin{verbatim}
+cd ~/.vim_plugins/command-t/ruby/command-t/ext/command-t
+
+ruby extconf.rb
+# Makefile is created, then run
+
+make
+\end{verbatim}
+
+
+
+\subsection{Open file under cursor}
+\label{sec:vim-open-file-under-cursor}
+
+In source code, suppose the cursor is at a given filename
+\begin{verbatim}
+#include "someheader.h"
+\end{verbatim}
+and you want to open that filename, e.g. someheader.h.
+
+Built-in VIM command 
+\begin{itemize}
+  \item \verb!gf! which open a file whose name is under or after
+the cursor
+
+NOTE: To open a file with space in name, there are two options:
+\begin{enumerate}
+  \item permanently make space as a valid character for a filename
+\begin{verbatim}
+:set isfname+=32
+\end{verbatim}
+
+   \item visual select the
+file name (press \verb!v! then move the cursor, using \verb!E! key, until you select the
+wholename), then press \verb!gf!.
+   
+\end{enumerate}
+
+
+  \item \verb!Ctrl-w!f : open \ldots and put in a new buffer, after a horizontal
+  split
+  
+  For a vertical split, press \verb!Ctrl-w!L to move the window to the right.
+  
+\end{itemize}
+\url{http://vim.wikia.com/wiki/Open_file_under_cursor}
+
+By default, vim searches file in working directory. 
+However, most projects have separated directory for include files. Thus, you
+should set vim's path option to contain comma-separated list of directories to
+look for the file (Sect.\ref{sec:vim-search-path}).
+
+{\bf TIPS Java-code}: In Java, \verb!A.B.C! means A/B/C folder hierarchical
+structure. Then, we can tell vim to convert \verb!.! to \verb!/! using
+\begin{verbatim}
+set includeexpr=substitute(v:fname,'\\.','/','g')
+\end{verbatim}
+
+\subsection{Buffer navigation}
+
+Suppose you open multiple files (in multiple buffers). How to switch from one to
+another quickly?
+
+\begin{enumerate}
+  \item \verb!bufExplorer!:
+  
+  \url{https://github.com/jlanzarotta/bufexplorer}
+  
+  
+  
+\end{enumerate}
+
+\subsection{Text navigation}
+
+In command-mode
+
+
+
+In insert-mode
+\url{http://stackoverflow.com/questions/1737163/traversing-text-in-insert-mode}
+
+\begin{verbatim}
+" provide hjkl movements in Insert mode via the <Alt> modifier key
+inoremap <A-h> <C-o>h
+inoremap <A-j> <C-o>j
+inoremap <A-k> <C-o>k
+inoremap <A-l> <C-o>l
+\end{verbatim}
+
+
+\subsection{Code complete}
+
+Code complete
+  \begin{enumerate}
+
+\item YouCompleteMe (YCM): as you type, YCM combines output from several
+sources (i.e. engines). Knowing about these engines will prevent confusion
+(Sect.\ref{sec:YouCompleteMe}).
+
+\item \verb!clang_complete!: Sect.\ref{sec:clang_complete}
+
+\item \verb!deoplete-clang! : Sect.\ref{sec:deoplete-clang}
+
+\item ctags: Sect.\ref{sec:ctags-vim} explains how to create an indexed file
+by ctags, and how to jump to different tags using shortcut.
+ 
+\item VIM built-in feature: (type a first few characters of the word you
+want, then while in insert-mode, press) \verb!Ctrl-N!  
+  \end{enumerate}
+
+
+\subsection{Code folding/unfold}
+
+Vim enables different choices for code folding
+\begin{verbatim}
+// indent, syntax, expr, manual, 
+set foldmethod=indent
+set foldlevel=99
+\end{verbatim}
+
+With Python code, use \verb!SimplyFold! package.
+
+\subsection{Syntax hightlight}
+
+C++: \url{http://www.vim.org/scripts/script.php?script_id=1640}
+
+
+\subsection{Column-based alignment (CSV, JSON)}
+
+
+\begin{enumerate}
+  \item \verb!vim-easy-align!
+  
+  \url{https://github.com/junegunn/vim-easy-align}
+  
+\end{enumerate}
+
+
+\subsection{Realign code (code format)}
+
+
+\begin{enumerate}
+  
+  \item \verb!auto-format!: support using different tools
+  (clang-format for C/C++, astyle for C/C++/C\#/Java, autopep8 for Python,
+  js-beautiful for JSON/Javascript \ldots )
+  
+  \url{https://github.com/Chiel92/vim-autoformat}
+  
+  
+  \item \verb!vim-clang-format!:
+  \url{https://github.com/rhysd/vim-clang-format}
+  
+  \url{http://clang.llvm.org/docs/ClangFormat.html#vim-integration}
+  
+  \item \verb!vim-easy-align!
+  
+  \url{https://github.com/junegunn/vim-easy-align}
+  
+  \item Vim built-in feature:
+  
+\begin{verbatim}
+:filetype indent on
+\end{verbatim}
+and make sure VIM knows the filetype you're editing.
+
+Call \verb!={motion}!, and VIM will guess the indentation based on the filetype.
+\begin{verbatim}
+== align the current line
+=i{ align the inner block
+=% align to the matching parenthesis/bracket under the cursor
+=14j or 14== align the next 14 lines
+=G align to the end of the file
+vG= same thing, align to the end of the file (but using visual mode)
+vjjj= align four lines (using visual mode)
+\end{verbatim}
+and the indentation is based on the configuration of how many spaces per tab,
+and if you want to expand tab into spaces or not
+\begin{verbatim}
+:set expandtab softtabstop=3 tabstop=3 shiftwidth=3
+\end{verbatim}
+
+If vim is not guessing the indentation level correctly, there are two ways to
+change it:
+\begin{itemize}
+  \item In command-mode
+\begin{verbatim}
+<<  To shift the line left
+>>  To shift the line right
+\end{verbatim}
+  \item In insert-mode
+\begin{verbatim}
+Ctrl-T  To shift to the right
+Ctrl-D  To un-indent one tab
+\end{verbatim}
+\end{itemize}
+
+  \item \verb!astyl! utility
+\begin{verbatim}
+apt-get install astyle
+\end{verbatim}
+and use inside VIM
+\begin{verbatim}
+:%!astyle   default mode C/C++
+
+%!astyle --mode=c --style=ansi -s2  (ANSI C++ style: 2 spaces indentation)
+
+:1,40!astyle --mode=c --style=ansi (apply from lines 1 to 40 only)
+\end{verbatim}
+
+\url{http://stackoverflow.com/questions/2506776/is-it-possible-to-format-c-code-with-vim}
+
+\end{enumerate}
+\url{http://stackoverflow.com/questions/2587435/how-does-one-align-code-braces-parens-etc-in-vi}
+
+\subsection{Compile your project}
+
+
+\begin{enumerate}
+  \item Built-in feature:
+  
+\verb!:make! command which, by default, executes make in current directory and
+parses output for errors.
+
+NOTE: The actual command to execute is stored in \verb!makeprg! option.
+So, you can change it to use a different build system
+\begin{verbatim}
+set makeprg=make\ -C\ ../build\ -j9
+\end{verbatim}
+ 
+TIPS: Bind to shortcut key F4
+\begin{verbatim}
+nnoremap <F4> :make!<cr>
+\end{verbatim}
+(\verb.!. mark prevents vim from jumping to location of first error found)
+
+\subsection{Run your program}
+
+Map to F5 key to run a program
+\begin{verbatim}
+nnoremap <F5> :!./my_great_program<cr>
+\end{verbatim}
+\end{enumerate}
+
+\subsection{Version control with VIM}
+
+
+\subsection{ * git}
+
+Use \verb!fugitive! plugin.
+\url{http://vimcasts.org/episodes/fugitive-vim---a-complement-to-command-line-git/}
+
+You may want to install \verb!lighthttpd! if you want to use \verb!Gbrowse!
+command.
+
+
+Once installed fugitive, using \verb!:Git! command to access all git
+commands.
+You still need to switch to shell for git commands that generate a log of
+output.
+
+\begin{Verbatim}
+:Git add % 	:Gwrite 	Stage the current file to the index
+:Git checkout % 	:Gread 	Revert current file to last checked in version
+:Git rm % 	:Gremove 	Delete the current file and the corresponding Vim buffer
+:Git mv % 	:Gmove 	Rename the current file and the corresponding Vim buffer
+
+		 :Gcommit command opens up a commit window in a split window.
+		 :Gblame command opens a vertically split window containing annotations for
+		 each line of the file: the last commit reference, with author and timestamp.
+\end{Verbatim}
+
+NOTE: fugitive provides autocomplete of branch name.
+
+
+\section{Ruby-based plugins}
+\label{sec:ruby-based-plugins-vim}
+
+
+To add Ruby-binding to neovim (Sect.\ref{sec:neovim-Ruby})
+
+To add Ruby to vim (Sect.\ref{sec:vim-Ruby})
+
+These are Ruby-based plugins
+\begin{enumerate}
+  \item Command-T: Sect.\ref{sec:Command-T}
+  
+  \item 
+\end{enumerate}
+
+To write a Vim/Neovim's plugin in Ruby, read
+\url{https://github.com/alexgenco/neovim-ruby}
+
+
+\section{Text processing}
+
+\subsection{change uppercase/lowercase}
+
+\url{http://vim.wikia.com/wiki/Switching_case_of_characters}
+
+\subsection{evaluate expression}
+\label{sec:vim-evaluate-expression}
+\label{sec:vim-evaluate-commands}
+
+We use \verb!''=! expression register (Sect.\ref{sec:register-vim-nvim})
+
+Example: If, in insert mode, you type Ctrl-r =, you will see a \verb!=! sign in
+the command line. Then if you type \verb!2+2 <enter>!, 4 will be printed. This
+    can be used to execute all sort of expressions, even calling external
+    commands.
+
+
+Example: get return of linux's command: if you type Ctrl-r = and then, in the
+command line, \verb!system('ls') <enter>!, the output of the ls command will be
+pasted in your buffer.
+
+\subsection{text replacement}
+
+\begin{verbatim}
+:%s/test-source/test-new/gc
+\end{verbatim}
+
+To replace that text (that you just searched with \verb!/!) with something else
+(e.g. mustache), you don't have to retype that text, just use \verb!/! register
+(Sect.\ref{sec:register-vim-nvim})
+\begin{verbatim}
+:%s/<Ctrl-r />/mustache/g
+\end{verbatim}
+
+
+
+\section{Buffers in vim}
+\label{sec:vim-buffer}
+
+\subsection{switch buffer}
+\label{sec:vim-buffer-switch}
+
+Switch between the last two buffers
+\begin{verbatim}
+Ctrl-^
+ // or
+:e Ctrl-r #
+\end{verbatim}
+NOTE: \verb!''#! register hold the name of last open buffer
+(Sect.\ref{sec:register-vim-nvim}).
+
+
+\section{VimL: VIM native scripting language}
+%\section{VIM script}
+\label{sec:vim-script}
+
+VIM script is mostly written in imperative programming style, i.e.
+using statements to change the program's state
+\begin{itemize}
+\item a simple form of object-oriented programming
+  
+  \item basic form of functional programming using \verb!map()! and
+  \verb!filter()! functions.
+  
+\end{itemize}
+
+Most plugins for VIM are written using VimL, but plugins can also utilize other
+interpreted languages like Perl, Python, Lua, or Ruby (if support for them is
+compiled into the Vim binary).
+
+Vim script files are stored in plain text format and the file name extension is
+\verb!.vim!. 
+
+\url{https://en.wikipedia.org/wiki/Vim_(text_editor)}
+
+\url{https://en.wikibooks.org/wiki/Learning_the_vi_Editor/Vim/VimL_Script_language}
+
+A library of useful functions written in VimL can be downloaded from here
+\url{https://github.com/LucHermitte/lh-vim-lib}
+
+
+\subsection{data type}
+
+Since VIM 7.1, new supported data types
+\begin{enumerate}
+  \item \verb!list!
+  
+  \item \verb!dictionaries!
+\end{enumerate}
+
+\subsection{declare variable}
+
+\begin{verbatim}
+let i = 1
+\end{verbatim}
+
+
+\subsection{let vs. set}
+
+\url{http://stackoverflow.com/questions/9990219/vim-whats-the-difference-between-let-and-set}
+
+:set is for setting options, :let for assigning a value to a variable.
+
+
+
+\subsection{comparison}
+
+There are three options of operator: \verb!==!, \verb!==?!, and \verb!==#!.
+
+Be careful when comparing strings. Use \verb!==?! or \verb!==#! only.
+\begin{itemize}
+  \item \verb!==?! : comparison based on "case-insensitive no matter what the
+  user has set" 
+  
+  \item \verb!==#! : comparison "case-sensitive no matter what the user has
+  set" 
+\end{itemize}
+
+\begin{verbatim}
+:if "foo" == "bar"
+:echom "one"
+:elseif "foo" == "foo"
+:echom "two"
+:endif
+\end{verbatim}
+
+\begin{verbatim}
+:set noignorecase
+:if "foo" ==? "FOO"
+:echom "first"
+:elseif "foo" ==? "foo"
+:echom "second"
+:endif
+\end{verbatim}
+
+\subsection{case-sensitive or case-insensitive ?}
+
+Use
+\begin{verbatim}
+:set ignorecase
+
+:set noignorecase
+\end{verbatim}
+\url{http://learnvimscriptthehardway.stevelosh.com/chapters/22.html}
+
+\begin{verbatim}
+:set noignorecase
+:if "foo" == "FOO"
+:echom "vim is case insensitive"
+:elseif "foo" == "foo"
+:echom "vim is case sensitive"
+:endif
+\end{verbatim}
+
+\subsection{condition}
+
+
+\begin{verbatim}
+:set ignorecase
+:if "foo" == "FOO"
+:echom "no, it couldn't be"
+:elseif "foo" == "foo"
+:echom "this must be the one"
+:endif
+\end{verbatim}
+
+\section{Encoding for file/folder name}
+
+If you need to use non-Unicode encoding scheme (which is not encouraged), then
+you can do, e.g. with CP1251 encoding scheme.
+\begin{verbatim}
+:call mkdir(iconv("son-non-Unicode-character", "utf-8", "cp1251"))
+\end{verbatim}
+\url{http://stackoverflow.com/questions/2271135/create-directory-in-vim}
+
+\section{VIM with Python 3.x support}
+\label{sec:vim-Python-3.x}
+\url{http://vi.stackexchange.com/questions/2403/vim-code-completion-for-python-3}
+
+
+\section{Code complete}
+
+
+
+\subsection{YouCompleteMe plugin}
+\label{sec:YouCompleteMe}
+
+YouCompleteMe enables code-completion for one or many programming langugages
+(e.g. C/C++/Objective-C/Objective-C++).
+It is written in C++ and glue to Vim via Python.
+
+In neovim or SpaceVim, it is recommended to use deoplete.nvim
+(Sect.\ref{sec:deoplete})
+\begin{verbatim}
+:help SpaceVim-faq
+\end{verbatim}
+
+However, certains people still like YCM; part of that because it has
+Python-based configuration file \verb!.ycm_extra_conf.py!
+(Sect.\ref{sec:.ycm_extra_conf.py}).
+
+To get YCM to be activated in neovim/SpaceVim, 
+\url{https://github.com/neovim/neovim/issues/1315}
+
+
+\begin{verbatim}
+cd ~/.vim/plugins/
+# or cd ~/.vim_plugins/
+
+cd YouCompleteMe
+
+./install.py --clang-completer
+
+./install.py --clang-completer --system-libclang
+\end{verbatim}
+
+TO ENABLE RECOMPILATION: in \verb!~/.vimrc!, 
+introduce post git-update or git-clone action
+\begin{verbatim}
+Plug 'Valloric/YouCompleteMe', { 'do': './install.py --clang-completer --system-libclang' }
+\end{verbatim}
+
+TROUBLESHOOT:
+\begin{verbatim}
+ycm_core.so: undefined symbol: clang_getCompletionFixIt
+\end{verbatim}
+EXPLAIN: The system libclang is too old. We need at least version 7.0.0.
+
+
+\subsection{-- installation}
+\label{sec:YouCompleteMe-install-on-PowerPC-IBM}
+
+
+As the built-in libclang.so.7 is for x86-64, we need to use the system libclang.
+Make sure you also first install the latest libclang
+
+\begin{verbatim}
+sudo apt-get install libclang-6.0-dev
+sudo apt-get install clang-tidy-6.0
+
+
+cd YouCompleteMe
+
+./install.py --all --system-libclang  --clang-tidy
+\end{verbatim}
+
+\subsection{-- installation}
+\label{sec:YouCompleteMe-install}
+
+Make sure you add the language support when compile YouCompleteMe.
+% 
+% HOST_GCC=$HOME/bin/gcc/4.8.2; 
+% export EXTRA_CMAKE_ARGS="-DCMAKE_C_COMPILER=${HOST_GCC}/bin/gcc
+%-DPYTHON_LIBRARY=`python-config --prefix`/lib/libpython2.7.so"
+To install
+\begin{verbatim}
+# with custom Python
+# with custom gcc version and custom libstdc++ location
+# with location to libclang.so.3.8
+export
+EXTRA_CMAKE_ARGS="-DCMAKE_C_COMPILER=/gsa/yktgsa/home/t/m/tmhoangt/bin/gcc/4.8.2/bin/gcc
+-DCMAKE_CXX_COMPILER=/gsa/yktgsa/home/t/m/tmhoangt/bin/gcc/4.8.2/bin/g++
+-DCMAKE_CXX_LINK_FLAGS='-L/gsa/yktgsa/home/t/m/tmhoangt/bin/gcc/4.8.2/lib64
+-Wl,-rpath,/gsa/yktgsa/home/t/m/tmhoangt/bin/gcc/4.8.2/lib64'
+-DCMAKE_BUILD_TYPE=Release
+-DPYTHON_LIBRARY=/home/tmhoangt/bin/lib/libpython2.7.so
+-DPYTHON_EXECUTABLE=/home/tmhoangt/bin/bin/python
+-DLIBCLANG_LIBRARY=/usr/lib/llvm-3.5/lib/libclang.so
+-DLIBCLANG_INCLUDE_DIR=/usr/lib/llvm-3.5/include/"
+ 
+
+# tell to use different libstdc++.so.6
+export LD_LIBRARY_PATH=~/bin/gcc/4.8.2/lib64:$LD_LIBRARY_PATH
+
+# then if you already have clang
+#  to use clang for C-based language code completion (C/C++)
+./install.py --clang-completer --system-libclang
+\end{verbatim}
+
+NOTE: For help debugging, add
+\begin{verbatim}
+-DCMAKE_VERBOSE_MAKEFILE=ON
+\end{verbatim}
+
+\subsection{-- code completion}
+
+How does YouCompleteMe perform code completion.
+In C++, even though Clang is the front-end, it doesn't know the location of the
+header files to perform code completion until you configure the path.
+
+You could use anything: Visual C++, Borland C++, GCC, MinGW, MinGW-w64,
+LLVM/Clang, etc. Each of them has their own standard library and runtime
+supplied. Thus, in each case you'd have to specify all the paths which your
+current toolchain uses to find standard includes.
+To know, run
+\begin{verbatim}
+
+//IF GCC, MinGW, MinGW-w64
+  // POSIX shell
+g++ -E -x c++ - -v < /dev/null
+
+  // Windows
+g++ -E -x c++ - -v < nul
+
+//IF LLVM/Clang,
+  // POSIX shell
+clang++ -E -x c++ - -v < /dev/null
+
+clang++ -E -x c++ - -v < nul
+\end{verbatim}
+
+Finally, add them to the \verb!flags! list with \verb!'-I'! for each path
+{\tiny
+\begin{verbatim}
+'-I',
+'D:/Toolchains/x64/MinGW-w64/4.8.1/POSIX/SEH/lib/gcc/x86_64-w64-mingw32/4.8.1/include/c++',
+'-I',
+'D:/Toolchains/x64/MinGW-w64/4.8.1/POSIX/SEH/lib/gcc/x86_64-w64-mingw32/4.8.1/include/c++/x86_64-w64-mingw32',
+'-I',
+'D:/Toolchains/x64/MinGW-w64/4.8.1/POSIX/SEH/lib/gcc/x86_64-w64-mingw32/4.8.1/include/c++/backward',
+'-I',
+'D:/Toolchains/x64/MinGW-w64/4.8.1/POSIX/SEH/lib/gcc/x86_64-w64-mingw32/4.8.1/include',
+'-I',
+'D:/Toolchains/x64/MinGW-w64/4.8.1/POSIX/SEH/lib/gcc/x86_64-w64-mingw32/4.8.1/include-fixed',
+'-I',
+'D:/Toolchains/x64/MinGW-w64/4.8.1/POSIX/SEH/x86_64-w64-mingw32/include',
+\end{verbatim}
+}
+\url{http://stackoverflow.com/questions/18801354/c-family-semantic-autocompletion-plugins-for-vim-using-clang-clang-complete-yo}
+
+
+There are one important file: 
+\verb!.ycm_extra.conf.py! (Sect.\ref{sec:.ycm_extra_conf.py})
+
+Engines: 
+% an identifier-based engine that works with every
+% programming language
+\begin{itemize}
+  \item  C/C++/Objective-C/Objective-C++ (from now on referred to as
+"the C-family languages"): , a semantic, Clang-based engine that provides native semantic code
+completion.
+
+NOTE: You need to add \verb!include! folders for searching header files to
+the file above by adding \verb!-I! options.
+  \begin{verbatim}
+  '-I', '/to/this/include',
+  '-I', '$NTSROOT/to/another/include',
+  \end{verbatim}
+  
+  TIPS: if you have project's specific \verb!.vimrc! and you already populate
+  \verb!path! with all include folders (Sect.\ref{sec:vim-search-path}), then
+  you only need
+  \begin{verbatim}
+  "='-I'.substitute(&path, ',', '\n-I', 'g')<cr>p
+  \end{verbatim}
+
+ 
+  \item Python: a Jedi-based completion engine for Python, 
+
+NOTE: YCM currently does not support Python 3.x. To get Python 3.x support
+in vim, read Sect.\ref{sec:vim-Python-3.x}
+
+  \item C\#: an
+OmniSharp-based completion engine for 
+
+  \item many other languages (Ruby, PHP etc): 
+and an omnifunc-based completer
+that uses data from Vim's omnicomplete system 
+\end{itemize}
+YCM prioritize them with a complex algorithm.
+
+
+There is no need to press any shortcut to invoke the completion menu.
+\url{http://www.alexeyshmalko.com/2014/youcompleteme-ultimate-autocomplete-plugin-for-vim/}
+
+YCM has a client-server architecture; the Vim part of YCM is only a thin client
+that talks to the ycmd HTTP+JSON server that has the vast majority of YCM logic
+and functionality. The server is started and stopped automatically as you start
+and stop Vim.
+
+
+Final steps: make sure you have the file 
+\verb!.ycm_extra_conf.py! at the global level, or for specific project
+configuration, add to each project folder, and then in \verb!~/.vimrc! 
+add
+\begin{verbatim}
+let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
+let g:ycm_confirm_extra_conf=0
+\end{verbatim}
+
+DEBUG purpose: in Vim, run
+\begin{verbatim}
+:YcmDebugInfo
+\end{verbatim}
+
+ERROR:
+\begin{verbatim}
+YouCompleteMe unavailable:  no module named ycmd
+\end{verbatim}
+SOLUTION:
+\begin{verbatim}
+// check :h SpaceVim-faq
+
+cd ~/.cache/vimfiles/repos/github.com/Valloric/YouCompleteme/
+git submodule update --init --recursive
+./install.py --clang-completer --system-libclang
+
+\end{verbatim}
+
+ \subsection{.ycm\_extra\_conf.py}
+ \label{sec:.ycm_extra_conf.py}
+
+
+
+
+IMPORTANT: When you open a source file, the engine
+looks for the file \verb!.ycm_extra.conf.py! file in the directory of the opened file or in any
+directory above it in the hierarchy (recursively); when the file is found,
+it is loaded (only once!) as a Python module. This file is important as YCM
+uses the information from it to compile the source code.
+
+
+\begin{enumerate}
+  \item You can copy and modify the sample file:
+\url{https://github.com/Valloric/ycmd/blob/master/cpp/ycm/.ycm_extra_conf.py}
+ 
+  \item Another good example:
+  \url{https://jonasdevlieghere.com/a-better-youcompleteme-config/}
+  
+   \item You can  use the YCM-Generator tool to help generate this file,
+   if your project is designed to be compiled with CMake, make, qmake, autotools: 
+\url{https://github.com/rdnetto/YCM-Generator}
+\end{enumerate}
+
+In order to let clang know about your include directories custom defines, you
+should place your \verb!-I! and \verb!-D! compiler flags into
+\verb!.clang_complete! file at the root of your project.
+\subsection{Clang\_complete}
+\label{sec:clang_complete}
+
+There is one important file \verb!.clang_complete!
+
+\url{http://stackoverflow.com/questions/18801354/c-family-semantic-autocompletion-plugins-for-vim-using-clang-clang-complete-yo}
+
+\subsection{.clang\_complete}
+ \label{sec:.clang_complete}
+ 
+
+
+
+\subsection{deoplete, deoplete-clang, deoplete-clang2}
+\label{sec:deoplete}
+
+Compared to YouCompleteMe (Sect.\ref{sec:YouCompleteMe}), deoplete is much more
+lightweight. Als, install neomake (Sect.\ref{sec:neomake}) to replace syntastic
+(Sect.\ref{sec:Syntastic}). deoplete (pair it with neomake and your favorite
+linter) is a lightweight solution.
+
+\begin{verbatim}
+pip2 install --upgrade neovim
+pip3 install --upgrade neovim
+\end{verbatim}
+\url{https://github.com/Shougo/deoplete.nvim}
+
+Deoplete requires you to do your own configuration for keybinds and stuff. It's
+a little annoying as compared to YCM/neocomplete's setup.
+To configure, check
+\footnote{\url{https://github.com/zchee/deoplete-clang}}.
+
+\subsection{-- deoplete-clang}
+\label{sec:deoplete-clang}
+
+\verb!deoplete-clang! is specifically designed to work with neovim, and is built
+upon these tools
+\begin{enumerate}
+  \item \verb!deoplete! - Sect.\ref{sec:deoplete}
+  \item \verb!libclang-python3!
+  \item 
+\end{enumerate}
+
+
+It enable auto-completing C/C++/Objective-C/Objective-C++
+using libclang.  \url{https://github.com/zchee/deoplete-clang}
+
+
+\begin{verbatim}
+let g:deoplete#enable_at_startup = 1
+let g:deoplete#auto_complete_start_length = 1
+let g:deoplete#sources#clang#libclang_path = '/usr/lib/libclang.so'
+let g:deoplete#sources#clang#clang_header = '/usr/include/lib/clang'
+let g:deoplete#sources#clang#std#cpp = 'c++11'
+let g:deoplete#sources#clang#sort_algo = 'priority'
+let g:deoplete#sources#clang#clang_complete_database = '/home/pacov/code/build'
+\end{verbatim}
+Based on the value of \verb!clang-complete_database! option, it is the
+directory where the file \verb!compile_commands.json! should
+be
+\begin{verbatim}
+/home/user/code/build/compile_commands.json
+\end{verbatim}
+\url{https://github.com/zchee/deoplete-clang/issues/11}
+
+Currently, deoplete-clang does not support \verb!.ycm_extra_conf.py! file. For
+now, any extra configuration has to be done via the json file.
+\begin{verbatim}
+let g:deoplete#sources#clang#libclang_path = "/opt/llvm/lib/libclang.dylib"
+let g:deoplete#sources#clang#clang_header = '/opt/llvm/lib/clang'
+" clang default include flags
+"   - echo | clang -v -E -x c -
+let g:deoplete#sources#clang#flags = [
+      \ "-cc1",
+      \ "-triple", "x86_64-apple-macosx10.11.0",
+      \ "-emit-obj",
+      \ "-mrelax-all",
+      \ "-disable-free",
+      \ "-disable-llvm-verifier",
+      \ "-mrelocation-model", "pic",
+      \ "-pic-level", "2",
+      \ "-mthread-model", "posix",
+      \ "-mdisable-fp-elim",
+      \ "-munwind-tables",
+      \ "-target-cpu", "core2",
+      \ "-target-linker-version", "264.3",
+      \ "-dwarf-column-info",
+      \ "-debugger-tuning=lldb",
+      \ "-resource-dir", "/opt/llvm/lib/clang/3.9.0",
+      \ "-isysroot", "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk",
+      \ "-ferror-limit", "19",
+      \ "-fmessage-length", "213",
+      \ "-stack-protector", "1",
+      \ "-fblocks",
+      \ "-fobjc-runtime=macosx-10.11.0",
+      \ "-fencode-extended-block-signature",
+      \ "-fmax-type-align=16",
+      \ ]
+let g:deoplete#sources#clang#sort_algo = 'priority'
+let g:deoplete#sources#clang#clang_complete_database = '/Users/zchee/src/github.com/neovim/neovim/build'
+\end{verbatim}
+
+\subsection{-- deoplete-clang2}
+\label{sec:deoplete-clang2}
+
+\verb!deoplete-clang2! is faster than \verb!deoplete-clang!, as it uses
+\verb!clang -cc1!. 
+\url{https://github.com/tweekmonster/deoplete-clang2}
+
+USING
+\begin{itemize}
+  \item \verb!tab! move to the next
+  \item \verb!s-tab! move to the previous
+\end{itemize}
+
+Configure search path
+\begin{itemize}
+  \item  
+  
+\end{itemize}
+
+
+Configure compilation flags
+\begin{itemize}
+  \item  compiler-flags local to individual projects: create \verb!.clang! file
+  at project root.
+  
+  It will search the current working directory for a .clang file; if no such
+  file is found it will try searching the parent directory.
+
+You should be able to just paste most of your compile flags in there (the parts
+that make sense at least). Mainly, it should have the relevant -I, -D, -F flags.
+The plugin will try to fill in the blanks for system include paths and discard
+the flags that are causing completions to not work.
+
+
+  \item system-wide flags: specify the location of the file
+  \verb!compile_commands.json! file.
+
+\begin{verbatim}
+  // C(XX)FLAGS for generating completion
+  // REQUIRED: no
+  // CHECK
+  # C++
+echo | clang -v -E -x c++ -
+
+  // a list
+  // C++ default: ['-x', 'c++']
+  // ["-fblocks",]
+g:deoplete#sources#clang#flags
+\end{verbatim}
+
+Example:
+\begin{verbatim}
+let g:deoplete#sources#clang#flags = ['-Iwhatever', ...] 
+\end{verbatim}
+in your nvim configs (Sect.\ref{sec:spacevim-configuration}).
+
+\end{itemize}
+
+
+\begin{verbatim}  
+  //default: ''    (or path to libclang.so)
+  // REQUIRED: yes
+g:deoplete#sources#clang#libclang_path
+
+  //default: ''    (or path to include folder)
+  // REQUIRED: yes
+g:deoplete#sources#clang#clang_header
+
+  // a dict 
+  // {'c': 'c11', 'cpp': 'c++1z', 'objc': 'c11', 'objcpp': 'c++1z'}
+g:deoplete#sources#clang#std
+
+  
+  // sorting of completion results
+  // 'priority'  or  'alphabetical'
+g:deoplete#sources#clang#sort_algo
+
+g:deoplete#sources#clang#clang_complete_database
+\end{verbatim}
+
+
+
+\section{Spacemacs}
+
+\url{https://github.com/syl20bnr/spacemacs#introduction}
+
+\chapter{Neovim (nvim)}
+\label{chap:neovim}
+\label{sec:neovim}
+
+\begin{mdframed}
+Although vim is under active development, it includes some ~300k lines of C89
+code. In addition to being difficult to maintain, issues and new pull requests
+cannot be addressed very easily since Bram Moolenaar is the only person who
+maintains the large codebase of the program.  
+
+These difficulties, along with the lack of support for some desired features
+such as asynchronous plugins, motivated the birth of NeoVim as a fork of vim.
+\end{mdframed}
+
+Neovim is a complete rewrite of vim editor (Chap.\ref{chap:Vim}).
+Two important new features:
+\begin{enumerate}
+  \item  asynchronous plugins: to modernize the plugin architecture
+
+
+Asynchronous plugins make it possible for plugins to run as background processes
+without interfering with the main editor process.
+  
+  \item the Remote Procedure Call (RPC) API for controlling NeoVim
+  programmatically.
+  
+The RPC API allows GUI programs (and other software that speaks the msgpack-rpc
+  messaging protocol) to connect to a running NeoVim instance. This means that
+  you can integrate well-known text editors such as Atom, Visual Studio Code, or
+  Sublime Text with NeoVim and have modifications sync bidirectionally between
+  them. That way, you can leverage all the features of the GUI program while
+  using nvim's engine behind the scenes.
+  
+\end{enumerate}
+It also provide a better out-of-the-box experience for Vim users, i.e. no need
+to worry about enabling/disabling about 100 different compiling options as when
+you build Vim, and including a built in terminal emulator
+(Sect.\ref{sec:nvim-terminal-emulator}).
+
+Depending if you use SpaceVim or not, the configurations files
+can be at different locations
+\begin{enumerate}
+  \item pure NeoVim: 
+
+It uses \verb!.nvimrc! as resource file, and extra configuration is put inside
+\verb!.nvim!. As neovim is backward compatible with vim, we can share them by
+symlink
+\begin{verbatim}
+ln -s .vimrc .nvimrc
+ln -s .vim .nvim
+\end{verbatim}
+
+Inside the same resource file, we can separate neovim-specific stuff using 
+\begin{verbatim}
+if has('nvim') 
+
+endif
+\end{verbatim}
+block.
+
+   \item SpaceVim + Neovim: Sect.\ref{sec:nvim-SpaceVim}
+\end{enumerate}
+
+\section{Install neovim}
+
+NeoVim has (pre-built version) packages available for Homebrew, MacPorts,
+Ubuntu, Debian, Arch, and many other environments
+\begin{itemize}
+  \item Ubuntu (which has nvim 0.2.2)
+  
+  
+\begin{verbatim}
+sudo apt-get install python-dev python-pip python3-dev python3-pip
+
+sudo add-apt-repository ppa:neovim-ppa/stable
+# or 
+# sudo add-apt-repository ppa:neovim-ppa/unstable
+sudo apt-get update
+sudo apt-get install neovim
+\end{verbatim}
+
+NOTE: You can configure to use nvim by default for different editor
+\begin{verbatim}
+sudo update-alternatives --install /usr/bin/vi vi /usr/bin/nvim 60
+sudo update-alternatives --config vi
+sudo update-alternatives --install /usr/bin/vim vim /usr/bin/nvim 60
+sudo update-alternatives --config vim
+sudo update-alternatives --install /usr/bin/editor editor /usr/bin/nvim 60
+sudo update-alternatives --config editor
+\end{verbatim}
+
+  \item Debian
+  
+\begin{verbatim}
+sudo apt-get install neovim
+sudo apt-get install python-neovim
+sudo apt-get install python3-neovim
+\end{verbatim}
+
+
+  \item  OS X with Homebrew
+  
+\begin{verbatim}
+brew install neovim/neovim/neovim
+\end{verbatim}
+the way to summon NeoVim is to say its name three times.
+
+  \item Linux with AppImage  (nvim 0.3.0-dev)
+\begin{verbatim}
+curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage
+chmod u+x nvim.appimage
+./nvim.appimage
+\end{verbatim}
+
+
+  \item  other environments:
+  \url{https://github.com/neovim/neovim/wiki/Installing-Neovim}
+\end{itemize}
+
+Then install ALE (\url{https://github.com/w0rp/ale#installation})
+\begin{verbatim}
+mkdir -p ~/.local/share/nvim/site/pack/git-plugins/start
+git clone https://github.com/w0rp/ale.git ~/.local/share/nvim/site/pack/git-plugins/start/ale
+\end{verbatim}
+
+\subsection{make nvim default}
+
+In .zshrc or .bashrc
+\begin{verbatim}
+if type nvim > /dev/null 2>&1; then
+  alias vim='nvim'
+fi
+\end{verbatim}
+
+\subsection{add python support for plugins}
+
+The main advantages of using Python in plugins is that it enables plugins to
+have access to network sockets, and perform long-running or expensive operations
+in the background without freezing the Vim UI.
+
+
+Vim plugins are able to execute Python code when Vim is compiled with Python support
+
+Do:
+\begin{itemize}
+  \item system-wide
+
+\begin{verbatim}
+sudo pip install neovim
+\end{verbatim}
+
+  \item user-specific:
+
+\begin{verbatim}
+pip2 install --user neovim
+pip3 install --user neovim
+\end{verbatim}
+\end{itemize}
+
+NOTE: Check sys.path
+\begin{verbatim}
+python -m site
+\end{verbatim}
+{\tiny  
+\begin{verbatim}
+sys.path = [
+    '/home/tmhoangt/Downloads',
+    '/home/tmhoangt/.local/lib/python2.7/site-packages/efel-0+unknown-py2.7-linux-x86_64.egg',
+    '/home/tmhoangt/.local/lib/python2.7/site-packages/numpy-1.14.2-py2.7-linux-x86_64.egg',
+    '/packages/gcc/5.4.0/share/gcc-5.4.0/python',
+    '/home/tmhoangt/Scripts/NTS_run',
+    '/home/tmhoangt/Scripts/NTS_plotting',
+    '/usr/lib/python2.7',
+    '/usr/lib/python2.7/plat-x86_64-linux-gnu',
+    '/usr/lib/python2.7/lib-tk',
+    '/usr/lib/python2.7/lib-old',
+    '/usr/lib/python2.7/lib-dynload',
+    '/home/tmhoangt/.local/lib/python2.7/site-packages',
+    '/usr/local/lib/python2.7/dist-packages',
+    '/usr/lib/python2.7/dist-packages',
+    '/usr/lib/python2.7/dist-packages/gtk-2.0',
+]
+USER_BASE: '/home/tmhoangt/.local' (exists)
+USER_SITE: '/home/tmhoangt/.local/lib/python2.7/site-packages' (exists)
+ENABLE_USER_SITE: True
+\end{verbatim}
+}
+
+\subsection{configuration for neovim}
+
+We can choose either
+\begin{enumerate}
+  \item referencing to the existing \verb!.vimrc! file
+  
+  \item using dotfiles
+  
+  \item use SpaceVim to manage configuration files
+\end{enumerate}
+
+\subsection{-- configuration file: init.vim}
+
+NeoVim does not load your .vimrc file, nor does it use .nvimrc.
+Instead, it load \verb!init.vim! file locating in
+\begin{verbatim}
+${XDG_CONFIG_HOME}/nvim/init.vim
+\end{verbatim}
+This is because NeoVim supports the XDG Base Directory Specification, which
+among other things attempts to standardize where user configuration files should
+live and their order of precedence. To link to the existing \verb!.vimrc! file,
+follow
+\begin{verbatim}
+mkdir -p ${XDG_CONFIG_HOME:=$HOME/.config}
+ln -s ~/.vim $XDG_CONFIG_HOME/nvim
+ln -s ~/.vimrc $XDG_CONFIG_HOME/nvim/init.vim
+\end{verbatim}
+
+\subsection{-- using dotfiles (rcm)}
+\label{sec:dotfiles}
+
+Dotfiles are plain text configuration files on Unix-y systems for things like
+our shell, ~/.zshrc, our editor in ~/.vimrc, and many others. 
+These files have gone by many names in history, such as "rc files" because they
+typically end in rc or "dotfiles" because they begin with a period.
+
+Since these files are all plain text, we can gather them together in a git
+repository and use that to track the changes you make over time. 
+To help managing, and sharing these files, we can put them all into a single
+folder, called \verb!dotfiles!. This is a directory containing all the .*rc
+files in your home directory.
+
+Thoughbot
+(\url{https://thoughtbot.com/upcase/videos/intro-to-dotfiles})
+put them together into a git folder -
+\url{https://github.com/thoughtbot/dotfiles}.
+
+They are purposefully somewhat limited in how far they go with configuration and
+customization as they are intended to be used as a base. You can put your
+customization (Sect.\ref{sec:dotfiles-customized}).
+
+To download the base dotfiles folder
+\begin{verbatim}
+git clone git://github.com/thoughtbot/dotfiles.git ~/dotfiles
+\end{verbatim}
+\url{https://github.com/thoughtbot/rcm}
+
+Then install rcm suite (Sect.\ref{sec:rcm-suite}).
+
+
+and run the first time initialization
+\begin{verbatim}
+env RCRC=$HOME/dotfiles/rcrc rcup
+\end{verbatim}
+which will modify 2 files
+\begin{verbatim}
+~/.zshrc     ZSH shell
+~/.vimrc     VIM
+\end{verbatim}
+
+NOTE: later on, to check for dotfiles update, run
+\begin{verbatim}
+rcup
+\end{verbatim}
+
+\subsection{---- rcm suite}
+\label{sec:rcm-suite}
+
+The rcm suite of tools is for managing \verb!dotfiles! directories
+(Sect.\ref{sec:dotfiles}). To install \verb!rcm! package
+\begin{itemize}
+  \item Ubuntu
+
+\begin{verbatim}
+sudo add-apt-repository ppa:martin-frost/thoughtbot-rcm
+sudo apt-get update
+sudo apt-get install rcm
+\end{verbatim}
+  
+  \item MacOS with Brew
+
+\begin{verbatim}
+brew tap thoughtbot/formulae
+brew install rcm
+\end{verbatim}
+\end{itemize}
+which then create a few scripts
+\begin{verbatim}
+/usr/bin/rcup   (main) script: used to install and update dotfiles
+
+/usr/bin/rcdn     opposite of 'rcup' - downgrade 
+
+/usr/bin/mkrc     introducing a dotfile into your dotfiles directory
+
+/usr/bin/lsrc     shows you all your dotfiles 
+\end{verbatim}
+
+This rcm suite is useful for committing your rc files (inside \verb!dotfiles!
+folder) to a central repository to share, but it also scales to a more complex
+situation such as multiple source directories shared between computers with some
+host-specific or task-specific files.
+\url{http://thoughtbot.github.io/rcm/rcm.7.html}
+
+
+\subsection{---- extend dotfiles}
+\label{sec:dotfiles-customized}
+
+Each of the config files in the thoughtbot dotfiles (Sect.\ref{sec:dotfiles})
+provides a base configuration but will also read in a "local" file to allow for
+additional, more personalized configuration.
+
+Example:  thoughtbot's dotfiles contain a ~/.vimrc file will the base that will
+optionally source in a ~/.vimrc.local file if available. You can use this
+~/.vimrc.local file to override and add to the configurations provided by the
+base ~/.vimrc file.
+
+
+\begin{verbatim}
+mkdir ~/dotfiles-local
+
+// put your customizations in ~/dotfiles-local appended with .local:
+
+
+\end{verbatim}
+
+
+
+\section{Plugins with asynchronous support}
+
+
+Neomake which is implementing asynchronous :make using the new job control API
+provided by neovim.
+
+\subsection{neomake}
+\label{sec:neomake}
+
+NeoMake was built from the ground up to perform similar tasks of Syntastic
+(Sect.\ref{sec:Syntastic}) while taking advantage of NeoVim's asynchronous jobs.
+An alternative is ALE (Sect.\ref{sec:ALE}).
+
+If you inherits Sytastic from the thoughtbot dotfiles (Sect.\ref{sec:dotfiles}),
+I had to get creative to keep them both from running. 
+
+
+
+\subsection{ALE}
+\label{sec:ALE}
+
+
+Neomake and Ale are doing the same job, just in a different way, like ycm and
+deoplete in a certain sense.
+
+The biggest difference is that ALE can lint as you type (although there's
+neomake-autolint which can do that as well)
+
+
+SpaceVim (and neomake) live checking are very flaky, since the change is based
+on writing temporary files on disk and it is not actually async at all.
+Ale instead is truly async and you can see it with heavy linting systems like
+gometalinter or rustc. Vim does not flicker and linting happens as you type.
+
+
+
+\section{Troubleshoot}
+
+\subsection{unexpected character in neovim}
+
+
+\url{https://github.com/neovim/neovim/issues/5990}
+
+PROBLEM: Terminals have all kinds of brokenness, and this is one of them. Many
+support changing the cursor shape, but do it in one of two different ways. And
+while there are ways to query whether or not a terminal supports the feature,
+most do not implement the mechanism.   
+
+
+SOLUTION: tell terminal to ignore unknown sequence by putting this into
+\verb!init.vim!
+\url{https://github.com/neovim/neovim/issues/5990}
+\begin{verbatim}
+let $NVIM_TUI_ENABLE_CURSOR_SHAPE = 0
+\end{verbatim}
+
+\subsection{neovim conflict in byobu}
+\label{sec:byobu-neovim}
+\label{sec:neovim-byobu}
+
+There are several issues with vim + tmux or vim + gnome/mate-terminal - mostly
+related some older libvte versions (Sect.\ref{sec:libvte}). So, upgrading byobu
+will fix the problem with neovim.
+
+\begin{verbatim}
+sudo add-apt-repository ppa:byobu/ppa
+sudo apt-get update
+sudo apt-get install byobu
+//pastebinit
+//ccze
+//byobu 5.7+
+\end{verbatim}
+
+or install from source
+\begin{verbatim}
+wget https://launchpad.net/byobu/trunk/5.74/+download/byobu_5.74.orig.tar.gz
+tar -xvf byobu_5.74.orig.tar.gz
+cd byobu_5.74
+configure --prefix=/packages/byobu/5.74
+make -j4
+sudo make install 
+\end{verbatim}
+
+\section{nvim terminal emulator}
+\label{sec:nvim-terminal-emulator}
+
+Nvim embeds a VT220/xterm terminal emulator based on libvterm, which is present
+as a special buffer type.
+\begin{verbatim}
+:terminal
+
+termopen()  function
+
+edit the file with name matching 
+  `term://(.{-}//(\d+:)?)?\zs.*`
+  e.g.:
+:edit term://bash
+:vsplit term://top
+
+\end{verbatim}
+
+\url{https://neovim.io/doc/user/nvim_terminal_emulator.html}
+
+\section{Configuration}
+
+\subsection{check health}
+\label{sec:neovim-Ruby}
+
+\begin{verbatim}
+:CheckHealth
+\end{verbatim}
+List any potential issues with neovim
+
+\begin{itemize}
+  \item Ruby-based plugins (Sect.\ref{sec:ruby-based-plugins-vim})
+
+\begin{verbatim}
+  //Add Ruby support, e.g.
+  //  to use Ruby-based plugins
+  //  such as command-t plugin
+  //https://github.com/alexgenco/neovim-ruby
+sudo gem install neovim
+\end{verbatim}
+  
+\end{itemize}
+
+
+
+\subsection{register in vim}
+\label{sec:register-vim-nvim}
+
+
+To store texts, vim/nvim uses the so-called {\bf registers}.
+
+To check the contents in all registers, use
+\begin{verbatim}
+:registers
+:reg
+\end{verbatim}
+
+Consider registers as a bunch of spaces in memory that vim uses to store some
+text. Each of these spaces has a identifier, so it can be accessed later.
+
+
+Every register is accessed using a double quote before its name. Suppose
+register 'r', then \verb!''r! access to that register.
+\begin{enumerate}
+  \item {\bf named registers}:
+  \begin{itemize}
+    \item {\bf numbered registers}: with name from 0 to 9
+    
+    "0 will always have the content of the latest yank (i.e. the same as unamed
+    register), and the others will have last 9 deleted text, being "1 the
+    newest, and "9 the oldest.
+    
+    \item {\bf read-only registers}: \verb!".! (dot), \verb!''%! (percent),
+    \verb!'':! (colon), \verb!''#! (pound)
+    
+    NOTE: The last inserted text is stored on \verb!".! (dot register)
+    
+    NOTE: \verb!''%! holds the current file path (starting from the directory
+    where vim was first opened.) Example:
+ \begin{verbatim}
+  //GOAL: copy the current file path to the register
+  // let = write to a register
+ :let @+=@%
+ \end{verbatim}
+    
+    NOTE: \verb!'':! (colon register) holds the most recently executed
+    vim's command, e.g. if you just save the buffer with \verb!:w! command, then
+    'W' is stored in this colon register.
+    So, to execute the command again, use \verb!@:!. 
+    
+    NOTE: \verb!''#! (pound register) holds alternative file, check
+  \begin{verbatim}
+  :h alternate-file
+  \end{verbatim}
+    
+    It's what vim uses to switch between files when you use \verb!Ctrl-^!
+
+    \item {bf expression register}: \verb!"=! register 
+    
+    If, in insert mode, you type Ctrl-r =, you will see a \verb!=! sign in the
+    command line. Then if you type \verb!2+2 <enter>!, 4 will be printed. This
+    can be used to execute all sort of expressions, even calling external
+    commands.
+    
+    \item {\bf search registers}: there are a number of search register, each
+    map to the command search command and   hold any text that you typed for
+    searching with \verb!/!, \verb!?!, \verb!*! or \verb!#! command.
+    
+    To replace that text (that you searched with \verb!/! command) with
+    something else (e.g. mustache), you don't have to retype that text, just do
+  \begin{verbatim}
+  :%s/<Ctrl-r />/mustache/g
+  \end{verbatim}
+        
+  \end{itemize}
+  
+  
+  \item  {\bf unamed registers}(whose name is also double-quote): access using
+  \verb!''''!
+  
+  By default: any text that you delete (with d, c, s or x) or yank (with y) will
+  be placed there, and that's what vim uses to paste, when no explicit register
+  is given. So, a simple \verb!p! command is equivalent to \verb!''''p!. 
+\end{enumerate}
+
+IN COMMAND MODE: To add text to a register, (do text selection first), then
+specify the register name with yank, i.e. \verb!''ry!. To paste the content of the register 'r', then
+\verb!''rp!. 
+
+IN INSERT MODE: You can also access (i.e. paste the content) the registers in
+insert/command mode with \verb!Ctrl-r! + register name, e.g. \verb!Ctrl-r r!. 
+
+
+\subsection{clipboard}
+\label{sec:clipboard}
+
+Read Sect.\ref{sec:ICCCM} to understand better about clipboard system.
+To store texts, vim/nvim uses the so-called {\bf registers}
+(Sect.\ref{sec:register-vim-nvim}.
+
+NOTE: Check if vim/nvim/gvim with \verb!+clipboard! feature.
+If yes, then it support the system clipboard, i.e. PRIMARY selection, via the
+\verb!*! register. vim's command \verb!:yank! (or yank selected text with yy; or
+yank current work with yw; or yank current character with yc) and \verb!:paste!
+operate on unnamed register, which by default corresponds to \verb!*! register.
+
+ 
+\begin{verbatim}
+:help clipboard
+\end{verbatim}
+
+NOTE: \verb!+clipboard! code has been removed in
+neovim\footnote{\url{https://github.com/neovim/neovim/issues/483}}. It will be
+reimplemented as a plugin at a later stage. Clipboard integration is a
+platform-specific feature and can be achieved through external commands such
+clip, xclip and pbcopy. So, there's no need to reinvent the wheel by
+implementing these commands inside Neovim. Neovim try to look for the presence
+of the following clipboard managers (Sect.\ref{sec:ICCCM}) in the order of
+priority
+\begin{verbatim}
+g:clipboard
+pbcopy/pbpaste (Mac OS X)
+xclip
+xsel (newer alternative to xclip)
+lemonade (for SSH) https://github.com/pocke/lemonade
+doitclient (for SSH) http://www.chiark.greenend.org.uk/~sgtatham/doit/
+win32yank (Windows)
+tmux (if $TMUX is set)
+\end{verbatim}
+NOTE: \verb!g:clipboard! enables you to configure a custom clipboard system
+\begin{verbatim}
+
+\end{verbatim}
+
+
+Without such an external plugin,
+Neovim has no direct connection to system clipboard, so we need to interact with
+the registers explicitly
+\begin{verbatim}
+" <register> p   
+              // p = paste
+  with <register> can be a number 0 to 9, or "+" or "*"
+\end{verbatim}
+
+
+
+\subsection{nvim configuration files}
+\label{sec:nvim-configuration}
+
+Unlike vim/vi (Sect.\ref{sec:vim-configuration}), the location of configuration
+file in neovim is quite different.
+\begin{verbatim}
+~/.config/nvim/init.vim
+//Windows
+~\AppData\Local\nvim\init.vim
+\end{verbatim}
+NeoVim supports the XDG Base Directory Specification, which among other things
+attempts to standardize where user configuration files should live and their
+order of precedences. 
+
+\begin{verbatim}
+:version
+
+  //display 2 locations
+      //system vimrc file
+$VIM/sysinit.vim 
+     //fall-back for $VIM
+/usr/local/share/nvim
+\end{verbatim}
+
+
+nvim use \verb!XDG! environment's variables
+(Sect.\ref{sec:XDG-environment-variables}), and \verb!VIMRUNTIME!
+\begin{verbatim}
+$VIMRUNTIME    //location for files distributed with Neovim
+
+      //personal preferences
+// default: XDG_CONFIG_HOME = $HOME/.config
+      
+      //personal preferences for nvim
+$XDG_CONFIG_HOME/nvim
+     // with the default resource file is
+$XDG_CONFIG_HOME/nvim/init.vim
+
+      //configuration files according to XDG
+$XDG_CONFIG_DIRS   //default: /etc/xdg
+
+
+      //nvim's plugins installed by user
+$XDG_DATA_HOME/nvim/site
+
+      //plugins installed by system administrator; but
+      //are not part of neovim distribution
+      // XDG_DATA_DIRS = /usr/local/share/:/usr/share/
+      
+//'after' directory
+      // these below setting overrule or add to the 
+      // distributed defaults or syste-wide settings
+$XDG_DATA_DIRS[1]/nvim/site/after
+$XDG_DATA_DIRS[2]/nvim/site/after
+$XDG_CONFIG_HOME/nvim/after
+\end{verbatim}
+
+If you use SpaceVim, read Sect.\ref{sec:spacevim-configuration}
+
+\section{Control nvim programmatically}
+
+
+The primary way to control Nvim programmatically is the RPC API, which speaks
+MessagePack-RPC ("msgpack-rpc"), a messaging protocol that uses the
+MessagePack serialization format:
+
+\begin{verbatim}
+To make Nvim listen on a TCP/IP socket, set the
+     |$NVIM_LISTEN_ADDRESS| environment variable before starting Nvim:
+        NVIM_LISTEN_ADDRESS=127.0.0.1:6666 nvim
+\end{verbatim}
+\url{https://neovim.io/doc/user/msgpack_rpc.html}
+
+A better way is to use the Python REPL with the `neovim` package, where API
+functions can be called interactively:
+\begin{verbatim}
+    >>> from neovim import attach
+    >>> nvim = attach('socket', path='[address]')
+    >>> nvim.command('echo "hello world!"')
+\end{verbatim}
+
+
+
+\section{SpaceVim}
+\label{sec:SpaceVim}
+
+SpaceVim is a community-driven vim distribution that seeks to provide layer
+feature, especially for neovim.
+
+\url{http://liuchengxu.org/posts/space-vim/}
+
+What make SpaceVim different are
+\begin{enumerate}
+  \item commands are grouped, and interact with the leader key
+  (Sect.\ref{sec:SpaceVim-leader-key})
+  
+  \item
+\end{enumerate}
+
+\subsection{install + troubleshoot}
+\label{sec:spacevim-install}
+
+SpaceVim makes use of 
+\begin{verbatim}
+$HOME/.SpaceVim.d/init.vim      [default global config file]
+
+$HOME/.SpaceVim/           [code from git]
+          ./autoload/
+          ./bundle/
+          ./config/
+          ./doc/
+          ./docs/
+          ./dotvim/
+          ./filetype.vim
+          ./ftplugin/
+          ./ginit.vim
+          ./init.vim
+          ./mode/
+          ./session/
+          ./statusline.vimrc
+          ./syntax/
+          ./test/
+          ./vimrc
+\end{verbatim}
+
+To install Spacevim, run the command (use curl (Sect.\ref{sec:curl})) 
+\begin{verbatim}
+curl -sLf https://spacevim.org/install.sh | bash -s -- --install neovim 
+
+ //for both neovim and vim
+curl -sLf https://spacevim.org/install.sh | bash
+
+\end{verbatim}
+which does
+
+\begin{itemize}
+  \item clone the git repository to \verb!$HOME/.SpaceVim!
+
+    \item clone dein.vim - the package manager (Sect.\ref{sec:dein.vim}) to
+  
+\begin{verbatim}
+$HOME/.cache/vimfiles/repos/github.com/Shougo/dein.vim
+\end{verbatim}
+  
+  \item instal for vim:
+  
+  \begin{enumerate}
+    \item back up \verb!~/.vimrc! file and \verb!~/.vim! folder
+  
+    \item make \verb!~/.vim! points to \verb!$HOME/.SpaceVim! folder
+  
+  \end{enumerate}
+  
+  \item install for neovim: \label{sec:nvim-SpaceVim}
+
+  \begin{enumerate}
+    
+    \item backup \verb!~/.config/nvim/! folder
+    
+    \item make \verb!~/.config/nvim/! point to \verb!~/.SpaceVim/! folder
+    
+  \end{enumerate}
+\end{itemize}
+
+If you get error
+\begin{verbatim}
+fatal: Unable to find remote helper for 'https'
+\end{verbatim}
+
+It means git has some problem
+\begin{verbatim}
+//Ubuntu
+sudo apt-get install libcurl14-openssl-dev
+
+//CentOS, Fedora, RedHat
+yum install curl-devel
+
+//... finally 
+sudo apt-get update
+sudo apt-get install git
+\end{verbatim}
+
+
+\subsection{update}
+
+Check version, if SpaceVim already installed
+\begin{verbatim}
+:SPVersion
+
+:SPUpdate
+\end{verbatim}
+
+To update a particular plugin only
+\begin{verbatim}
+//we can use Tab to complete plugin names
+:SPUpdate <plugin-name>
+\end{verbatim}
+
+\subsection{what packages come with SpaceVim}
+
+To know what packages come with SpaceVim, run
+\begin{verbatim}
+:SPUpdate
+\end{verbatim}
+or
+\begin{verbatim}
+git -C ~/.SpaceVim pull .
+\end{verbatim}
+
+\subsection{(global) configuration files}
+\label{sec:spacevim-configuration}
+
+SpaceVim use the following file
+\begin{verbatim}
+~/.SpaceVim.d/init.vim
+\end{verbatim}
+as the default global config file. This file is automatically created the very
+first time you use SpaceVim. You can later modify this file to add custom
+configuration, i.e. \textcolor{red}{set all options and layers in this
+file}. The file is loaded by an internal call within the \verb!$MYVIMRC! file
+below.
+
+REMEMBER that SpaceVim is not a real editor, it stills use either vim or nvim as
+the back-end. Then, the first config file that is loaded is discussed in
+Sect.\ref{sec:spacevim-install}. Example: If the back-end is nvim, at
+installation of SpaceVim, the original nvim's configuration files
+(Sect.\ref{sec:nvim-configuration}) is backed up and this file is symbolic
+linked to SpaceVim's config file.
+\begin{verbatim}
+$HOME/.config/nvim ----->      $HOME/.SpaceVim/init.vim
+\end{verbatim}
+Let's parse what this file does
+\begin{itemize}
+  \item load \verb!<path-to-current-init.vim>/config/main.vim! file
+
+\begin{verbatim}
+execute 'source' fnamemodify(expand('<sfile>'), ':h').'/config/main.vim'
+\end{verbatim}
+
+Behind the scene, this \verb!./config/main.vim! will load many other files
+\begin{verbatim}
+.SpaceVim/config/functions.vim
+\end{verbatim}
+; and configure these folder into RTP (runtimepath) 
+\begin{verbatim}
+$HOME/.SpaceVim/SpaceVim.d/
+\end{verbatim}
+
+
+
+  \item \ldots 
+\end{itemize}
+
+What's new to SpaceVim is that you don't know where to add custom
+configuration? You put your configuration in
+\begin{verbatim}
+$HOME/.SpaceVim/.SpaceVim.d/
+\end{verbatim}
+directory.
+
+All default configuration of SpaceVim is in 
+\begin{verbatim}
+$HOME/.SpaceVim/autoload/SpaceVim.vim
+\end{verbatim}
+All the commands to modify SpaceVim can be referenced in this file
+
+The file uses
+\begin{enumerate} 
+  \item dein : plugin manager
+  \item vimfiler: file/folder browser
+  
+  \item colorscheme: if none is set : 'desert' 
+  \item colorscheme: 'gruvbox'
+\begin{verbatim}
+g:spacevim_colorscheme = 'gruvbox'
+\end{verbatim}
+  \item background : default is 'dark'
+\end{enumerate}
+
+
+
+\subsection{ -- plugins in SpaceVim}
+
+Plugins are organized into so-called layers in SpaceVim
+(Sect.\ref{sec:nvim-layers}). Check for them in 
+\begin{verbatim}
+$HOME/.SpaceVim/autoload/SpaceVim/layers/
+\end{verbatim}
+Look into the file, search for the plugin name, and file the command to evoke
+the plugin as the value passed to \verb!on_cmd!
+
+However, if you want to add those any custom plugin, put them into 
+\verb!g:space_vim_custom_plugins! as a list
+\begin{verbatim}
+let g:spacevim_custom_plugins = [
+        \ ['jiangmiao/auto-pairs'],
+        \ ]
+        
+let g:spacevim_custom_plugins = [
+  \ ['fatih/vim-go',               { 'on_ft' : 'go'}],
+  \ ['keith/swift.vim',            { 'on_ft' : 'swift'}],
+  \ ['leafgarland/typescript-vim', { 'on_ft' : 'typescript' }],
+  \ ]        
+\end{verbatim}
+Then, Spacevim will install these plugins automatically, then restart
+vim/nvim.
+
+
+
+
+\subsection{-- layers in vim}
+\label{sec:nvim-layers}
+
+Layer refers to a particular set of packages (from hundreds of ready-to-use
+packages) nicely organised in configuration layers following a set of
+conventions \footnote{\url{https://spacevim.org/development/}}.
+
+The combination of these plugins enable the layer to provide a layout of window,
+and subset of commands, syntax hight light, code checking etc. (for a given
+coding environment). To access these layer-specific commands, we use a
+\verb!<LocalLeader>! key (Sect.\ref{sec:SpaceVim-leader-key}).
+
+For the list of built-in layers of SpaceVim, check 
+\begin{verbatim}
+~/.SpaceVim.d/init.vim
+\end{verbatim}
+
+
+LOADING LAYERS: default list
+\begin{verbatim}
+ 18 call SpaceVim#layers#load('incsearch')
+ 17 call SpaceVim#layers#load('lang#c')
+ 16 call SpaceVim#layers#load('lang#c')
+ 15 call SpaceVim#layers#load('lang#elixir')
+ 14 call SpaceVim#layers#load('lang#go')
+ 13 call SpaceVim#layers#load('lang#haskell')
+ 12 call SpaceVim#layers#load('lang#java')
+ 11 call SpaceVim#layers#load('lang#javascript')
+ 10 call SpaceVim#layers#load('lang#lua')
+  9 call SpaceVim#layers#load('lang#perl')
+  8 call SpaceVim#layers#load('lang#php')
+  7 call SpaceVim#layers#load('lang#python')
+  6 call SpaceVim#layers#load('lang#rust')
+  5 call SpaceVim#layers#load('lang#swig')
+  4 call SpaceVim#layers#load('lang#tmux')
+  3 call SpaceVim#layers#load('lang#vim')
+  2 call SpaceVim#layers#load('lang#xml')
+  1 call SpaceVim#layers#load('shell')                                                                                                                                           22  call SpaceVim#layers#load('tools#screensaver')
+  
+//Example: customize 'shell' layer
+call SpaceVim#layers#load('shell'
+        \ {
+        \ 'default_position' : 'top',
+        \ 'default_height' : 30,
+        \ }
+        \ )
+\end{verbatim}
+
+\subsection{local configuration file}
+
+Remember that with vim, you can put \verb!.lvimrc!
+to your root project folder, and vim will automatically load this file.
+
+SpaceVim also enable that local configuration file if we have
+\begin{verbatim}
+$PROJECT_ROOT_DIR/.SpaceVim.d/init.vim
+\end{verbatim}
+NOTE: \verb!$PROJECT_ROOT_DIR/.SpaceVim.d/! is also added to runtime path. 
+
+\subsection{documentation}
+
+SpaceVim has \verb!~/.SpaceVim/init.vim! as the entry place (DONT modify it).
+
+SpaceVim use \verb!~/.SpaceVim.d/init.vim! as the default global config file,
+with all SpaceVim options and layers. The location 
+\verb!~/.SpaceVim.d/! is also added to vim/nvim's runtimepath; so we can add our
+script in this folder. 
+
+
+For project's specific configuration, suppose you have a project on
+\begin{verbatim}
+$HOME/projects/MGS
+\end{verbatim}
+then you need to create
+\begin{verbatim}
+$HOME/projects/MGS/.SpaceVim.d/
+\end{verbatim}
+and adds project's specific configuration file here.
+
+
+To change SpaceVim's default configuration, read
+\begin{verbatim}
+:h SpaceVim-config
+\end{verbatim}
+
+\subsection{leader key: SPACE}
+\label{sec:SpaceVim-leader-key}
+
+
+All interaction with SpaceVim is done through the leader key.
+SpaceVim use space-key (SPC) as the default leader key
+\begin{verbatim}
+SPC b     =  for buffers
+
+SPC x     =  for text
+  SPC x d      = delete extra spaces around the cursor
+\end{verbatim}
+
+\begin{verbatim}
+let g:spacevim_mapleader = "\<space>"
+\end{verbatim}
+
+SpaceVim also use \verb!<LocalLeader>! key, which is \verb!,! (comma) by default
+in SpaceVim; it can be seen as the major-mode prefix in spacemacs.
+ Depending on the layer that you're on (Sect.\ref{sec:nvim-layers})
+
+\url{https://spacevim.org/documentation/#buffers-and-files}
+
+\subsection{-- vimfiler vs. NERDtree}
+
+DEFAULT vimfiler (Sect.\ref{sec:vimfiler}).
+
+\begin{verbatim}
+  //use lower-case always
+let g:spacevim_filemanager = 'vimfiler' " 'nerdtree'
+\end{verbatim}
+To use NERDtree (Sect.\ref{sec:NERDtree})
+
+\subsection{-- plugin bundle dir}
+
+\begin{verbatim}
+let g:spacevim_plugin_bundle_dir = '~/.cache/vimfiles'
+\end{verbatim}
+
+\subsection{-- indentation (default = 2)}
+
+\begin{verbatim}
+let g:spacevim_default_indent = 2
+\end{verbatim}
+
+\subsection{contribute to SpaceVim}
+
+SpaceVim is based on conventions, mainly for naming functions, keybindings
+definition and writing documentation.  Submit your contribution against the dev
+branch.
+
+\url{https://spacevim.org/development/}
+
+\chapter{Other text/code editors}
+
+\section{Atom}
+\label{sec:atom}
+
+\section{SublimeText}
+\label{sec:SublimeText}
+
+\section{TextMate}
+\label{sec:TextMate}
+
+\section{Eclipse}
+\label{sec:Eclipse}
+
+Check the Book Open-Source's Eclipse.
+
+\section{Visual Studio}
+\label{sec:VisualStudio}
+
+\section{JetBrain (PyCharm, IntelliJ IDEA)}
+\label{sec:JetBrain}
+
+\section{Spacemacs}
+\label{sec:spacemacs}
+
+Spacemacs can be used naturally by both Emacs and Vim users -- you can even mix
+the two editing styles. Switching easily between input styles makes Spacemacs a
+great tool for pair-programming.
+
+

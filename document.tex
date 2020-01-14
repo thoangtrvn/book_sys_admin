@@ -1,0 +1,217 @@
+%%This is a very basic article template.
+%%There is just one section and two subsections.
+%\documentclass{article}
+\documentclass[11pt]{book}
+%\usepackage{draftcopy} % PS or DVI
+%\usepackage{pdfdraftcopy} % PDF
+%http://filoxus.blogspot.com/2008/01/how-to-insert-watermark-in-latex.html
+
+\usepackage[intlimits]{amsmath} %Never write a paper without using amsmath for its many new commands
+
+\usepackage{amssymb} %Some extra symbols
+\usepackage{stmaryrd} %Some extra symbols
+
+%%\usepackage{pdfsync}
+\usepackage{makeidx} %If you want to generate an index automatically
+%\usepackage{graphicx} %If you want to include postscript graphics
+\ifx\pdftexversion\undefined
+\usepackage[dvips]{graphicx}
+%%%%%%%%  
+%% To include .jpg and .pnm into latex
+%%%%%%%%%%%%%%
+\DeclareGraphicsExtensions{.jpg,.eps,.pnm}
+\DeclareGraphicsRule{.jpg}{eps}{.jpg.bb}{`jpeg2ps -h #1}
+\DeclareGraphicsRule{.pnm}{eps}{.pnm.bb}{`pnmtops #1}
+\else
+\usepackage{graphicx}
+\fi
+ 
+%%ulem: \uline, \sout, \uuline...
+%%soul: \ul, 
+%%cancel: for math mode
+\usepackage{cancel,soul,ulem}
+
+\usepackage{epsfig}
+
+\usepackage{color}  %Add color capabilities to fonts,e.g. \color{blue}{text something}
+\usepackage{listings} % Add typeset programs (programming code) within LaTeX.
+
+\usepackage{tabularx}
+%\usepackage{ucs}
+\usepackage[utf8]{inputenc}
+%\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+\usepackage{chemarr}
+
+\usepackage{verbatim}
+\usepackage{fancyvrb}  %% \begin{Verbatim} .. \end{Verbatim}
+
+\usepackage[version=3]{mhchem}
+
+%\usepackage{mystyle} %Create your own file, mystyle.sty where you put all your own \newcommand statements, for example.
+%\usepackage{url}
+\usepackage[hyphens]{url}
+           % usage \url{URL}
+  
+%\usepackage[hypertex, dvips]{hyperref}       % does not work with LaTeX2HTML
+            % usage \href{URL}{text}
+%\usepackage[breaklinks=true, linktocpage]{hyperref}
+\usepackage[breaklinks=true, colorlinks=true, linktocpage=true]{hyperref}                
+
+\usepackage{breakurl}  % used with dvips, not with pdflatex
+  %usage \burl{URL}           
+\usepackage{breakcites}
+
+\usepackage[all]{hypcap}
+%\graphicspath{{./images/}}
+
+\usepackage[stable]{footmisc}
+\usepackage{framed}
+\usepackage[square]{natbib}
+
+\usepackage{import}
+
+\usepackage{multirow}
+\usepackage{multicol}
+
+\usepackage{tocloft}% http://ctan.org/pkg/tocloft
+\setlength{\cftsubsecnumwidth}{4em}% Set length of number width in ToC for \subsection
+\makeatother
+%%http://tex.stackexchange.com/questions/39971/adjusting-spaces-for-the-toc
+
+\usepackage[style=2]{mdframed}
+
+% \makeatletter
+% \renewenvironment{itemize}{%
+%     \begin{list}{\labelitemi}{%
+%         \setlength{\itemsep}{\z@}%
+%         \setlength{\parsep}{\z@}%
+%         \setlength{\parindent}{1em}%
+%         \setlength{\labelwidth}{\parindent}% <-- THIS ONE WAS MISSING
+%         \setlength{\labelsep}{0pt}% <-- AND THIS ONE, TOO
+%         \setlength{\leftmargin}{\labelwidth+\labelsep}%
+%         \def\makelabel##1{\rlap{\normalfont\nobreak ##1}\hss}% <-- Shouldn't harm
+%     }%
+% }{%
+%     \end{list}
+% }
+%%http://tex.stackexchange.com/questions/39791/suppress-top-skip-between-own-frame-environment-and-itemize
+
+% \usepackage[framemethod=TikZ]{mdframed}
+% \usepackage{xparse}% doesn't work without this package ... ???
+% \newenvironment{framed}{%
+%     \begin{mdframed}[%
+%         skipabove=\baselineskip plus 2pt minus 1pt,
+%         skipbelow=\baselineskip plus 2pt minus 1pt, 
+%         middlelinewidth=0.5pt,
+%         splittopskip=8pt,
+%         splitbottomskip=2pt,
+%         innertopmargin=9.39749pt,
+%         innerbottommargin=9.39749pt,
+%         innerleftmargin=9.39749pt,
+%         innerrightmargin=9.39749pt,
+%     ]%
+% }{%
+%     \end{mdframed}
+% }
+% \makeatother
+
+% \usepackage{blindtext}
+
+
+\lstset{
+  basicstyle=\ttfamily,
+  keywordstyle=\bfseries,
+  showstringspaces=false,
+  columns = fullflexible,
+  mathescape = false,
+  prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\hookleftarrow}},
+  % language=R
+}
+
+\begin{document}
+
+\frontmatter
+\tableofcontents 
+%\include{preface}
+
+\mainmatter 
+
+\part{System Configuration}
+\include{Concepts}
+\import*{../GUI_development/}{Introduction.tex}
+\import*{../Reverse_Engineering/}{Library.tex}
+\include{OS_kernels}
+\include{Build_Linux_kernel}
+\include{System_Setup}
+\include{Build_HPC}
+\include{Cluster_Management}
+%\include{Linux_kernel} --absorb into another file
+\include{RedHat}
+\include{WebServer}
+\import*{../Parallel_Programming/}{Infiniband.tex}
+\include{Autotools}
+
+\part{Security and Networking}
+\include{SecurityOS}
+\include{Security_protocols}
+\include{Networks}
+\include{Network_troubleshoot}
+\include{Monitor_Network}
+
+\part{Embedded System + NAS}
+\include{HardwareManufacture}
+\import*{../Fortran_Manual/}{X86_X86-64.tex}
+\include{Embedded_CPU}
+\include{MPL_MIP405}
+\include{OSAL}
+\include{NAS}
+\include{Firmware_WirelessRouter}
+\import*{../Android/}{CustomROM.tex}
+\include{Android_ROM}
+
+\part{Cloud - HyperScale Computing}
+\include{VirtualMachine}
+\import*{../Big_Data/}{Hypervisor.tex}
+\import*{../Big_Data/}{Cloud_Computing.tex}
+\include{Personal_Cloud}
+\include{Hyperscale_computing}
+ 
+\part{Tools/Utilities}
+\include{TerminalEmulator}
+\include{Unix_tools}
+\import*{../Fortran_Manual/}{Autoconf_Automake.tex}
+\include{Shell_script}
+\include{Tcl}
+\include{Windows}
+\include{Wifi} 
+\include{LLVM}
+\include{RHL_CentOS}
+\include{Wine}
+\import*{../C-Cpp_Manual/}{Vala.tex}
+
+
+\part{Editors}
+\include{Emacs}
+\include{Vim}
+
+\part{Tips}
+\include{MacOS}
+\include{Ubuntu_bugs}  
+
+
+\part{Extras}
+\import*{../GUI_development/}{Introduction.tex}
+
+
+\backmatter 
+
+%\bibliographystyle{biophysj} 
+%\bibliographystyle{amsalpha} %The style you want to
+% use for references.
+%\bibliography{../ref_Fortran} %The files containing all
+
+\printindex %Make an index AUTOMATICALLY
+
+\end{document}
